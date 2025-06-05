@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade de Horários Semanal – Mato Alto</title>
+
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!--  CONTEÚDO PRINCIPAL -->
+    <div class="container">
+        <div class="header">
+            <h1>📅 Grade de Horários Semanal – Mato Alto</h1>
+        </div>
+
+        <!-- Abas dos dias da semana -->
+        <div class="tabs">
+            <button class="tab active" data-day="segunda">Segunda-feira</button>
+            <button class="tab" data-day="terca">Terça-feira</button>
+            <button class="tab" data-day="quarta">Quarta-feira</button>
+            <button class="tab" data-day="quinta">Quinta-feira</button>
+            <button class="tab" data-day="sexta">Sexta-feira</button>
+        </div>
+
+        <!-- Conteúdo de cada dia -->
+        <div class="content">
+            <div id="segunda" class="day-content active">
+                <div class="groups-grid" id="groups-segunda"></div>
+            </div>
+            <div id="terca"   class="day-content"><div class="groups-grid" id="groups-terca"></div></div>
+            <div id="quarta"  class="day-content"><div class="groups-grid" id="groups-quarta"></div></div>
+            <div id="quinta"  class="day-content"><div class="groups-grid" id="groups-quinta"></div></div>
+            <div id="sexta"   class="day-content"><div class="groups-grid" id="groups-sexta"></div></div>
+        </div>
+    </div>
+
+    <!-- ADICIONAR USUÁRIO  -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">👤 Adicionar Usuário ao grupo</h2></div>
+            <form id="userForm">
+                <div class="form-group"><label>Nome:</label>         <input type="text"   id="userName"        required></div>
+                <div class="form-group"><label>Idade:</label>        <input type="number" id="userAge" min="0" max="120" required></div>
+                <div class="form-group"><label>Deficiência:</label>  <input type="text"   id="userDeficiency"   required></div>
+                <div class="form-group"><label>Programa:</label>     <input type="text"   id="userProgram"      required></div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel"  onclick="closeModal('userModal')">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADICIONAR PROFISSIONAL -->
+    <div id="professionalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">👨‍⚕️ Adicionar Profissional</h2></div>
+            <form id="professionalForm">
+                <div class="form-group"><label>Nome:</label>     <input type="text" id="professionalName" required></div>
+                <div class="form-group">
+                    <label>Categoria:</label>
+                    <select id="professionalCategory" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="Fisioterapeuta">Ed Social - artesanato</option>
+                        <option value="Psicólogo">Ed Social - educação cultural</option>
+                        <option value="Terapeuta Ocupacional">Ed Social - informática</option>
+                        <option value="Fonoaudiólogo">Ed Social - jardinagem</option>
+                        <option value="Assistente Social">Fisioterapeuta</option>
+                        <option value="Enfermeiro">Fonoaudiologa</option>
+                        <option value="Educador Físico">Neuropsicopedagoga</option>
+                        <option value="Pedagogo">Nutricionista</option>
+                        <option value="Nutricionista">Pedagoga</option>
+                        <option value="Médico">Psicologo</option>
+                        <option value="Outro">Psicomotricista</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('professionalModal')">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!--LOGIN DE ADMINISTRADOR -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">🔒 Login de Administrador</h2></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Senha:</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('loginModal')">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Entrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botão de exportação -->
+    <button class="export-btn" onclick="exportToCSV()">📊 Exportar CSV</button>
+
+
+    <script src="script.js"></script>
+</body>
+</html>
