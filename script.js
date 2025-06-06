@@ -304,6 +304,14 @@ function showProfessionalDetails(profId) {
     const prof = masterProfessionals.find(p => p.id === profId);
     if (!prof) return;
 
+    // Remove seleção anterior
+    document.querySelectorAll('.professional-list-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    // Adiciona seleção ao item clicado
+    event.currentTarget.classList.add('selected');
+
     const detailsContainer = document.getElementById('professional-details-view');
     let content = `<h3>Grupos de ${prof.nome} ${prof.sobrenome}</h3>`;
     let foundInGroups = false;
