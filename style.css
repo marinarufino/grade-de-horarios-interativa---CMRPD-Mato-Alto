@@ -412,3 +412,70 @@
                 width: 95%;
             }
         }
+        /* Estilos para a nova aba de Profissionais */
+.master-list-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+#master-professionals-list {
+    flex: 1; /* Ocupa 1 parte do espaço */
+    background-color: #f8fafc;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    align-self: flex-start; /* Impede que estique */
+}
+
+#professional-details-view {
+    flex: 2; /* Ocupa 2 partes do espaço */
+    padding: 20px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    min-height: 300px;
+}
+
+.professional-list-item {
+    padding: 10px;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.professional-list-item:hover {
+    background-color: #eef2ff;
+}
+
+.professional-list-item strong {
+    color: #1d4ed8;
+}
+
+.professional-list-item span {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.details-group-card {
+    background-color: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.details-group-card h4 {
+    margin-bottom: 10px;
+    color: #1e293b;
+}
+
+.details-group-card ul {
+    list-style: none;
+    padding-left: 5px;
+}
+
+.details-group-card li {
+    padding: 5px;
+    border-bottom: 1px solid #f1f5f9;
+}

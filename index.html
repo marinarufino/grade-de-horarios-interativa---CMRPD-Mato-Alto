@@ -22,6 +22,7 @@
             <button class="tab" data-day="quarta">Quarta-feira</button>
             <button class="tab" data-day="quinta">Quinta-feira</button>
             <button class="tab" data-day="sexta">Sexta-feira</button>
+            <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button> </div>
         </div>
 
         <!-- Conteúdo de cada dia -->
@@ -34,6 +35,16 @@
             <div id="quinta"  class="day-content"><div class="groups-grid" id="groups-quinta"></div></div>
             <div id="sexta"   class="day-content"><div class="groups-grid" id="groups-sexta"></div></div>
         </div>
+        <div id="profissionais" class="day-content">
+        <h2>Relação Geral de Profissionais</h2>
+        <button class="btn-add" onclick="openRegisterProfessionalModal()">+ Cadastrar Novo Profissional</button>
+        <div class="master-list-container">
+            <div id="master-professionals-list">
+                </div>
+            <div id="professional-details-view">
+                </div>
+        </div>
+    </div>
     </div>
 
     <!-- ADICIONAR USUÁRIO  -->
@@ -54,38 +65,56 @@
     </div>
 
     <!-- ADICIONAR PROFISSIONAL -->
-    <div id="professionalModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h2 class="modal-title">👨‍⚕️ Adicionar Profissional</h2></div>
-            <form id="professionalForm">
-                <div class="form-group"><label>Nome:</label>     <input type="text" id="professionalName" required></div>
-                <div class="form-group">
-                    <label>Categoria:</label>
-                    <select id="professionalCategory" required>
-                        <option value="">Selecione uma categoria</option>
-                        <option value="Ed Físico">Ed Físico</option>
-                        <option value="Ed Social - artesanato">Ed Social - artesanato</option>
-                        <option value="Ed Social - educação cultural">Ed Social - educação cultural</option>
-                        <option value="Ed Social - informática">Ed Social - informática</option>
-                        <option value="Ed Social - jardinagem">Ed Social - jardinagem</option>
-                        <option value="Fisioterapeuta">Fisioterapeuta</option>
-                        <option value="Fonoaudiologa">Fonoaudiologa</option>
-                        <option value="Neuropsicopedagoga">Neuropsicopedagoga</option>
-                        <option value="Nutricionista">Nutricionista</option>
-                        <option value="Pedagoga">Pedagoga</option>
-                        <option value="Psicologo">Psicologo</option>
-                        <option value="Psicomotricista">Psicomotricista</option>
-                        <option value="Terapeuta ocupacional">Terapeuta ocupacional</option>
-                        <option value="Outro">Outro</option>
+   <div id="professionalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title">👨‍⚕️ Adicionar Profissional ao Grupo</h2></div>
+        <form id="professionalForm">
+            <div class="form-group">
+                <label>Selecione o Profissional:</label>
+                <select id="professionalSelect" required>
                     </select>
-                </div>
-                <div class="modal-buttons">
-                    <button type="button" class="btn-cancel" onclick="closeModal('professionalModal')">Cancelar</button>
-                    <button type="submit" class="btn-confirm">Confirmar</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('professionalModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Confirmar</button>
+            </div>
+        </form>
     </div>
+</div>
+
+<div id="registerProfessionalModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title">👨‍⚕️ Cadastrar Novo Profissional</h2></div>
+        <form id="registerProfessionalForm">
+            <div class="form-group"><label>Nome:</label> <input type="text" id="regProfName" required></div>
+            <div class="form-group"><label>Sobrenome:</label> <input type="text" id="regProfSurname" required></div>
+            <div class="form-group">
+                <label>Categoria:</label>
+                <select id="regProfCategory" required>
+                    <option value="">Selecione uma categoria</option>
+                    <option value="Ed Físico">Ed Físico</option>
+                    <option value="Ed Social - artesanato">Ed Social - artesanato</option>
+                    <option value="Ed Social - educação cultural">Ed Social - educação cultural</option>
+                    <option value="Ed Social - informática">Ed Social - informática</option>
+                    <option value="Ed Social - jardinagem">Ed Social - jardinagem</option>
+                    <option value="Fisioterapeuta">Fisioterapeuta</option>
+                    <option value="Fonoaudiologa">Fonoaudiologa</option>
+                    <option value="Neuropsicopedagoga">Neuropsicopedagoga</option>
+                    <option value="Nutricionista">Nutricionista</option>
+                    <option value="Pedagoga">Pedagoga</option>
+                    <option value="Psicologo">Psicologo</option>
+                    <option value="Psicomotricista">Psicomotricista</option>
+                    <option value="Terapeuta ocupacional">Terapeuta ocupacional</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('registerProfessionalModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Confirmar Cadastro</button>
+            </div>
+        </form>
+    </div>
+</div>
 
     <!--LOGIN DE ADMINISTRADOR -->
     <div id="loginModal" class="modal">

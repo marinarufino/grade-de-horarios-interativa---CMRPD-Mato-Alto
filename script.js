@@ -19,6 +19,7 @@ const timeSlots = [
 
 /*dados no local storage*/
 let scheduleData = {};
+let masterProfessionals = [];
 let currentModalContext = {};   // guarda { day, groupId, type }
 
 function resetDataStructure() {
@@ -39,17 +40,21 @@ function resetDataStructure() {
 function saveData() {
   try {
     localStorage.setItem("scheduleData", JSON.stringify(scheduleData));
+    localStorage.setItem("masterProfessionals", JSON.stringify(masterProfessionals)); // NOVO
   } catch (err) {
     console.error("Erro ao salvar:", err);
     alert("⚠️ Não foi possível salvar os dados! Faça um backup manual exportando em CSV.");
   }
 }
 
+// SUBSTITUA A FUNÇÃO ANTIGA
 function loadData() {
-  const raw = localStorage.getItem("scheduleData");
-  if (!raw) return;
+  const rawSchedule = localStorage.getItem("scheduleData");
+  const rawProfessionals = localStorage.getItem("masterProfessionals"); // NOVO
+
   try {
-    scheduleData = JSON.parse(raw);
+    if (rawSchedule) scheduleData = JSON.parse(rawSchedule);
+    if (rawProfessionals) masterProfessionals = JSON.parse(rawProfessionals); // NOVO
   } catch (err) {
     console.error("Erro ao carregar:", err);
   }
@@ -122,6 +127,8 @@ function initializeGroups() {
     }
   });
 
+  
+
   /* renderiza dados já salvos */
   days.forEach(day => {
     let gid = day === "segunda" ? 1 : day === "terca" ? 21 : day === "quarta" ? 41 : day === "quinta" ? 61 : 81;
@@ -158,16 +165,28 @@ function openUserModal(day, groupId) {
 }
 
 function openProfessionalModal(day, groupId) {
-  if (!checkAuth()) return;
+    if (!checkAuth()) return;
 
-  if (scheduleData[day][groupId].profissionais.length >= 5) {
-    alert("Máximo de 5 profissionais por grupo");
-    return;
-  }
-  currentModalContext = { day, groupId, type: "professional" };
-  document.getElementById("professionalModal").style.display = "block";
-  document.getElementById("professionalForm").reset();
-  document.getElementById("professionalName").focus();
+    if (scheduleData[day][groupId].profissionais.length >= 5) {
+        alert("Máximo de 5 profissionais por grupo");
+        return;
+    }
+
+    currentModalContext = { day, groupId };
+    const select = document.getElementById('professionalSelect');
+    select.innerHTML = '<option value="">Selecione um profissional</option>'; // Limpa e adiciona a opção padrão
+
+    masterProfessionals.forEach(prof => {
+        // Verifica se o profissional já não está neste grupo
+        if (!scheduleData[day][groupId].profissionais.includes(prof.id)) {
+            const option = document.createElement('option');
+            option.value = prof.id;
+            option.textContent = `${prof.nome} ${prof.sobrenome} (${prof.categoria})`;
+            select.appendChild(option);
+        }
+    });
+
+    document.getElementById("professionalModal").style.display = "block";
 }
 
 function closeModal(id) {
@@ -204,25 +223,31 @@ function renderUsers(day, groupId) {
 function renderProfessionals(day, groupId) {
   const el = document.getElementById(`profissionais-${day}-${groupId}`);
   if (!el) return;
-  const list = scheduleData[day][groupId].profissionais;
+  const list = scheduleData[day][groupId].profissionais; // Agora é uma lista de IDs
 
   if (list.length === 0) {
     el.innerHTML = '<div class="empty-state">Nenhum profissional adicionado</div>';
     return;
   }
   el.innerHTML = "";
-  list.forEach((p, idx) => {
+  list.forEach((profId, idx) => {
+    // Encontra o profissional na lista mestra
+    const p = masterProfessionals.find(prof => prof.id === profId);
+    if (!p) return; // Se não encontrar, pula
+
     const card = document.createElement("div");
     card.className = "person-card";
     card.innerHTML = `
       <button class="btn-remove" onclick="removeProfessional('${day}', ${groupId}, ${idx})">×</button>
       <div class="profissional-info">
-        <div><div class="info-label">Nome</div><div class="info-item">${p.nome}</div></div>
+        <div><div class="info-label">Nome</div><div class="info-item">${p.nome} ${p.sobrenome}</div></div>
         <div><div class="info-label">Categoria</div><div class="info-item">${p.categoria}</div></div>
       </div>`;
     el.appendChild(card);
   });
 }
+
+
 
 /*remover usuarios ou profissionais*/
 function removeUser(day, groupId, idx) {
@@ -241,6 +266,75 @@ function removeProfessional(day, groupId, idx) {
     renderProfessionals(day, groupId);
     saveData();
   }
+}
+
+// ---- ADICIONE ESTAS 3 NOVAS FUNÇÕES ----
+
+// Abre o novo modal de cadastro
+function openRegisterProfessionalModal() {
+    if (!checkAuth()) return;
+    document.getElementById('registerProfessionalForm').reset();
+    document.getElementById('registerProfessionalModal').style.display = 'block';
+    document.getElementById('regProfName').focus();
+}
+
+// Renderiza a lista na aba "Profissionais"
+function renderMasterProfessionalsList() {
+    const listContainer = document.getElementById('master-professionals-list');
+    listContainer.innerHTML = '<h3>Profissionais Cadastrados</h3>'; // Título
+
+    if (masterProfessionals.length === 0) {
+        listContainer.innerHTML += '<div class="empty-state">Nenhum profissional cadastrado.</div>';
+        return;
+    }
+
+    masterProfessionals.sort((a, b) => a.nome.localeCompare(b.nome)); // Ordena por nome
+
+    masterProfessionals.forEach(prof => {
+        const item = document.createElement('div');
+        item.className = 'professional-list-item';
+        item.innerHTML = `<strong>${prof.nome} ${prof.sobrenome}</strong><br><span>${prof.categoria}</span>`;
+        item.onclick = () => showProfessionalDetails(prof.id);
+        listContainer.appendChild(item);
+    });
+}
+
+// Mostra os detalhes do profissional (grupos e usuários)
+function showProfessionalDetails(profId) {
+    const prof = masterProfessionals.find(p => p.id === profId);
+    if (!prof) return;
+
+    const detailsContainer = document.getElementById('professional-details-view');
+    let content = `<h3>Grupos de ${prof.nome} ${prof.sobrenome}</h3>`;
+    let foundInGroups = false;
+
+    days.forEach(day => {
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (group.profissionais.includes(prof.id)) {
+                foundInGroups = true;
+                content += `
+                    <div class="details-group-card">
+                        <h4>${dayNames[day]} - Grupo ${groupId} (${group.horario})</h4>
+                `;
+                if (group.usuarios.length > 0) {
+                    content += '<ul>';
+                    group.usuarios.forEach(user => {
+                        content += `<li>👤 ${user.nome}</li>`;
+                    });
+                    content += '</ul>';
+                } else {
+                    content += '<div class="empty-state">Nenhum usuário neste grupo.</div>';
+                }
+                content += '</div>';
+            }
+        });
+    });
+
+    if (!foundInGroups) {
+        content += '<div class="empty-state">Este profissional não está alocado em nenhum grupo.</div>';
+    }
+    detailsContainer.innerHTML = content;
 }
 
 /*exportação CSV*/
@@ -269,9 +363,9 @@ function exportToCSV() {
   document.body.removeChild(link);
 }
 
-/* -----------------------------------
-   TRATAMENTO DE EVENTOS GERAIS
------------------------------------ */
+
+  /*aqui são tratados os eventos*/
+
 window.addEventListener("click", e => {
   if (e.target === document.getElementById("userModal"))        closeModal("userModal");
   if (e.target === document.getElementById("professionalModal")) closeModal("professionalModal");
@@ -284,10 +378,15 @@ document.querySelectorAll(".tab").forEach(tab => {
     const day = e.currentTarget.dataset.day;
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === e.currentTarget));
     document.querySelectorAll(".day-content").forEach(c => c.classList.toggle("active", c.id === day));
+
+    if (day === 'profissionais') { // NOVO: Se clicar na aba nova
+        renderMasterProfessionalsList();
+        document.getElementById('professional-details-view').innerHTML = ''; // Limpa os detalhes
+    }
   });
 });
 
-/* Formulários (login, usuário, profissional) */
+/* formulários (login, usuário, profissional) */
 document.getElementById("loginForm").addEventListener("submit", e => {
   e.preventDefault();
   const pass = document.getElementById("loginPassword").value.trim();
@@ -317,25 +416,44 @@ document.getElementById("userForm").addEventListener("submit", e => {
 });
 
 document.getElementById("professionalForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const data = {
-    nome:      document.getElementById("professionalName").value.trim(),
-    categoria: document.getElementById("professionalCategory").value,
-  };
-  const { day, groupId } = currentModalContext;
-  scheduleData[day][groupId].profissionais.push(data);
-  renderProfessionals(day, groupId);
-  saveData();
-  closeModal("professionalModal");
+    e.preventDefault();
+    const { day, groupId } = currentModalContext;
+    const professionalId = document.getElementById('professionalSelect').value;
+
+    if (!professionalId) {
+        alert("Por favor, selecione um profissional.");
+        return;
+    }
+
+    scheduleData[day][groupId].profissionais.push(parseInt(professionalId)); // Salva o ID
+    renderProfessionals(day, groupId);
+    saveData();
+    closeModal("professionalModal");
 });
 
-/* -----------------------------------
-   INICIALIZAÇÃO DA APLICAÇÃO
------------------------------------ */
+document.getElementById("registerProfessionalForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const newProf = {
+        id: Date.now(), // ID único baseado no tempo atual
+        nome: document.getElementById('regProfName').value.trim(),
+        sobrenome: document.getElementById('regProfSurname').value.trim(),
+        categoria: document.getElementById('regProfCategory').value
+    };
+
+    masterProfessionals.push(newProf);
+    saveData();
+    renderMasterProfessionalsList(); // Atualiza a lista na tela
+    closeModal('registerProfessionalModal');
+});
+
+
+  /*inicializa a aplicação*/
+
 document.addEventListener("DOMContentLoaded", () => {
   resetDataStructure(); // cria estrutura padrão
   loadData();           // substitui caso já exista no localStorage
-  initializeGroups();   // renderiza
+  initializeGroups();   // renderiza os grupos
+  renderMasterProfessionalsList() // renderiza os profissionais
 
    const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
   textInputs.forEach(input => {
