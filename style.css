@@ -88,6 +88,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(650px, 1fr));
             gap: 25px;
+            align-items: start;
         }
 
         .group {
@@ -285,31 +286,46 @@
             color: #1e293b;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+        /* ---- COLE ESTE BLOCO NO LUGAR DO ANTIGO ---- */
 
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #374151;
-        }
+.form-group {
+  margin-bottom: 20px;
+  /* Usamos flexbox para alinhar o rótulo e o input verticalmente */
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Cria um espaço entre o rótulo e o campo */
+}
 
-        .form-input, .form-select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s ease;
-        }
+.form-group label { /* Estiliza diretamente a tag <label> */
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem; /* Leve ajuste de tamanho */
+}
 
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
+/* Regra geral para inputs e selects dentro do modal */
+.modal-content input[type="text"],
+.modal-content input[type="number"],
+.modal-content input[type="password"],
+.modal-content select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #f8fafc; /* Um fundo suave para os campos */
+}
+
+/* Efeito de foco ao clicar/selecionar o campo */
+.modal-content input:focus,
+.modal-content select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Remove as regras antigas que não eram usadas */
+/* Apague as classes .form-label, .form-input, .form-select do seu CSS se ainda existirem */
 
         .modal-buttons {
             display: flex;
