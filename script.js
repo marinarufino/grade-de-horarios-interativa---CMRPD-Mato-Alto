@@ -336,4 +336,11 @@ document.addEventListener("DOMContentLoaded", () => {
   resetDataStructure(); // cria estrutura padrão
   loadData();           // substitui caso já exista no localStorage
   initializeGroups();   // renderiza
+
+   const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
+  textInputs.forEach(input => {
+    input.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+    });
+  });
 });

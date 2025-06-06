@@ -286,23 +286,23 @@
             color: #1e293b;
         }
 
-        /* ---- COLE ESTE BLOCO NO LUGAR DO ANTIGO ---- */
+        
 
 .form-group {
   margin-bottom: 20px;
-  /* Usamos flexbox para alinhar o rótulo e o input verticalmente */
+  
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Cria um espaço entre o rótulo e o campo */
+  gap: 8px; 
 }
 
-.form-group label { /* Estiliza diretamente a tag <label> */
+.form-group label { 
   font-weight: 600;
   color: #374151;
-  font-size: 0.9rem; /* Leve ajuste de tamanho */
+  font-size: 0.9rem; 
 }
 
-/* Regra geral para inputs e selects dentro do modal */
+/* regra para inputs e selects dentro do modal */
 .modal-content input[type="text"],
 .modal-content input[type="number"],
 .modal-content input[type="password"],
@@ -316,7 +316,7 @@
   background-color: #f8fafc; /* Um fundo suave para os campos */
 }
 
-/* Efeito de foco ao clicar/selecionar o campo */
+/* efeito de foco ao selecionar o campo */
 .modal-content input:focus,
 .modal-content select:focus {
   outline: none;
@@ -324,8 +324,7 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
-/* Remove as regras antigas que não eram usadas */
-/* Apague as classes .form-label, .form-input, .form-select do seu CSS se ainda existirem */
+
 
         .modal-buttons {
             display: flex;
