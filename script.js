@@ -21,7 +21,7 @@ let scheduleData = {};
 let masterProfessionals = [];
 let currentModalContext = {};   // guarda { day, groupId, type }
 
-// categorias disponíveis para os grupos
+// Categorias disponíveis para os grupos
 const groupCategories = [
   "CENTRO DE CONVIVENCIA",
   "GAIA", 
@@ -36,7 +36,7 @@ function resetDataStructure() {
     for (let i = 1; i <= 20; i++) {
       scheduleData[day][tmpGroupId] = {
         horario: "09:00",
-        categoria: "CENTRO DE CONVIVENCIA", // categoria padrão
+        categoria: "", // Categoria vazia por padrão
         usuarios: [],
         profissionais: [],
       };
@@ -55,7 +55,7 @@ function saveData() {
   }
 }
 
-
+// SUBSTITUA A FUNÇÃO ANTIGA
 function loadData() {
   const rawSchedule = localStorage.getItem("scheduleData");
   const rawProfessionals = localStorage.getItem("masterProfessionals"); // NOVO
@@ -98,6 +98,7 @@ function createGroupElement(day, groupId) {
       <span>👥 Grupo ${groupId} – ${dayNames[day]}</span>
       <div class="group-controls">
         <select onchange="if (updateGroupCategory('${day}', ${groupId}, this.value)) { this.blur(); }" class="category-select">
+          <option value="">Selecione categoria do grupo</option>
           ${groupCategories.map(cat => `<option value="${cat}" ${scheduleData[day][groupId].categoria === cat ? "selected" : ""}>${cat}</option>`).join("")}
         </select>
         <select onchange="if (updateGroupTime('${day}', ${groupId}, this.value)) { this.blur(); }" class="time-select">
@@ -164,7 +165,7 @@ function updateGroupTime(day, groupId, time) {
   return true;
 }
 
-// atualiza categoria do grupo
+// NOVA FUNÇÃO: Atualiza categoria do grupo
 function updateGroupCategory(day, groupId, category) {
   if (!checkAuth()) {
     alert("⛔ Faça login para alterar categorias!");
@@ -201,7 +202,7 @@ function openProfessionalModal(day, groupId) {
     select.innerHTML = '<option value="">Selecione um profissional</option>'; // Limpa e adiciona a opção padrão
 
     masterProfessionals.forEach(prof => {
-        // verifica se o profissional já não está neste grupo
+        // Verifica se o profissional já não está neste grupo
         if (!scheduleData[day][groupId].profissionais.includes(prof.id)) {
             const option = document.createElement('option');
             option.value = prof.id;
@@ -247,7 +248,7 @@ function renderUsers(day, groupId) {
 function renderProfessionals(day, groupId) {
   const el = document.getElementById(`profissionais-${day}-${groupId}`);
   if (!el) return;
-  const list = scheduleData[day][groupId].profissionais; // agora é uma lista de IDs
+  const list = scheduleData[day][groupId].profissionais; // Agora é uma lista de IDs
 
   if (list.length === 0) {
     el.innerHTML = '<div class="empty-state">Nenhum profissional adicionado</div>';
@@ -255,9 +256,9 @@ function renderProfessionals(day, groupId) {
   }
   el.innerHTML = "";
   list.forEach((profId, idx) => {
-    // encontra o profissional na lista mestra
+    // Encontra o profissional na lista mestra
     const p = masterProfessionals.find(prof => prof.id === profId);
-    if (!p) return; // se não encontrar, pula
+    if (!p) return; // Se não encontrar, pula
 
     const card = document.createElement("div");
     card.className = "person-card";
@@ -292,9 +293,9 @@ function removeProfessional(day, groupId, idx) {
   }
 }
 
+// ---- ADICIONE ESTAS 4 NOVAS FUNÇÕES ----
 
-
-// abre o novo modal de cadastro
+// Abre o novo modal de cadastro
 function openRegisterProfessionalModal() {
     if (!checkAuth()) return;
     document.getElementById('registerProfessionalForm').reset();
@@ -302,14 +303,14 @@ function openRegisterProfessionalModal() {
     document.getElementById('regProfName').focus();
 }
 
-// Remove profissional da lista mestra
+// NOVA FUNÇÃO: Remove profissional da lista mestra
 function removeMasterProfessional(profId) {
     if (!checkAuth()) return;
     
     const prof = masterProfessionals.find(p => p.id === profId);
     if (!prof) return;
     
-    // verifica se o profissional está alocado em algum grupo
+    // Verifica se o profissional está alocado em algum grupo
     let isInUse = false;
     days.forEach(day => {
         Object.keys(scheduleData[day]).forEach(groupId => {
@@ -325,24 +326,37 @@ function removeMasterProfessional(profId) {
     }
     
     if (confirm(`Tem certeza que deseja remover ${prof.nome} ${prof.sobrenome} da lista de profissionais?`)) {
-        // remove da lista mestra
+        // Remove da lista mestra
         const index = masterProfessionals.findIndex(p => p.id === profId);
         if (index !== -1) {
             masterProfessionals.splice(index, 1);
             saveData();
             renderMasterProfessionalsList();
             
-            // limpa a visualização de detalhes se estava exibindo este profissional
+            // Limpa a visualização de detalhes se estava exibindo este profissional
             document.getElementById('professional-details-view').innerHTML = 
                 '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
         }
     }
 }
 
-// renderiza a lista na aba "Profissionais" 
+// Renderiza a lista na aba "Profissionais" - ATUALIZADA com botão de remoção
 function renderMasterProfessionalsList() {
     const listContainer = document.getElementById('master-professionals-list');
-    listContainer.innerHTML = '<h3>Profissionais Cadastrados</h3>'; // Título
+    listContainer.innerHTML = `
+        <h3>Profissionais Cadastrados</h3>
+        <div class="day-filter">
+            <label for="dayFilter">Filtrar por dia:</label>
+            <select id="dayFilter" onchange="updateProfessionalDetailsFilter()">
+                <option value="">Todos os dias</option>
+                <option value="segunda">Segunda-feira</option>
+                <option value="terca">Terça-feira</option>
+                <option value="quarta">Quarta-feira</option>
+                <option value="quinta">Quinta-feira</option>
+                <option value="sexta">Sexta-feira</option>
+            </select>
+        </div>
+    `;
 
     if (masterProfessionals.length === 0) {
         listContainer.innerHTML += '<div class="empty-state">Nenhum profissional cadastrado.</div>';
@@ -360,7 +374,7 @@ function renderMasterProfessionalsList() {
             <span>${prof.categoria}</span>
         `;
         item.onclick = (e) => {
-            // só abre os detalhes se não clicou no botão de remover
+            // Só abre os detalhes se não clicou no botão de remover
             if (!e.target.classList.contains('btn-remove-professional')) {
                 showProfessionalDetails(prof.id);
             }
@@ -369,31 +383,59 @@ function renderMasterProfessionalsList() {
     });
 }
 
-// mostra os detalhes do profissional (grupos e usuários)
+// NOVA FUNÇÃO: Atualiza os detalhes baseado no filtro de dia
+function updateProfessionalDetailsFilter() {
+    // Pega o profissional atualmente selecionado
+    const selectedItem = document.querySelector('.professional-list-item.selected');
+    if (!selectedItem) return;
+    
+    // Extrai o ID do profissional (precisa ser passado de outra forma)
+    // Vou usar uma variável global para armazenar o ID atual
+    if (window.currentSelectedProfessionalId) {
+        showProfessionalDetails(window.currentSelectedProfessionalId);
+    }
+}
+
+// Mostra os detalhes do profissional (grupos e usuários) - ATUALIZADA com filtro
 function showProfessionalDetails(profId) {
     const prof = masterProfessionals.find(p => p.id === profId);
     if (!prof) return;
 
-    // remove seleção anterior
+    // Armazena o ID do profissional selecionado para o filtro
+    window.currentSelectedProfessionalId = profId;
+
+    // Remove seleção anterior
     document.querySelectorAll('.professional-list-item').forEach(item => {
         item.classList.remove('selected');
     });
 
-    // adiciona seleção ao item clicado
+    // Adiciona seleção ao item clicado
     event.currentTarget.classList.add('selected');
 
+    // Pega o filtro de dia selecionado
+    const dayFilter = document.getElementById('dayFilter')?.value || '';
+
     const detailsContainer = document.getElementById('professional-details-view');
-    let content = `<h3>Grupos de ${prof.nome} ${prof.sobrenome}</h3>`;
+    let content = `<h3>Grupos de ${prof.nome} ${prof.sobrenome}`;
+    if (dayFilter) {
+        content += ` - ${dayNames[dayFilter]}`;
+    }
+    content += `</h3>`;
+    
     let foundInGroups = false;
 
-    days.forEach(day => {
+    // Filtra os dias baseado na seleção
+    const daysToShow = dayFilter ? [dayFilter] : days;
+
+    daysToShow.forEach(day => {
         Object.keys(scheduleData[day]).forEach(groupId => {
             const group = scheduleData[day][groupId];
             if (group.profissionais.includes(prof.id)) {
                 foundInGroups = true;
+                const categoriaTexto = group.categoria || "Categoria não definida";
                 content += `
                     <div class="details-group-card">
-                        <h4>${dayNames[day]} - Grupo ${groupId} (${group.horario}) - ${group.categoria}</h4>
+                        <h4>${dayNames[day]} - Grupo ${groupId} (${group.horario}) - ${categoriaTexto}</h4>
                 `;
                 if (group.usuarios.length > 0) {
                     content += '<ul>';
@@ -410,25 +452,29 @@ function showProfessionalDetails(profId) {
     });
 
     if (!foundInGroups) {
-        content += '<div class="empty-state">Este profissional não está alocado em nenhum grupo.</div>';
+        const dayText = dayFilter ? `na ${dayNames[dayFilter]}` : 'em nenhum grupo';
+        content += `<div class="empty-state">Este profissional não está alocado ${dayText}.</div>`;
     }
     detailsContainer.innerHTML = content;
 }
 
 /*exportação CSV*/
 function exportToCSV() {
-  let csv = "Dia da Semana,Grupo,Horário,Categoria,Tipo,Nome,Idade,Deficiência,Programa,Categoria Profissional\n";
+  let csv = "Dia da Semana;Grupo;Horário;Categoria;Tipo;Nome;Idade;Deficiência;Programa;Categoria Profissional\n";
 
   days.forEach(day => {
     Object.keys(scheduleData[day]).forEach(gid => {
       const g = scheduleData[day][gid];
+      const categoriaTexto = g.categoria || "Categoria não definida";
+      
       g.usuarios.forEach(u => {
-        csv += `${dayNames[day]},${gid},${g.horario},"${g.categoria}",Usuário,"${u.nome}",${u.idade},"${u.deficiencia}","${u.programa}",\n`;
+        csv += `${dayNames[day]};${gid};${g.horario};${categoriaTexto};Usuário;${u.nome};${u.idade};${u.deficiencia};${u.programa};\n`;
       });
+      
       g.profissionais.forEach(profId => {
         const p = masterProfessionals.find(prof => prof.id === profId);
         if (p) {
-          csv += `${dayNames[day]},${gid},${g.horario},"${g.categoria}",Profissional,"${p.nome} ${p.sobrenome}",,,,${p.categoria}\n`;
+          csv += `${dayNames[day]};${gid};${g.horario};${categoriaTexto};Profissional;${p.nome} ${p.sobrenome};;;;${p.categoria}\n`;
         }
       });
     });
@@ -453,7 +499,7 @@ window.addEventListener("click", e => {
   if (e.target === document.getElementById("loginModal"))        closeModal("loginModal");
 });
 
-/* troca de abas */
+/* Troca de abas */
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", e => {
     const day = e.currentTarget.dataset.day;
@@ -464,6 +510,8 @@ document.querySelectorAll(".tab").forEach(tab => {
         renderMasterProfessionalsList();
         document.getElementById('professional-details-view').innerHTML = 
             '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
+        // Limpa a variável global do profissional selecionado
+        window.currentSelectedProfessionalId = null;
     }
   });
 });
