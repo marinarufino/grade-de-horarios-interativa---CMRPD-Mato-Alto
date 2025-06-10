@@ -1,4 +1,4 @@
- * {
+* {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -117,14 +117,40 @@
             align-items: center;
         }
 
-        .group-header select {
+        .group-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .category-select, .time-select {
             background: white;
             color: #1e293b;
             border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+
+        .category-select {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            color: #0c4a6e;
+            font-weight: 600;
+        }
+
+        .category-select:hover, .time-select:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .category-select:focus, .time-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
 
         .group-content {
@@ -314,7 +340,7 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  background-color: #f8fafc; /* Um fundo suave para os campos */
+  background-color: #f8fafc; 
 }
 
 /* efeito de foco ao selecionar o campo */
@@ -413,7 +439,7 @@
                 width: 95%;
             }
         }
-        /* Estilos para a nova aba de Profissionais */
+        
 .master-list-container {
     display: flex;
     gap: 30px;
@@ -421,16 +447,16 @@
 }
 
 #master-professionals-list {
-    flex: 1; /* Ocupa 1 parte do espaço */
+    flex: 1; 
     background-color: #f8fafc;
     padding: 20px;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
-    align-self: flex-start; /* Impede que estique */
+    align-self: flex-start; /* impede que se estique */
 }
 
 #professional-details-view {
-    flex: 2; /* Ocupa 2 partes do espaço */
+    flex: 2; 
     padding: 20px;
     background-color: #f8fafc;
     border-radius: 8px;
@@ -453,9 +479,9 @@
     color: #1d4ed8;
 }
 
-/* Estilos para a nova aba de Profissionais */
+/* aba de profisisonais */
 #profissionais {
-    background-color: transparent; /* Remove o fundo cinza geral */
+    background-color: transparent; 
 }
 
 #profissionais > h2 {
@@ -481,14 +507,14 @@
 
 #master-professionals-list {
     flex: 0 0 350px;
-    background-color: white; /* Mudado para branco */
+    background-color: white; 
     padding: 25px;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     max-height: 600px;
     margin-left: 16px;
     overflow-y: auto;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06); /* Sombra sutil */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
 }
 
 #master-professionals-list h3 {
@@ -503,12 +529,12 @@
 #professional-details-view {
     flex: 1;
     padding: 25px;
-    background-color: white; /* Mudado para branco */
+    background-color: white;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     min-height: 200px;
     max-width: 985px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06); /* Sombra sutil */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 #professional-details-view h3 {
@@ -527,7 +553,8 @@
     transition: all 0.2s ease;
     border-radius: 8px;
     margin-bottom: 8px;
-    background-color: #f8fafc; /* Fundo sutil para os itens */
+    background-color: #f8fafc; /* fundo dos itens */
+    position: relative; 
 }
 
 .professional-list-item:hover {
@@ -556,6 +583,38 @@
     font-size: 0.85rem;
     display: block;
     word-wrap: break-word;
+}
+
+/* botão de remoção dos profissionais */
+.btn-remove-professional {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    transition: all 0.2s ease;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.btn-remove-professional:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-remove-professional:active {
+    transform: scale(0.95);
 }
 
 .details-group-card {
@@ -607,7 +666,7 @@
     margin-bottom: 0;
 }
 
-/* Estado vazio melhorado */
+/* estado vazio */
 .empty-state {
     text-align: center;
     color: #94a3b8;
@@ -619,7 +678,7 @@
     margin: 20px 0;
 }
 
-/* Responsividade */
+/* responsividade em telas menores */
 @media (max-width: 768px) {
     .master-list-container {
         flex-direction: column;
