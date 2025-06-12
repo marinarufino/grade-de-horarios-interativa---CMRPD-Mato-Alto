@@ -1,3 +1,152 @@
+// Configuração do Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyDXtY0mQKD2raNCRJYkuEN-CQFpQhqWRsA",
+    authDomain: "grade-mato-alto.firebaseapp.com", 
+    databaseURL: "https://grade-mato-alto-default-rtdb.firebaseio.com",
+    projectId: "grade-mato-alto",
+    storageBucket: "grade-mato-alto.firebasestorage.app",
+    messagingSenderId: "602846568274",
+    appId: "1:602846568274:web:1baddd01f2b6cb2256a48b"
+};
+
+// Variáveis Firebase
+let firebaseDB = null;
+let isFirebaseReady = false;
+
+// Carrega Firebase dinamicamente
+async function initFirebase() {
+    try {
+        updateConnectionStatus('connecting', '🔄 Conectando...');
+        
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+        const { getDatabase, ref, set, get, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+        
+        const app = initializeApp(firebaseConfig);
+        firebaseDB = getDatabase(app);
+        window.firebaseRef = ref;
+        window.firebaseSet = set;
+        window.firebaseGet = get;
+        window.firebaseOnValue = onValue;
+        isFirebaseReady = true;
+        
+        updateConnectionStatus('connected', '✅ Conectado');
+        console.log('Firebase inicializado com sucesso!');
+        
+        setTimeout(() => {
+            setupFirebaseListeners();
+            loadDataFromFirebase();
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Erro ao inicializar Firebase:', error);
+        updateConnectionStatus('error', '❌ Erro de conexão');
+    }
+}
+
+function updateConnectionStatus(status, message) {
+    const statusElement = document.getElementById('status-text');
+    if (statusElement) {
+        statusElement.innerHTML = message;
+        statusElement.className = status;
+    }
+}
+
+// Configura listeners para mudanças em tempo real
+function setupFirebaseListeners() {
+    if (!isFirebaseReady || !firebaseDB) return;
+
+    // Listener para dados da agenda
+    window.firebaseOnValue(window.firebaseRef(firebaseDB, 'scheduleData'), (snapshot) => {
+        if (snapshot.exists()) {
+            const newData = snapshot.val();
+            if (JSON.stringify(newData) !== JSON.stringify(scheduleData)) {
+                scheduleData = newData;
+                refreshAllGroups();
+                updateConnectionStatus('syncing', '🔄 Atualizando...');
+                setTimeout(() => {
+                    updateConnectionStatus('', '🌐 Online');
+                }, 1000);
+            }
+        }
+    });
+
+    // Listener para lista de profissionais
+    window.firebaseOnValue(window.firebaseRef(firebaseDB, 'masterProfessionals'), (snapshot) => {
+        if (snapshot.exists()) {
+            const newProfessionals = snapshot.val();
+            if (JSON.stringify(newProfessionals) !== JSON.stringify(masterProfessionals)) {
+                masterProfessionals = newProfessionals;
+                renderMasterProfessionalsList();
+                updateConnectionStatus('syncing', '🔄 Atualizando...');
+                setTimeout(() => {
+                    updateConnectionStatus('', '🌐 Online');
+                }, 1000);
+            }
+        }
+    });
+}
+
+// Carrega dados do Firebase
+async function loadDataFromFirebase() {
+    if (!isFirebaseReady || !firebaseDB) return;
+
+    try {
+        // Carrega dados da agenda
+        const scheduleSnapshot = await window.firebaseGet(window.firebaseRef(firebaseDB, 'scheduleData'));
+        if (scheduleSnapshot.exists()) {
+            scheduleData = scheduleSnapshot.val();
+            refreshAllGroups();
+        }
+
+        // Carrega lista de profissionais
+        const professionalsSnapshot = await window.firebaseGet(window.firebaseRef(firebaseDB, 'masterProfessionals'));
+        if (professionalsSnapshot.exists()) {
+            masterProfessionals = professionalsSnapshot.val();
+            renderMasterProfessionalsList();
+        }
+
+        updateConnectionStatus('connected', '✅ Dados carregados');
+        setTimeout(() => {
+            updateConnectionStatus('', '🌐 Online');
+        }, 2000);
+
+    } catch (error) {
+        console.error('Erro ao carregar do Firebase:', error);
+        updateConnectionStatus('error', '❌ Erro ao carregar');
+    }
+}
+
+// Atualiza todos os grupos na tela
+function refreshAllGroups() {
+    days.forEach(day => {
+        let gid = day === "segunda" ? 1 : day === "terca" ? 21 : day === "quarta" ? 41 : day === "quinta" ? 61 : 81;
+        for (let i = 1; i <= 20; i++) {
+            renderUsers(day, gid);
+            renderProfessionals(day, gid);
+            updateGroupSelects(day, gid);
+            gid++;
+        }
+    });
+}
+
+// Atualiza os selects de categoria e horário
+function updateGroupSelects(day, groupId) {
+    const group = scheduleData[day][groupId];
+    if (!group) return;
+
+    // Atualiza select de categoria
+    const categorySelect = document.querySelector(`select[onchange*="updateGroupCategory('${day}', ${groupId}"]`);
+    if (categorySelect) {
+        categorySelect.value = group.categoria || '';
+    }
+
+    // Atualiza select de horário
+    const timeSelect = document.querySelector(`select[onchange*="updateGroupTime('${day}', ${groupId}"]`);
+    if (timeSelect) {
+        timeSelect.value = group.horario || '09:00';
+    }
+}
+
 const ADMIN_PASSWORD = "123";
 let   isAuthenticated = false;
 
@@ -46,13 +195,28 @@ function resetDataStructure() {
 }
 
 function saveData() {
-  try {
-    localStorage.setItem("scheduleData", JSON.stringify(scheduleData));
-    localStorage.setItem("masterProfessionals", JSON.stringify(masterProfessionals)); // NOVO
-  } catch (err) {
-    console.error("Erro ao salvar:", err);
-    alert("⚠️ Não foi possível salvar os dados! Faça um backup manual exportando em CSV.");
-  }
+    try {
+        localStorage.setItem("scheduleData", JSON.stringify(scheduleData));
+        localStorage.setItem("masterProfessionals", JSON.stringify(masterProfessionals));
+    } catch (err) {
+        console.error("Erro ao salvar:", err);
+        alert("⚠️ Não foi possível salvar os dados! Faça um backup manual exportando em CSV.");
+    }
+    
+    // Salva no Firebase se estiver disponível
+    if (isFirebaseReady && firebaseDB && window.firebaseSet && window.firebaseRef) {
+        try {
+            window.firebaseSet(window.firebaseRef(firebaseDB, 'scheduleData'), scheduleData);
+            window.firebaseSet(window.firebaseRef(firebaseDB, 'masterProfessionals'), masterProfessionals);
+            updateConnectionStatus('connected', '✅ Sincronizado');
+            setTimeout(() => {
+                updateConnectionStatus('', '🌐 Online');
+            }, 2000);
+        } catch (error) {
+            console.error('Erro ao salvar no Firebase:', error);
+            updateConnectionStatus('error', '❌ Erro ao sincronizar');
+        }
+    }
 }
 
 // SUBSTITUA A FUNÇÃO ANTIGA
@@ -343,6 +507,8 @@ function removeMasterProfessional(profId) {
 // Renderiza a lista na aba "Profissionais" - ATUALIZADA com botão de remoção
 function renderMasterProfessionalsList() {
     const listContainer = document.getElementById('master-professionals-list');
+    if (!listContainer) return;
+    
     listContainer.innerHTML = `
         <h3>Profissionais Cadastrados</h3>
         <div class="day-filter">
@@ -577,15 +743,19 @@ document.getElementById("registerProfessionalForm").addEventListener("submit", e
 });
 
 
-  /*inicializa a aplicação*/
-
+/*inicializa a aplicação*/
 document.addEventListener("DOMContentLoaded", () => {
   resetDataStructure(); // cria estrutura padrão
   loadData();           // substitui caso já exista no localStorage
   initializeGroups();   // renderiza os grupos
-  renderMasterProfessionalsList() // renderiza os profissionais
+  renderMasterProfessionalsList(); // renderiza os profissionais
 
-   const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
+  // Inicializa Firebase após um delay
+  setTimeout(() => {
+    initFirebase();
+  }, 2000);
+
+  const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
   textInputs.forEach(input => {
     input.addEventListener('input', (e) => {
       e.target.value = e.target.value.toUpperCase();

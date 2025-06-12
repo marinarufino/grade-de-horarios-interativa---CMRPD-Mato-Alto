@@ -796,3 +796,32 @@ body {
         max-width: 985px;
     }
 }
+
+/* CSS adicional para o status de conexão */
+.connection-status {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.connection-status .connecting {
+    color: #fbbf24;
+}
+
+.connection-status .connected {
+    color: #10b981;
+}
+
+.connection-status .error {
+    color: #ef4444;
+}
+
+.connection-status .syncing {
+    color: #3b82f6;
+}
+
+.header {
+    position: relative;
+}
