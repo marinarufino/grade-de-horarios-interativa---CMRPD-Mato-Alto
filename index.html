@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade de Horários Semanal – Mato Alto</title>
 
-
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,6 +22,7 @@
         <button class="tab" data-day="quinta">Quinta-feira</button>
         <button class="tab" data-day="sexta">Sexta-feira</button>
         <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
+        <button class="tab" data-day="grade">📊 Grade</button>
     </div>
 
     <!-- Conteúdo de cada dia -->
@@ -34,14 +34,48 @@
         <div id="quarta"  class="day-content"><div class="groups-grid" id="groups-quarta"></div></div>
         <div id="quinta"  class="day-content"><div class="groups-grid" id="groups-quinta"></div></div>
         <div id="sexta"   class="day-content"><div class="groups-grid" id="groups-sexta"></div></div>
-    </div>
-    <div id="profissionais" class="day-content">
-        <h2>Relação Geral de Profissionais</h2>
-        <button class="btn-add" onclick="openRegisterProfessionalModal()">+ Cadastrar Novo Profissional</button>
-        <div class="master-list-container">
-            <div id="master-professionals-list">
+
+        <!-- Aba Profissionais -->
+        <div id="profissionais" class="day-content">
+            <h2>Relação Geral de Profissionais</h2>
+            <button class="btn-add" onclick="openRegisterProfessionalModal()">+ Cadastrar Novo Profissional</button>
+            <div class="master-list-container">
+                <div id="master-professionals-list"></div>
+                <div id="professional-details-view"></div>
             </div>
-            <div id="professional-details-view">
+        </div>
+
+        <!-- Nova Aba Grade -->
+        <div id="grade" class="day-content">
+            <div class="grade-header">
+                <h2>📊 Grade de Horários por Categoria</h2>
+                <div class="grade-controls">
+                    <div class="form-group">
+                        <label for="categoryFilter">Filtrar por categoria:</label>
+                        <select id="categoryFilter" onchange="updateGradeView()">
+                            <option value="">Todas as categorias</option>
+                            <option value="Ed Físico">Ed Físico</option>
+                            <option value="Ed Social - artesanato">Ed Social - artesanato</option>
+                            <option value="Ed Social - educação cultural">Ed Social - educação cultural</option>
+                            <option value="Ed Social - informática">Ed Social - informática</option>
+                            <option value="Ed Social - jardinagem">Ed Social - jardinagem</option>
+                            <option value="Fisioterapeuta">Fisioterapeuta</option>
+                            <option value="Fonoaudiologa">Fonoaudiologa</option>
+                            <option value="Neuropsicopedagoga">Neuropsicopedagoga</option>
+                            <option value="Nutricionista">Nutricionista</option>
+                            <option value="Pedagoga">Pedagoga</option>
+                            <option value="Psicologo">Psicologo</option>
+                            <option value="Psicomotricista">Psicomotricista</option>
+                            <option value="Terapeuta ocupacional">Terapeuta ocupacional</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="grade-container">
+                <div id="grade-content">
+                    <div class="empty-state">Selecione uma categoria para visualizar a grade</div>
+                </div>
             </div>
         </div>
     </div>
@@ -136,8 +170,6 @@
 <!-- Botão de exportação -->
 <button class="export-btn" onclick="exportToCSV()">📊 Exportar como planilha </button>
 
-
 <script src="script.js"></script>
 </body>
-
 </html>
