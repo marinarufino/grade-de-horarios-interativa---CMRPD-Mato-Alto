@@ -12,6 +12,10 @@
 <div class="container">
     <div class="header">
         <h1>📅 Grade de Horários Semanal – Mato Alto</h1>
+        <div class="user-status">
+            <span id="userStatusText">Modo Visualização</span>
+            <button id="loginToggleBtn" onclick="openLoginModal()">🔓 Fazer Login Admin</button>
+        </div>
     </div>
 
     <!-- Abas dos dias da semana -->
@@ -30,10 +34,22 @@
         <div id="segunda" class="day-content active">
             <div class="groups-grid" id="groups-segunda"></div>
         </div>
-        <div id="terca"   class="day-content"><div class="groups-grid" id="groups-terca"></div></div>
-        <div id="quarta"  class="day-content"><div class="groups-grid" id="groups-quarta"></div></div>
-        <div id="quinta"  class="day-content"><div class="groups-grid" id="groups-quinta"></div></div>
-        <div id="sexta"   class="day-content"><div class="groups-grid" id="groups-sexta"></div></div>
+
+        <div id="terca" class="day-content">
+            <div class="groups-grid" id="groups-terca"></div>
+        </div>
+
+        <div id="quarta" class="day-content">
+            <div class="groups-grid" id="groups-quarta"></div>
+        </div>
+
+        <div id="quinta" class="day-content">
+            <div class="groups-grid" id="groups-quinta"></div>
+        </div>
+
+        <div id="sexta" class="day-content">
+            <div class="groups-grid" id="groups-sexta"></div>
+        </div>
 
         <!-- Aba Profissionais -->
         <div id="profissionais" class="day-content">

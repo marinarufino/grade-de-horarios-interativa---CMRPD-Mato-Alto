@@ -62,8 +62,106 @@ function openLoginModal() {
 
 function toggleEditButtons(enable) {
     document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
+        // EXCEÇÃO: Não desabilita o filtro de categoria da aba Grade
+        if (el.id === 'categoryFilter') {
+            return; // Pula este elemento, deixa sempre habilitado
+        }
         el.disabled = !enable;
     });
+}
+
+function updateUserStatus() {
+    const statusText = document.getElementById('userStatusText');
+    const loginBtn = document.getElementById('loginToggleBtn');
+
+    if (isAuthenticated) {
+        statusText.textContent = 'Modo Administrador';
+        statusText.style.color = '#10b981';
+        loginBtn.textContent = '🔒 Logout';
+        loginBtn.onclick = () => {
+            isAuthenticated = false;
+            updateTabsVisibility(); // Só atualiza visibilidade
+            updateUserStatus();
+            toggleEditButtons(false);
+
+            // GARANTIR que o filtro de categoria continue funcionando após logout
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (categoryFilter) {
+                categoryFilter.disabled = false;
+            }
+
+            // Força volta para aba Grade após logout APENAS se estiver em aba restrita
+            const currentActiveTab = document.querySelector('.tab.active');
+            if (currentActiveTab && currentActiveTab.dataset.day !== 'grade') {
+                // Remove active de todas
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.day-content').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = 'none';
+                });
+
+                // Ativa Grade
+                const gradeTab = document.querySelector('[data-day="grade"]');
+                const gradeContent = document.getElementById('grade');
+                if (gradeTab && gradeContent) {
+                    gradeTab.classList.add('active');
+                    gradeContent.classList.add('active');
+                    gradeContent.style.display = 'block';
+                }
+            }
+
+            alert('Logout realizado! Agora você está no modo visualização.');
+        };
+    } else {
+        statusText.textContent = 'Modo Visualização';
+        statusText.style.color = '#6b7280';
+        loginBtn.textContent = '🔓 Fazer Login Admin';
+        loginBtn.onclick = () => openLoginModal();
+    }
+}
+function updateTabsVisibility() {
+    const tabs = document.querySelectorAll('.tab');
+    const dayContents = document.querySelectorAll('.day-content');
+
+    if (isAuthenticated) {
+        // Administrador: mostra todas as abas
+        tabs.forEach(tab => {
+            tab.style.display = 'block';
+        });
+        dayContents.forEach(content => {
+            content.style.display = content.classList.contains('active') ? 'block' : 'none';
+        });
+    } else {
+        // Usuário comum: só mostra aba Grade
+        tabs.forEach(tab => {
+            const day = tab.dataset.day;
+            if (day === 'grade') {
+                tab.style.display = 'block';
+            } else {
+                tab.style.display = 'none';
+            }
+        });
+
+        // Esconde todos os conteúdos exceto Grade
+        dayContents.forEach(content => {
+            if (content.id === 'grade') {
+                content.classList.add('active');
+                content.style.display = 'block';
+            } else {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            }
+        });
+
+        // Ativa apenas a aba Grade
+        tabs.forEach(tab => {
+            if (tab.dataset.day === 'grade') {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+    }
 }
 
 /*vizualização dos grupos*/
@@ -549,22 +647,54 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
 });
 
-/* Troca de abas */
+/* Troca de abas - VERSÃO COM DEBUG */
 document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", e => {
-        const day = e.currentTarget.dataset.day;
-        document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === e.currentTarget));
-        document.querySelectorAll(".day-content").forEach(c => c.classList.toggle("active", c.id === day));
+        const clickedDay = e.currentTarget.dataset.day;
 
-        if (day === 'profissionais') {
+        console.log('Clicou na aba:', clickedDay); // DEBUG
+
+        // Verifica se é uma aba restrita e se o usuário não é admin
+        if (!isAuthenticated && clickedDay !== 'grade') {
+            alert("⛔ Esta aba requer permissões de administrador!");
+            openLoginModal();
+            return;
+        }
+
+        // Remove active de todas as abas e conteúdos
+        document.querySelectorAll(".tab").forEach(t => {
+            t.classList.remove("active");
+        });
+        document.querySelectorAll(".day-content").forEach(c => {
+            c.classList.remove("active");
+            c.style.display = 'none'; // Força esconder
+        });
+
+        // Ativa a aba e conteúdo clicado
+        e.currentTarget.classList.add("active");
+        const targetContent = document.getElementById(clickedDay);
+        if (targetContent) {
+            targetContent.classList.add("active");
+            targetContent.style.display = 'block'; // Força mostrar
+            console.log('Ativou conteúdo:', clickedDay); // DEBUG
+        }
+
+        // Ações específicas para cada aba
+        if (clickedDay === 'profissionais') {
             renderMasterProfessionalsList();
             document.getElementById('professional-details-view').innerHTML =
                 '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
             window.currentSelectedProfessionalId = null;
-        } else if (day === 'grade') {
+        } else if (clickedDay === 'grade') {
             // Reseta a visualização da grade quando entrar na aba
             document.getElementById('categoryFilter').value = '';
             updateGradeView();
+
+            // GARANTIR que o filtro esteja sempre habilitado na aba Grade
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (categoryFilter) {
+                categoryFilter.disabled = false;
+            }
         }
     });
 });
@@ -577,7 +707,9 @@ document.getElementById("loginForm").addEventListener("submit", e => {
         isAuthenticated = true;
         closeModal("loginModal");
         toggleEditButtons(true);
-        alert("Acesso liberado!");
+        updateTabsVisibility(); // Só atualiza visibilidade
+        updateUserStatus(); // Atualiza status no header
+        alert("Acesso liberado! Agora você tem acesso a todas as funcionalidades.");
     } else {
         alert("Senha incorreta!");
     }
@@ -632,6 +764,40 @@ document.addEventListener("DOMContentLoaded", () => {
     resetDataStructure();
     initializeGroups();
     renderMasterProfessionalsList();
+
+    // FORÇA ESTADO INICIAL LIMPO
+    console.log('Inicializando aplicação...'); // DEBUG
+
+    // Esconde todos os conteúdos
+    document.querySelectorAll('.day-content').forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+    });
+
+    // Remove active de todas as abas
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Ativa apenas a primeira aba (Segunda-feira) e seu conteúdo
+    const firstTab = document.querySelector('[data-day="segunda"]');
+    const firstContent = document.getElementById('segunda');
+
+    if (firstTab && firstContent) {
+        firstTab.classList.add('active');
+        firstContent.classList.add('active');
+        firstContent.style.display = 'block';
+        console.log('Ativou aba inicial: segunda'); // DEBUG
+    }
+
+    updateTabsVisibility(); // Define visibilidade
+    updateUserStatus(); // Define status do usuário
+
+    // GARANTIR que o filtro de categoria sempre funcione
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.disabled = false;
+    }
 
     const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
     textInputs.forEach(input => {

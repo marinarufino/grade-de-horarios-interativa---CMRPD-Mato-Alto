@@ -25,6 +25,7 @@ body {
     color: white;
     padding: 20px; /* reduzido para mobile */
     text-align: center;
+    position: relative;
 }
 
 .header h1 {
@@ -32,6 +33,42 @@ body {
     margin-bottom: 10px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     line-height: 1.2;
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+#userStatusText {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+#loginToggleBtn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+#loginToggleBtn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
 }
 
 .header p {
@@ -81,11 +118,11 @@ body {
 }
 
 .day-content {
-    display: none;
+    display: none !important;
 }
 
 .day-content.active {
-    display: block;
+    display: block !important;
 }
 
 .groups-grid {
