@@ -5,74 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade de Horários Semanal – Mato Alto</title>
 
-    
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!--  CONTEÚDO PRINCIPAL -->
-    <div class="container">
-        <div class="header">
-            <h1>📅 Grade de Horários Semanal – Mato Alto</h1>
-        </div>
+<!--  CONTEÚDO PRINCIPAL -->
+<div class="container">
+    <div class="header">
+        <h1>📅 Grade de Horários Semanal – Mato Alto</h1>
+    </div>
 
-        <!-- Abas dos dias da semana -->
-        <div class="tabs">
-            <button class="tab active" data-day="segunda">Segunda-feira</button>
-            <button class="tab" data-day="terca">Terça-feira</button>
-            <button class="tab" data-day="quarta">Quarta-feira</button>
-            <button class="tab" data-day="quinta">Quinta-feira</button>
-            <button class="tab" data-day="sexta">Sexta-feira</button>
-            <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button> 
-        </div>
+    <!-- Abas dos dias da semana -->
+    <div class="tabs">
+        <button class="tab active" data-day="segunda">Segunda-feira</button>
+        <button class="tab" data-day="terca">Terça-feira</button>
+        <button class="tab" data-day="quarta">Quarta-feira</button>
+        <button class="tab" data-day="quinta">Quinta-feira</button>
+        <button class="tab" data-day="sexta">Sexta-feira</button>
+        <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
+    </div>
 
-        <!-- Conteúdo de cada dia -->
-        <div class="content">
-            <div id="segunda" class="day-content active">
-                <div class="groups-grid" id="groups-segunda"></div>
-            </div>
-            <div id="terca"   class="day-content"><div class="groups-grid" id="groups-terca"></div></div>
-            <div id="quarta"  class="day-content"><div class="groups-grid" id="groups-quarta"></div></div>
-            <div id="quinta"  class="day-content"><div class="groups-grid" id="groups-quinta"></div></div>
-            <div id="sexta"   class="day-content"><div class="groups-grid" id="groups-sexta"></div></div>
+    <!-- Conteúdo de cada dia -->
+    <div class="content">
+        <div id="segunda" class="day-content active">
+            <div class="groups-grid" id="groups-segunda"></div>
         </div>
-        <div id="profissionais" class="day-content">
+        <div id="terca"   class="day-content"><div class="groups-grid" id="groups-terca"></div></div>
+        <div id="quarta"  class="day-content"><div class="groups-grid" id="groups-quarta"></div></div>
+        <div id="quinta"  class="day-content"><div class="groups-grid" id="groups-quinta"></div></div>
+        <div id="sexta"   class="day-content"><div class="groups-grid" id="groups-sexta"></div></div>
+    </div>
+    <div id="profissionais" class="day-content">
         <h2>Relação Geral de Profissionais</h2>
         <button class="btn-add" onclick="openRegisterProfessionalModal()">+ Cadastrar Novo Profissional</button>
         <div class="master-list-container">
             <div id="master-professionals-list">
-                </div>
+            </div>
             <div id="professional-details-view">
-                </div>
+            </div>
         </div>
     </div>
-    </div>
+</div>
 
-    <!-- ADICIONAR USUÁRIO  -->
-    <div id="userModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h2 class="modal-title">👤 Adicionar Usuário ao grupo</h2></div>
-            <form id="userForm">
-                <div class="form-group"><label>Nome:</label>         <input type="text"   id="userName"        required></div>
-                <div class="form-group"><label>Idade:</label>        <input type="number" id="userAge" min="0" max="120" required></div>
-                <div class="form-group"><label>Deficiência:</label>  <input type="text"   id="userDeficiency"   required></div>
-                <div class="form-group"><label>Programa:</label>     <input type="text"   id="userProgram"      required></div>
-                <div class="modal-buttons">
-                    <button type="button" class="btn-cancel"  onclick="closeModal('userModal')">Cancelar</button>
-                    <button type="submit" class="btn-confirm">Confirmar</button>
-                </div>
-            </form>
-        </div>
+<!-- ADICIONAR USUÁRIO  -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title">👤 Adicionar Usuário ao grupo</h2></div>
+        <form id="userForm">
+            <div class="form-group"><label>Nome:</label>         <input type="text"   id="userName"        required></div>
+            <div class="form-group"><label>Idade:</label>        <input type="number" id="userAge" min="0" max="120" required></div>
+            <div class="form-group"><label>Deficiência:</label>  <input type="text"   id="userDeficiency"   required></div>
+            <div class="form-group"><label>Programa:</label>     <input type="text"   id="userProgram"      required></div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel"  onclick="closeModal('userModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Confirmar</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- ADICIONAR PROFISSIONAL -->
-   <div id="professionalModal" class="modal">
+<!-- ADICIONAR PROFISSIONAL -->
+<div id="professionalModal" class="modal">
     <div class="modal-content">
         <div class="modal-header"><h2 class="modal-title">👨‍⚕️ Adicionar Profissional ao Grupo</h2></div>
         <form id="professionalForm">
             <div class="form-group">
                 <label>Selecione o Profissional:</label>
                 <select id="professionalSelect" required>
-                    </select>
+                </select>
             </div>
             <div class="modal-buttons">
                 <button type="button" class="btn-cancel" onclick="closeModal('professionalModal')">Cancelar</button>
@@ -116,28 +116,28 @@
     </div>
 </div>
 
-    <!--LOGIN DE ADMINISTRADOR -->
-    <div id="loginModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h2 class="modal-title">🔒 Login de Administrador</h2></div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Senha:</label>
-                    <input type="password" id="loginPassword" required>
-                </div>
-                <div class="modal-buttons">
-                    <button type="button" class="btn-cancel" onclick="closeModal('loginModal')">Cancelar</button>
-                    <button type="submit" class="btn-confirm">Entrar</button>
-                </div>
-            </form>
-        </div>
+<!--LOGIN DE ADMINISTRADOR -->
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title">🔒 Login de Administrador</h2></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Senha:</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('loginModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Entrar</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- Botão de exportação -->
-    <button class="export-btn" onclick="exportToCSV()">📊 Exportar como planilha </button>
+<!-- Botão de exportação -->
+<button class="export-btn" onclick="exportToCSV()">📊 Exportar como planilha </button>
 
 
-    <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 
 </html>
