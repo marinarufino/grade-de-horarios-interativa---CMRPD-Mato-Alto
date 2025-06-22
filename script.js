@@ -103,7 +103,7 @@ function updateAlertas() {
 
     masterProfessionals.forEach(prof => {
         if (!profissionaisAtivos.has(prof.id)) {
-            alertas.push(`ℹ️ ${prof.nome} ${prof.sobrenome} não está alocado em nenhum grupo`);
+            alertas.push(`ℹ️ ${prof.nome} não está alocado em nenhum grupo`);
         }
     });
 
@@ -378,7 +378,7 @@ function openProfessionalModal(day, groupId) {
         if (!scheduleData[day][groupId].profissionais.includes(prof.id)) {
             const option = document.createElement('option');
             option.value = prof.id;
-            option.textContent = `${prof.nome} ${prof.sobrenome} (${prof.categoria})`;
+            option.textContent = `${prof.nome} (${prof.categoria})`;
             select.appendChild(option);
         }
     });
@@ -436,7 +436,7 @@ function renderProfessionals(day, groupId) {
         card.innerHTML = `
       <button class="btn-remove" onclick="removeProfessional('${day}', ${groupId}, ${idx})">×</button>
       <div class="profissional-info">
-        <div><div class="info-label">Nome</div><div class="info-item">${p.nome} ${p.sobrenome}</div></div>
+        <div><div class="info-label">Nome</div><div class="info-item">${p.nome}</div></div>
         <div><div class="info-label">Categoria</div><div class="info-item">${p.categoria}</div></div>
       </div>`;
         el.appendChild(card);
@@ -485,11 +485,11 @@ function removeMasterProfessional(profId) {
     });
 
     if (isInUse) {
-        alert(`❌ Não é possível remover ${prof.nome} ${prof.sobrenome}.\nEste profissional está alocado em um ou mais grupos.\nRemova-o primeiro dos grupos antes de excluí-lo.`);
+        alert(`❌ Não é possível remover ${prof.nome}.\nEste profissional está alocado em um ou mais grupos.\nRemova-o primeiro dos grupos antes de excluí-lo.`);
         return;
     }
 
-    if (confirm(`Tem certeza que deseja remover ${prof.nome} ${prof.sobrenome} da lista de profissionais?`)) {
+    if (confirm(`Tem certeza que deseja remover ${prof.nome} da lista de profissionais?`)) {
         const index = masterProfessionals.findIndex(p => p.id === profId);
         if (index !== -1) {
             masterProfessionals.splice(index, 1);
@@ -530,7 +530,7 @@ function renderMasterProfessionalsList() {
         item.className = 'professional-list-item';
         item.innerHTML = `
             <button class="btn-remove-professional" onclick="removeMasterProfessional(${prof.id})" title="Remover profissional">×</button>
-            <strong>${prof.nome} ${prof.sobrenome}</strong><br>
+            <strong>${prof.nome}</strong><br>
             <span>${prof.categoria}</span>
         `;
         item.onclick = (e) => {
@@ -566,7 +566,7 @@ function showProfessionalDetails(profId) {
     const dayFilter = document.getElementById('dayFilter')?.value || '';
 
     const detailsContainer = document.getElementById('professional-details-view');
-    let content = `<h3>Grupos de ${prof.nome} ${prof.sobrenome}`;
+    let content = `<h3>Grupos de ${prof.nome}`;
     if (dayFilter) {
         content += ` - ${dayNames[dayFilter]}`;
     }
@@ -636,7 +636,7 @@ function updateGradeView() {
 function generateProfessionalGrid(professional) {
     let gridHTML = `
         <div class="professional-grid">
-            <h3 class="professional-name">${professional.nome} ${professional.sobrenome}</h3>
+            <h3 class="professional-name">${professional.nome}</h3>
             <div class="grid-table">
                 <table>
                     <thead>
@@ -722,7 +722,7 @@ function exportToCSV() {
             g.profissionais.forEach(profId => {
                 const p = masterProfessionals.find(prof => prof.id === profId);
                 if (p) {
-                    csv += `${dayNames[day]};${gid};${g.horario};${categoriaTexto};Profissional;${p.nome} ${p.sobrenome};;;;${p.categoria}\n`;
+                    csv += `${dayNames[day]};${gid};${g.horario};${categoriaTexto};Profissional;${p.nome};;;;${p.categoria}\n`;
                 }
             });
         });
@@ -813,7 +813,6 @@ document.getElementById("registerProfessionalForm").addEventListener("submit", e
     const newProf = {
         id: Date.now(),
         nome: document.getElementById('regProfName').value.trim(),
-        sobrenome: document.getElementById('regProfSurname').value.trim(),
         categoria: document.getElementById('regProfCategory').value
     };
 
