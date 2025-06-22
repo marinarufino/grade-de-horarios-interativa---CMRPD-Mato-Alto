@@ -1,25 +1,25 @@
 const ADMIN_PASSWORD = "123";
-let   isAuthenticated = false;
+let isAuthenticated = false;
 
 const days = ["segunda", "terca", "quarta", "quinta", "sexta"];
 const dayNames = {
     segunda: "Segunda-feira",
-    terca:   "Terça-feira",
-    quarta:  "Quarta-feira",
-    quinta:  "Quinta-feira",
-    sexta:   "Sexta-feira",
+    terca: "Terça-feira",
+    quarta: "Quarta-feira",
+    quinta: "Quinta-feira",
+    sexta: "Sexta-feira",
 };
 
 const timeSlots = [
-    "08:00",  "09:00",  "10:00",
-    "11:00",  "13:00",
-    "14:00",  "15:00",  "16:00",
+    "08:00", "09:00", "10:00",
+    "11:00", "13:00",
+    "14:00", "15:00", "16:00",
 ];
 
-// DADOS EM MEMÓRIA (substituindo localStorage)
+// DADOS EM MEMÓRIA
 let scheduleData = {};
 let masterProfessionals = [];
-let currentModalContext = {};   // guarda { day, groupId, type }
+let currentModalContext = {};
 
 // Categorias disponíveis para os grupos
 const groupCategories = [
@@ -36,13 +36,160 @@ function resetDataStructure() {
         for (let i = 1; i <= 20; i++) {
             scheduleData[day][tmpGroupId] = {
                 horario: "09:00",
-                categoria: "", // Categoria vazia por padrão
+                categoria: "",
                 usuarios: [],
                 profissionais: [],
             };
             tmpGroupId++;
         }
     });
+}
+
+// Dashboard
+function updateDashboard() {
+    let totalUsuarios = 0;
+    let totalProfissionaisUnicos = new Set();
+    let gruposComAtividade = 0;
+    let totalCapacidade = 0;
+    let ocupacaoTotal = 0;
+
+    days.forEach(day => {
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            totalUsuarios += group.usuarios.length;
+            group.profissionais.forEach(id => totalProfissionaisUnicos.add(id));
+
+            if (group.usuarios.length > 0 || group.profissionais.length > 0) {
+                gruposComAtividade++;
+            }
+
+            totalCapacidade += 10;
+            ocupacaoTotal += group.usuarios.length + group.profissionais.length;
+        });
+    });
+
+    const ocupacaoMedia = totalCapacidade > 0 ? Math.round((ocupacaoTotal / totalCapacidade) * 100) : 0;
+
+    document.getElementById('totalUsuarios').textContent = totalUsuarios;
+    document.getElementById('totalProfissionais').textContent = totalProfissionaisUnicos.size;
+    document.getElementById('gruposAtivos').textContent = gruposComAtividade;
+    document.getElementById('ocupacaoMedia').textContent = ocupacaoMedia + '%';
+
+    updateAlertas();
+}
+
+function updateAlertas() {
+    const container = document.getElementById('alertas');
+    let alertas = [];
+
+    // Verifica grupos lotados
+    days.forEach(day => {
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            const ocupacao = group.usuarios.length + group.profissionais.length;
+            if (ocupacao >= 10) {
+                alertas.push(`⚠️ Grupo ${groupId} (${dayNames[day]}) está com capacidade máxima`);
+            }
+        });
+    });
+
+    // Verifica profissionais sem grupos
+    const profissionaisAtivos = new Set();
+    days.forEach(day => {
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            scheduleData[day][groupId].profissionais.forEach(id => profissionaisAtivos.add(id));
+        });
+    });
+
+    masterProfessionals.forEach(prof => {
+        if (!profissionaisAtivos.has(prof.id)) {
+            alertas.push(`ℹ️ ${prof.nome} ${prof.sobrenome} não está alocado em nenhum grupo`);
+        }
+    });
+
+    container.innerHTML = alertas.length > 0 ? alertas.slice(0, 5).map(a => `<p>${a}</p>`).join('') : '<p>✅ Nenhum alerta no momento</p>';
+}
+
+// Relatórios
+function updateReports() {
+    updateAtendimentosPorDia();
+    updateHorariosMaisUtilizados();
+}
+
+function updateAtendimentosPorDia() {
+    const container = document.getElementById('atendimentosPorDia');
+    let html = '';
+
+    days.forEach(day => {
+        let totalUsuarios = 0;
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            totalUsuarios += scheduleData[day][groupId].usuarios.length;
+        });
+        html += `<p><strong>${dayNames[day]}:</strong> ${totalUsuarios} atendimentos</p>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function updateHorariosMaisUtilizados() {
+    const container = document.getElementById('horariosMaisUtilizados');
+    const horarioStats = {};
+
+    days.forEach(day => {
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (group.usuarios.length > 0) {
+                horarioStats[group.horario] = (horarioStats[group.horario] || 0) + 1;
+            }
+        });
+    });
+
+    const sortedHorarios = Object.entries(horarioStats)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5);
+
+    let html = '';
+    sortedHorarios.forEach(([horario, count]) => {
+        html += `<p><strong>${horario}:</strong> ${count} grupos</p>`;
+    });
+
+    container.innerHTML = html || '<p>Nenhum dado disponível</p>';
+}
+
+// Navegação entre abas
+function switchToTab(tabName) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".day-content").forEach(c => {
+        c.classList.remove("active");
+        c.style.display = 'none';
+    });
+
+    const tab = document.querySelector(`[data-day="${tabName}"]`);
+    const content = document.getElementById(tabName);
+
+    if (tab && content) {
+        tab.classList.add("active");
+        content.classList.add("active");
+        content.style.display = 'block';
+    }
+
+    if (tabName === 'dashboard') {
+        updateDashboard();
+    } else if (tabName === 'profissionais') {
+        renderMasterProfessionalsList();
+        document.getElementById('professional-details-view').innerHTML =
+            '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
+        window.currentSelectedProfessionalId = null;
+    } else if (tabName === 'grade') {
+        document.getElementById('categoryFilter').value = '';
+        updateGradeView();
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.disabled = false;
+        }
+    } else if (tabName === 'relatorios') {
+        updateReports();
+    }
 }
 
 /*autenticação*/
@@ -62,9 +209,8 @@ function openLoginModal() {
 
 function toggleEditButtons(enable) {
     document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
-        // EXCEÇÃO: Não desabilita o filtro de categoria da aba Grade
         if (el.id === 'categoryFilter') {
-            return; // Pula este elemento, deixa sempre habilitado
+            return;
         }
         el.disabled = !enable;
     });
@@ -80,36 +226,16 @@ function updateUserStatus() {
         loginBtn.textContent = '🔒 Logout';
         loginBtn.onclick = () => {
             isAuthenticated = false;
-            updateTabsVisibility(); // Só atualiza visibilidade
+            updateTabsVisibility();
             updateUserStatus();
             toggleEditButtons(false);
 
-            // GARANTIR que o filtro de categoria continue funcionando após logout
             const categoryFilter = document.getElementById('categoryFilter');
             if (categoryFilter) {
                 categoryFilter.disabled = false;
             }
 
-            // Força volta para aba Grade após logout APENAS se estiver em aba restrita
-            const currentActiveTab = document.querySelector('.tab.active');
-            if (currentActiveTab && currentActiveTab.dataset.day !== 'grade') {
-                // Remove active de todas
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.day-content').forEach(c => {
-                    c.classList.remove('active');
-                    c.style.display = 'none';
-                });
-
-                // Ativa Grade
-                const gradeTab = document.querySelector('[data-day="grade"]');
-                const gradeContent = document.getElementById('grade');
-                if (gradeTab && gradeContent) {
-                    gradeTab.classList.add('active');
-                    gradeContent.classList.add('active');
-                    gradeContent.style.display = 'block';
-                }
-            }
-
+            switchToTab('dashboard');
             alert('Logout realizado! Agora você está no modo visualização.');
         };
     } else {
@@ -119,52 +245,28 @@ function updateUserStatus() {
         loginBtn.onclick = () => openLoginModal();
     }
 }
+
 function updateTabsVisibility() {
     const tabs = document.querySelectorAll('.tab');
-    const dayContents = document.querySelectorAll('.day-content');
+    const restrictedTabs = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
 
     if (isAuthenticated) {
-        // Administrador: mostra todas as abas
         tabs.forEach(tab => {
             tab.style.display = 'block';
         });
-        dayContents.forEach(content => {
-            content.style.display = content.classList.contains('active') ? 'block' : 'none';
-        });
     } else {
-        // Usuário comum: só mostra aba Grade
         tabs.forEach(tab => {
             const day = tab.dataset.day;
-            if (day === 'grade') {
-                tab.style.display = 'block';
-            } else {
+            if (restrictedTabs.includes(day)) {
                 tab.style.display = 'none';
-            }
-        });
-
-        // Esconde todos os conteúdos exceto Grade
-        dayContents.forEach(content => {
-            if (content.id === 'grade') {
-                content.classList.add('active');
-                content.style.display = 'block';
             } else {
-                content.classList.remove('active');
-                content.style.display = 'none';
-            }
-        });
-
-        // Ativa apenas a aba Grade
-        tabs.forEach(tab => {
-            if (tab.dataset.day === 'grade') {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
+                tab.style.display = 'block';
             }
         });
     }
 }
 
-/*vizualização dos grupos*/
+/*visualização dos grupos*/
 function createGroupElement(day, groupId) {
     const div = document.createElement("div");
     div.className = "group";
@@ -216,7 +318,6 @@ function initializeGroups() {
         }
     });
 
-    /* renderiza dados já em memória */
     days.forEach(day => {
         let gid = day === "segunda" ? 1 : day === "terca" ? 21 : day === "quarta" ? 41 : day === "quinta" ? 61 : 81;
         for (let i = 1; i <= 20; i++) {
@@ -234,6 +335,7 @@ function updateGroupTime(day, groupId, time) {
         return false;
     }
     scheduleData[day][groupId].horario = time;
+    updateDashboard();
     return true;
 }
 
@@ -243,6 +345,7 @@ function updateGroupCategory(day, groupId, category) {
         return false;
     }
     scheduleData[day][groupId].categoria = category;
+    updateDashboard();
     return true;
 }
 
@@ -346,6 +449,7 @@ function removeUser(day, groupId, idx) {
     if (confirm("Tem certeza que deseja remover este usuário?")) {
         scheduleData[day][groupId].usuarios.splice(idx, 1);
         renderUsers(day, groupId);
+        updateDashboard();
     }
 }
 
@@ -354,10 +458,10 @@ function removeProfessional(day, groupId, idx) {
     if (confirm("Tem certeza que deseja remover este profissional?")) {
         scheduleData[day][groupId].profissionais.splice(idx, 1);
         renderProfessionals(day, groupId);
+        updateDashboard();
     }
 }
 
-// Abre o novo modal de cadastro
 function openRegisterProfessionalModal() {
     if (!checkAuth()) return;
     document.getElementById('registerProfessionalForm').reset();
@@ -365,7 +469,6 @@ function openRegisterProfessionalModal() {
     document.getElementById('regProfName').focus();
 }
 
-// Remove profissional da lista mestra
 function removeMasterProfessional(profId) {
     if (!checkAuth()) return;
 
@@ -391,13 +494,13 @@ function removeMasterProfessional(profId) {
         if (index !== -1) {
             masterProfessionals.splice(index, 1);
             renderMasterProfessionalsList();
+            updateDashboard();
             document.getElementById('professional-details-view').innerHTML =
                 '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
         }
     }
 }
 
-// Renderiza a lista na aba "Profissionais"
 function renderMasterProfessionalsList() {
     const listContainer = document.getElementById('master-professionals-list');
     listContainer.innerHTML = `
@@ -503,7 +606,7 @@ function showProfessionalDetails(profId) {
     detailsContainer.innerHTML = content;
 }
 
-// NOVA FUNCIONALIDADE: Grade de Horários
+// Grade de Horários
 function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
     const gradeContent = document.getElementById('grade-content');
@@ -513,7 +616,6 @@ function updateGradeView() {
         return;
     }
 
-    // Filtra profissionais da categoria selecionada
     const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
 
     if (professionalsByCategory.length === 0) {
@@ -521,7 +623,6 @@ function updateGradeView() {
         return;
     }
 
-    // Gera a grade para cada profissional da categoria
     let gradeHTML = '<div class="grade-professionals">';
 
     professionalsByCategory.forEach(prof => {
@@ -590,7 +691,6 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
     Object.keys(scheduleData[day]).forEach(groupId => {
         const group = scheduleData[day][groupId];
         if (group.horario === timeSlot && group.profissionais.includes(professionalId)) {
-            // Cria lista de nomes dos usuários
             const userNames = group.usuarios.length > 0
                 ? group.usuarios.map(user => user.nome).join(', ')
                 : 'Nenhum usuário';
@@ -638,68 +738,30 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
-/*aqui são tratados os eventos*/
-
+/*eventos*/
 window.addEventListener("click", e => {
-    if (e.target === document.getElementById("userModal"))        closeModal("userModal");
+    if (e.target === document.getElementById("userModal")) closeModal("userModal");
     if (e.target === document.getElementById("professionalModal")) closeModal("professionalModal");
-    if (e.target === document.getElementById("loginModal"))        closeModal("loginModal");
+    if (e.target === document.getElementById("loginModal")) closeModal("loginModal");
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
 });
 
-/* Troca de abas - VERSÃO COM DEBUG */
+/* Troca de abas */
 document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", e => {
         const clickedDay = e.currentTarget.dataset.day;
 
-        console.log('Clicou na aba:', clickedDay); // DEBUG
-
-        // Verifica se é uma aba restrita e se o usuário não é admin
-        if (!isAuthenticated && clickedDay !== 'grade') {
+        if (!isAuthenticated && ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'].includes(clickedDay)) {
             alert("⛔ Esta aba requer permissões de administrador!");
             openLoginModal();
             return;
         }
 
-        // Remove active de todas as abas e conteúdos
-        document.querySelectorAll(".tab").forEach(t => {
-            t.classList.remove("active");
-        });
-        document.querySelectorAll(".day-content").forEach(c => {
-            c.classList.remove("active");
-            c.style.display = 'none'; // Força esconder
-        });
-
-        // Ativa a aba e conteúdo clicado
-        e.currentTarget.classList.add("active");
-        const targetContent = document.getElementById(clickedDay);
-        if (targetContent) {
-            targetContent.classList.add("active");
-            targetContent.style.display = 'block'; // Força mostrar
-            console.log('Ativou conteúdo:', clickedDay); // DEBUG
-        }
-
-        // Ações específicas para cada aba
-        if (clickedDay === 'profissionais') {
-            renderMasterProfessionalsList();
-            document.getElementById('professional-details-view').innerHTML =
-                '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
-            window.currentSelectedProfessionalId = null;
-        } else if (clickedDay === 'grade') {
-            // Reseta a visualização da grade quando entrar na aba
-            document.getElementById('categoryFilter').value = '';
-            updateGradeView();
-
-            // GARANTIR que o filtro esteja sempre habilitado na aba Grade
-            const categoryFilter = document.getElementById('categoryFilter');
-            if (categoryFilter) {
-                categoryFilter.disabled = false;
-            }
-        }
+        switchToTab(clickedDay);
     });
 });
 
-/* formulários (login, usuário, profissional) */
+/* formulários */
 document.getElementById("loginForm").addEventListener("submit", e => {
     e.preventDefault();
     const pass = document.getElementById("loginPassword").value.trim();
@@ -707,8 +769,8 @@ document.getElementById("loginForm").addEventListener("submit", e => {
         isAuthenticated = true;
         closeModal("loginModal");
         toggleEditButtons(true);
-        updateTabsVisibility(); // Só atualiza visibilidade
-        updateUserStatus(); // Atualiza status no header
+        updateTabsVisibility();
+        updateUserStatus();
         alert("Acesso liberado! Agora você tem acesso a todas as funcionalidades.");
     } else {
         alert("Senha incorreta!");
@@ -718,14 +780,15 @@ document.getElementById("loginForm").addEventListener("submit", e => {
 document.getElementById("userForm").addEventListener("submit", e => {
     e.preventDefault();
     const data = {
-        nome:        document.getElementById("userName").value.trim(),
-        idade:       document.getElementById("userAge").value.trim(),
+        nome: document.getElementById("userName").value.trim(),
+        idade: document.getElementById("userAge").value.trim(),
         deficiencia: document.getElementById("userDeficiency").value.trim(),
-        programa:    document.getElementById("userProgram").value.trim(),
+        programa: document.getElementById("userProgram").value.trim(),
     };
     const { day, groupId } = currentModalContext;
     scheduleData[day][groupId].usuarios.push(data);
     renderUsers(day, groupId);
+    updateDashboard();
     closeModal("userModal");
 });
 
@@ -741,6 +804,7 @@ document.getElementById("professionalForm").addEventListener("submit", e => {
 
     scheduleData[day][groupId].profissionais.push(parseInt(professionalId));
     renderProfessionals(day, groupId);
+    updateDashboard();
     closeModal("professionalModal");
 });
 
@@ -755,43 +819,20 @@ document.getElementById("registerProfessionalForm").addEventListener("submit", e
 
     masterProfessionals.push(newProf);
     renderMasterProfessionalsList();
+    updateDashboard();
     closeModal('registerProfessionalModal');
 });
 
 /*inicializa a aplicação*/
-
 document.addEventListener("DOMContentLoaded", () => {
     resetDataStructure();
     initializeGroups();
     renderMasterProfessionalsList();
 
-    // FORÇA ESTADO INICIAL LIMPO
-    console.log('Inicializando aplicação...'); // DEBUG
-
-    // Esconde todos os conteúdos
-    document.querySelectorAll('.day-content').forEach(content => {
-        content.classList.remove('active');
-        content.style.display = 'none';
-    });
-
-    // Remove active de todas as abas
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-
-    // Ativa apenas a primeira aba (Segunda-feira) e seu conteúdo
-    const firstTab = document.querySelector('[data-day="segunda"]');
-    const firstContent = document.getElementById('segunda');
-
-    if (firstTab && firstContent) {
-        firstTab.classList.add('active');
-        firstContent.classList.add('active');
-        firstContent.style.display = 'block';
-        console.log('Ativou aba inicial: segunda'); // DEBUG
-    }
-
-    updateTabsVisibility(); // Define visibilidade
-    updateUserStatus(); // Define status do usuário
+    // Inicia com Dashboard ativo
+    switchToTab('dashboard');
+    updateTabsVisibility();
+    updateUserStatus();
 
     // GARANTIR que o filtro de categoria sempre funcione
     const categoryFilter = document.getElementById('categoryFilter');

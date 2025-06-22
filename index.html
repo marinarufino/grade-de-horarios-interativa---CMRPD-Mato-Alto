@@ -20,18 +20,46 @@
 
     <!-- Abas dos dias da semana -->
     <div class="tabs">
-        <button class="tab active" data-day="segunda">Segunda-feira</button>
+        <button class="tab active" data-day="dashboard">📊 Dashboard</button>
+        <button class="tab" data-day="segunda">Segunda-feira</button>
         <button class="tab" data-day="terca">Terça-feira</button>
         <button class="tab" data-day="quarta">Quarta-feira</button>
         <button class="tab" data-day="quinta">Quinta-feira</button>
         <button class="tab" data-day="sexta">Sexta-feira</button>
         <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
         <button class="tab" data-day="grade">📊 Grade</button>
+        <button class="tab" data-day="relatorios">📈 Relatórios</button>
     </div>
 
     <!-- Conteúdo de cada dia -->
     <div class="content">
-        <div id="segunda" class="day-content active">
+        <!-- Dashboard -->
+        <div id="dashboard" class="day-content active">
+            <div class="dashboard-overview">
+                <div class="dashboard-card">
+                    <h3 id="totalUsuarios">0</h3>
+                    <p>👤 Total de Usuários</p>
+                </div>
+                <div class="dashboard-card">
+                    <h3 id="totalProfissionais">0</h3>
+                    <p>👨‍⚕️ Profissionais Ativos</p>
+                </div>
+                <div class="dashboard-card">
+                    <h3 id="gruposAtivos">0</h3>
+                    <p>👥 Grupos com Atividades</p>
+                </div>
+                <div class="dashboard-card">
+                    <h3 id="ocupacaoMedia">0%</h3>
+                    <p>📊 Ocupação Média</p>
+                </div>
+            </div>
+            <div class="alerts-section">
+                <h3>⚠️ Alertas</h3>
+                <div id="alertas"></div>
+            </div>
+        </div>
+
+        <div id="segunda" class="day-content">
             <div class="groups-grid" id="groups-segunda"></div>
         </div>
 
@@ -91,6 +119,21 @@
             <div class="grade-container">
                 <div id="grade-content">
                     <div class="empty-state">Selecione uma categoria para visualizar a grade</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Relatórios -->
+        <div id="relatorios" class="day-content">
+            <h2>📈 Relatórios e Estatísticas</h2>
+            <div class="reports-container">
+                <div class="report-card">
+                    <h3>📅 Atendimentos por Dia</h3>
+                    <div id="atendimentosPorDia"></div>
+                </div>
+                <div class="report-card">
+                    <h3>⏰ Horários Mais Utilizados</h3>
+                    <div id="horariosMaisUtilizados"></div>
                 </div>
             </div>
         </div>
