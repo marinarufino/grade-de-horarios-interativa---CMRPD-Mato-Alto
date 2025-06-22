@@ -235,7 +235,7 @@ function updateUserStatus() {
                 categoryFilter.disabled = false;
             }
 
-            switchToTab('dashboard');
+            switchToTab('grade');
             alert('Logout realizado! Agora você está no modo visualização.');
         };
     } else {
@@ -248,7 +248,7 @@ function updateUserStatus() {
 
 function updateTabsVisibility() {
     const tabs = document.querySelectorAll('.tab');
-    const restrictedTabs = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
+    const restrictedTabs = ['dashboard', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais', 'relatorios'];
 
     if (isAuthenticated) {
         tabs.forEach(tab => {
@@ -751,7 +751,7 @@ document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", e => {
         const clickedDay = e.currentTarget.dataset.day;
 
-        if (!isAuthenticated && ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'].includes(clickedDay)) {
+        if (!isAuthenticated && ['dashboard', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais', 'relatorios'].includes(clickedDay)) {
             alert("⛔ Esta aba requer permissões de administrador!");
             openLoginModal();
             return;
@@ -829,8 +829,8 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeGroups();
     renderMasterProfessionalsList();
 
-    // Inicia com Dashboard ativo
-    switchToTab('dashboard');
+    // Inicia com Grade ativa (para usuários não autenticados)
+    switchToTab('grade');
     updateTabsVisibility();
     updateUserStatus();
 

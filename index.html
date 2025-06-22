@@ -20,21 +20,21 @@
 
     <!-- Abas dos dias da semana -->
     <div class="tabs">
-        <button class="tab active" data-day="dashboard">📊 Dashboard</button>
+        <button class="tab" data-day="dashboard">📊 Dashboard</button>
         <button class="tab" data-day="segunda">Segunda-feira</button>
         <button class="tab" data-day="terca">Terça-feira</button>
         <button class="tab" data-day="quarta">Quarta-feira</button>
         <button class="tab" data-day="quinta">Quinta-feira</button>
         <button class="tab" data-day="sexta">Sexta-feira</button>
         <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
-        <button class="tab" data-day="grade">📊 Grade</button>
+        <button class="tab active" data-day="grade">📊 Grade</button>
         <button class="tab" data-day="relatorios">📈 Relatórios</button>
     </div>
 
     <!-- Conteúdo de cada dia -->
     <div class="content">
         <!-- Dashboard -->
-        <div id="dashboard" class="day-content active">
+        <div id="dashboard" class="day-content">
             <div class="dashboard-overview">
                 <div class="dashboard-card">
                     <h3 id="totalUsuarios">0</h3>
@@ -90,7 +90,7 @@
         </div>
 
         <!-- Nova Aba Grade -->
-        <div id="grade" class="day-content">
+        <div id="grade" class="day-content active">
             <div class="grade-header">
                 <h2>📊 Grade de Horários por Categoria</h2>
                 <div class="grade-controls">
