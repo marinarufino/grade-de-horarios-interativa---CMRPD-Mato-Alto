@@ -26,7 +26,9 @@ const groupCategories = [
     "CENTRO DE CONVIVENCIA",
     "GAIA",
     "EMPREGABILIDADE",
-    "ATENDIMENTO A FAMILIA"
+    "ATENDIMENTO A FAMILIA",
+    "EVOLUÇÃO",
+    "REUNIÃO GAIA"
 ];
 
 function resetDataStructure() {
