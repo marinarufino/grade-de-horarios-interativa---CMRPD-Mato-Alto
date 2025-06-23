@@ -170,16 +170,17 @@ function switchToTab(tabName) {
             '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
         window.currentSelectedProfessionalId = null;
     } else if (tabName === 'grade') {
+        // Limpar filtros ao entrar na aba Grade
         document.getElementById('categoryFilter').value = '';
-        document.getElementById('dayFilter').value = '';
+        document.getElementById('gradeWeekdayFilter').value = '';
         updateGradeView();
         const categoryFilter = document.getElementById('categoryFilter');
-        const dayFilter = document.getElementById('dayFilter');
+        const weekdayFilter = document.getElementById('gradeWeekdayFilter');
         if (categoryFilter) {
             categoryFilter.disabled = false;
         }
-        if (dayFilter) {
-            dayFilter.disabled = false;
+        if (weekdayFilter) {
+            weekdayFilter.disabled = false;
         }
     } else if (tabName === 'relatorios') {
         updateReports();
@@ -200,7 +201,7 @@ function openLoginModal() {
 }
 function toggleEditButtons(enable) {
     document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
-        if (el.id === 'categoryFilter') {
+        if (el.id === 'categoryFilter' || el.id === 'gradeWeekdayFilter') {
             return;
         }
         el.disabled = !enable;
@@ -227,8 +228,12 @@ function updateUserStatus() {
             toggleEditButtons(false);
             toggleExportButton(false); // ESCONDER botão CSV no logout
             const categoryFilter = document.getElementById('categoryFilter');
+            const weekdayFilter = document.getElementById('gradeWeekdayFilter');
             if (categoryFilter) {
                 categoryFilter.disabled = false;
+            }
+            if (weekdayFilter) {
+                weekdayFilter.disabled = false;
             }
             switchToTab('grade');
             alert('Logout realizado! Agora você está no modo visualização.');
@@ -345,7 +350,6 @@ function updateGroupCategory(day, groupId, category) {
     }
     scheduleData[day][groupId].categoria = category;
     
-    // ATUALIZAR o texto do cabeçalho baseado na nova categoria
     updateGroupHeaderText(day, groupId, category);
     
     updateDashboard();
@@ -578,54 +582,184 @@ function showProfessionalDetails(profId) {
     }
     detailsContainer.innerHTML = content;
 }
-// Grade de Horários
+
+// Grade de Horários - VERSÃO ATUALIZADA COM FILTRO POR DIA
 function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
-    const selectedDay = document.getElementById('dayFilter').value;
+    const selectedWeekday = document.getElementById('gradeWeekdayFilter').value;
     const gradeContent = document.getElementById('grade-content');
 
+    console.log('Filtros selecionados:', { selectedCategory, selectedWeekday });
+
     // Se nenhum filtro foi selecionado
-    if (!selectedCategory && !selectedDay) {
+    if (!selectedCategory && !selectedWeekday) {
         gradeContent.innerHTML = '<div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>';
         return;
     }
 
-    // Se foi selecionado filtro por categoria
-    if (selectedCategory && !selectedDay) {
-        const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
-        
-        if (professionalsByCategory.length === 0) {
-            gradeContent.innerHTML = `<div class="empty-state">Nenhum profissional cadastrado na categoria "${selectedCategory}"</div>`;
-            return;
-        }
-
-        let gradeHTML = '<div class="grade-professionals">';
-        professionalsByCategory.forEach(prof => {
-            gradeHTML += generateProfessionalGrid(prof);
-        });
-        gradeHTML += '</div>';
-        gradeContent.innerHTML = gradeHTML;
+    // Se apenas dia da semana foi selecionado -> Mostrar visão geral do dia
+    if (!selectedCategory && selectedWeekday) {
+        showDayOverview(selectedWeekday);
         return;
     }
 
-    // Se foi selecionado filtro por dia da semana
-    if (selectedDay) {
-        gradeContent.innerHTML = generateDayGrid(selectedDay);
+    // Se apenas categoria foi selecionada -> Funcionalidade original
+    if (selectedCategory && !selectedWeekday) {
+        showCategoryView(selectedCategory);
+        return;
+    }
+
+    // Se ambos foram selecionados -> Categoria específica em um dia específico
+    if (selectedCategory && selectedWeekday) {
+        showCategoryAndDayView(selectedCategory, selectedWeekday);
         return;
     }
 }
 
-// NOVA FUNÇÃO: Gera grade completa para um dia específico
-function generateDayGrid(selectedDay) {
+// NOVA FUNÇÃO: Mostra visão geral de todas as atividades de um dia
+function showDayOverview(selectedDay) {
+    const gradeContent = document.getElementById('grade-content');
+    
+    let html = `
+        <div class="day-overview">
+            <h3 class="day-overview-title">📅 Visão Geral - ${dayNames[selectedDay]}</h3>
+            <table class="day-overview-table">
+                <thead>
+                    <tr>
+                        <th>Horário</th>
+                        <th>Atividades</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    let hasActivities = false;
+
+    timeSlots.forEach(timeSlot => {
+        html += `<tr>
+            <td class="time-column">${timeSlot}</td>
+            <td>`;
+        
+        const activities = getDayActivitiesAtTime(selectedDay, timeSlot);
+        
+        if (activities.length > 0) {
+            hasActivities = true;
+            activities.forEach(activity => {
+                const activityClass = isSpecificActivity(activity.categoria) ? 'day-activity specific' : 'day-activity';
+                
+                html += `<div class="${activityClass}">`;
+                
+                if (isSpecificActivity(activity.categoria)) {
+                    // Atividade específica: só nome da atividade
+                    html += `<div class="day-activity-name">${activity.categoria}</div>`;
+                } else {
+                    // Grupo normal: nome do grupo + categoria
+                    html += `<div class="day-activity-name">Grupo ${activity.groupId} - ${activity.categoria || 'Sem categoria'}</div>`;
+                }
+                
+                // Mostrar profissionais se houver
+                if (activity.profissionais.length > 0) {
+                    html += `<div class="day-activity-details">👨‍⚕️ ${activity.profissionais.join(', ')}</div>`;
+                }
+                
+                // Mostrar usuários se houver (apenas para grupos normais)
+                if (!isSpecificActivity(activity.categoria) && activity.usuarios.length > 0) {
+                    html += `<div class="day-activity-details">👤 ${activity.usuarios.join(', ')}</div>`;
+                }
+                
+                html += `</div>`;
+            });
+        } else {
+            html += '<span style="color: #9ca3af; font-style: italic;">Nenhuma atividade</span>';
+        }
+        
+        html += `</td></tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+
+    if (!hasActivities) {
+        html = `<div class="empty-state">Nenhuma atividade programada para ${dayNames[selectedDay]}</div>`;
+    }
+
+    gradeContent.innerHTML = html;
+}
+
+// NOVA FUNÇÃO: Busca todas as atividades de um dia/horário específico
+function getDayActivitiesAtTime(day, timeSlot) {
+    const activities = [];
+    
+    Object.keys(scheduleData[day]).forEach(groupId => {
+        const group = scheduleData[day][groupId];
+        
+        // Só incluir se tem o horário correto E tem pelo menos profissional ou usuário
+        if (group.horario === timeSlot && (group.usuarios.length > 0 || group.profissionais.length > 0)) {
+            const profissionais = group.profissionais
+                .map(profId => masterProfessionals.find(prof => prof.id === profId))
+                .filter(prof => prof)
+                .map(prof => prof.nome);
+                
+            const usuarios = group.usuarios.map(user => user.nome);
+            
+            activities.push({
+                groupId: groupId,
+                categoria: group.categoria,
+                profissionais: profissionais,
+                usuarios: usuarios
+            });
+        }
+    });
+    
+    return activities;
+}
+
+// Função original para mostrar categoria (mantida como estava)
+function showCategoryView(selectedCategory) {
+    const gradeContent = document.getElementById('grade-content');
+    const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
+    
+    if (professionalsByCategory.length === 0) {
+        gradeContent.innerHTML = `<div class="empty-state">Nenhum profissional cadastrado na categoria "${selectedCategory}"</div>`;
+        return;
+    }
+
+    let gradeHTML = '<div class="grade-professionals">';
+    professionalsByCategory.forEach(prof => {
+        gradeHTML += generateProfessionalGrid(prof);
+    });
+    gradeHTML += '</div>';
+    gradeContent.innerHTML = gradeHTML;
+}
+
+// NOVA FUNÇÃO: Mostra categoria específica em um dia específico
+function showCategoryAndDayView(selectedCategory, selectedDay) {
+    const gradeContent = document.getElementById('grade-content');
+    const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
+    
+    if (professionalsByCategory.length === 0) {
+        gradeContent.innerHTML = `<div class="empty-state">Nenhum profissional cadastrado na categoria "${selectedCategory}"</div>`;
+        return;
+    }
+
+    let gradeHTML = '<div class="grade-professionals">';
+    professionalsByCategory.forEach(prof => {
+        gradeHTML += generateProfessionalGridForDay(prof, selectedDay);
+    });
+    gradeHTML += '</div>';
+    gradeContent.innerHTML = gradeHTML;
+}
+
+// NOVA FUNÇÃO: Gera grade de um profissional para um dia específico
+function generateProfessionalGridForDay(professional, selectedDay) {
     let gridHTML = `
-        <div class="day-grid">
-            <h3 class="day-grid-title">📅 Grade Completa - ${dayNames[selectedDay]}</h3>
+        <div class="professional-grid">
+            <h3 class="professional-name">${professional.nome} - ${dayNames[selectedDay]}</h3>
             <div class="grid-table">
                 <table>
                     <thead>
                         <tr>
                             <th>Horário</th>
-                            <th>Atividades</th>
+                            <th>${dayNames[selectedDay]}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -634,23 +768,22 @@ function generateDayGrid(selectedDay) {
     timeSlots.forEach(timeSlot => {
         gridHTML += `<tr><td class="time-cell">${timeSlot}</td>`;
         
-        const activitiesAtTime = getAllActivitiesAtTime(selectedDay, timeSlot);
-        const cellClass = activitiesAtTime.length > 0 ? 'occupied-cell day-cell' : 'empty-cell day-cell';
-        
+        const activities = getProfessionalActivitiesAtTime(professional.id, selectedDay, timeSlot);
+        const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
+
         gridHTML += `<td class="${cellClass}">`;
-        if (activitiesAtTime.length > 0) {
-            activitiesAtTime.forEach(activity => {
+        if (activities.length > 0) {
+            activities.forEach(activity => {
                 if (isSpecificActivity(activity.groupCategory)) {
                     // Para atividades específicas: só mostrar o nome
-                    gridHTML += `<div class="day-activity-item">
-                        <div class="activity-name">${activity.groupCategory}</div>
-                        <div class="activity-professionals">${activity.professionalNames}</div>
+                    gridHTML += `<div class="activity-item">
+                        <div class="activity-group">${activity.groupCategory}</div>
                     </div>`;
                 } else {
-                    // Para grupos normais: mostrar grupo + categoria + profissionais
-                    gridHTML += `<div class="day-activity-item">
-                        <div class="activity-name">Grupo ${activity.groupId} - ${activity.groupCategory}</div>
-                        <div class="activity-professionals">${activity.professionalNames}</div>
+                    // Para grupos normais: mostrar tudo como antes
+                    gridHTML += `<div class="activity-item">
+                        <div class="activity-group">Grupo ${activity.groupId}</div>
+                        <div class="activity-category">${activity.groupCategory}</div>
                         <div class="activity-users">${activity.userNames}</div>
                     </div>`;
                 }
@@ -670,36 +803,6 @@ function generateDayGrid(selectedDay) {
     return gridHTML;
 }
 
-// NOVA FUNÇÃO: Busca todas as atividades de um dia/horário específico
-function getAllActivitiesAtTime(day, timeSlot) {
-    const activities = [];
-
-    Object.keys(scheduleData[day]).forEach(groupId => {
-        const group = scheduleData[day][groupId];
-        if (group.horario === timeSlot && (group.usuarios.length > 0 || group.profissionais.length > 0)) {
-            const userNames = group.usuarios.length > 0
-                ? group.usuarios.map(user => user.nome).join(', ')
-                : '';
-
-            const professionalNames = group.profissionais.length > 0
-                ? group.profissionais
-                    .map(profId => masterProfessionals.find(prof => prof.id === profId))
-                    .filter(prof => prof)
-                    .map(prof => prof.nome)
-                    .join(', ')
-                : 'Sem profissional';
-
-            activities.push({
-                groupId: groupId,
-                groupCategory: group.categoria || 'Sem categoria',
-                userNames: userNames,
-                professionalNames: professionalNames
-            });
-        }
-    });
-
-    return activities;
-}
 function generateProfessionalGrid(professional) {
     let gridHTML = `
         <div class="professional-grid">
@@ -890,10 +993,14 @@ document.addEventListener("DOMContentLoaded", () => {
     switchToTab('grade');
     updateTabsVisibility();
     updateUserStatus();
-    // GARANTIR que o filtro de categoria sempre funcione
+    // GARANTIR que os filtros sempre funcionem
     const categoryFilter = document.getElementById('categoryFilter');
+    const weekdayFilter = document.getElementById('gradeWeekdayFilter');
     if (categoryFilter) {
         categoryFilter.disabled = false;
+    }
+    if (weekdayFilter) {
+        weekdayFilter.disabled = false;
     }
     const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
     textInputs.forEach(input => {
