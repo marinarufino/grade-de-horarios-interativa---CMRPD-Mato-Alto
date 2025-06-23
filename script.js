@@ -216,6 +216,14 @@ function toggleEditButtons(enable) {
     });
 }
 
+// controla visibilidade do botão de exportação CSV
+function toggleExportButton(show) {
+    const exportBtn = document.querySelector('.export-btn');
+    if (exportBtn) {
+        exportBtn.style.display = show ? 'block' : 'none';
+    }
+}
+
 function updateUserStatus() {
     const statusText = document.getElementById('userStatusText');
     const loginBtn = document.getElementById('loginToggleBtn');
@@ -229,6 +237,7 @@ function updateUserStatus() {
             updateTabsVisibility();
             updateUserStatus();
             toggleEditButtons(false);
+            toggleExportButton(false); // ESCONDER botão CSV no logout
 
             const categoryFilter = document.getElementById('categoryFilter');
             if (categoryFilter) {
@@ -238,11 +247,13 @@ function updateUserStatus() {
             switchToTab('grade');
             alert('Logout realizado! Agora você está no modo visualização.');
         };
+        toggleExportButton(true); // MOSTRAR botão CSV no login
     } else {
         statusText.textContent = 'Modo Visualização';
         statusText.style.color = '#6b7280';
         loginBtn.textContent = '🔓 Fazer Login Admin';
         loginBtn.onclick = () => openLoginModal();
+        toggleExportButton(false); // ESCONDER botão CSV quando não logado
     }
 }
 
@@ -708,6 +719,12 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
 
 /*exportação CSV*/
 function exportToCSV() {
+    // adicionar verificação de autenticação
+    if (!isAuthenticated) {
+        alert("⛔ Acesso negado! Faça login como administrador para exportar dados.");
+        return;
+    }
+
     let csv = "Dia da Semana;Grupo;Horário;Categoria;Tipo;Nome;Idade;Deficiência;Programa;Categoria Profissional\n";
 
     days.forEach(day => {
