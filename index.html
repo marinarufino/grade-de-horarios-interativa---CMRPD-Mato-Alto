@@ -15,7 +15,6 @@
             <button id="loginToggleBtn" onclick="openLoginModal()">🔓 Fazer Login Admin</button>
         </div>
     </div>
-
     <div class="tabs">
         <button class="tab" data-day="dashboard">📊 Dashboard</button>
         <button class="tab" data-day="segunda">Segunda-feira</button>
@@ -27,7 +26,6 @@
         <button class="tab active" data-day="grade">📊 Grade</button>
         <button class="tab" data-day="relatorios">📈 Relatórios</button>
     </div>
-
     <div class="content">
         <div id="dashboard" class="day-content">
             <div class="dashboard-overview">
@@ -53,27 +51,21 @@
                 <div id="alertas"></div>
             </div>
         </div>
-
         <div id="segunda" class="day-content">
             <div class="groups-grid" id="groups-segunda"></div>
         </div>
-
         <div id="terca" class="day-content">
             <div class="groups-grid" id="groups-terca"></div>
         </div>
-
         <div id="quarta" class="day-content">
             <div class="groups-grid" id="groups-quarta"></div>
         </div>
-
         <div id="quinta" class="day-content">
             <div class="groups-grid" id="groups-quinta"></div>
         </div>
-
         <div id="sexta" class="day-content">
             <div class="groups-grid" id="groups-sexta"></div>
         </div>
-
         <div id="profissionais" class="day-content">
             <h2>Relação Geral de Profissionais</h2>
             <button class="btn-add" onclick="openRegisterProfessionalModal()">+ Cadastrar Novo Profissional</button>
@@ -82,7 +74,6 @@
                 <div id="professional-details-view"></div>
             </div>
         </div>
-
         <div id="grade" class="day-content active">
             <div class="grade-header">
                 <h2>📊 Grade de Horários por Categoria</h2>
@@ -107,15 +98,25 @@
                             <option value="Outro">Outro</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="dayFilter">Filtrar por dia da semana:</label>
+                        <select id="dayFilter" onchange="updateGradeView()">
+                            <option value="">Todos os dias</option>
+                            <option value="segunda">Segunda-feira</option>
+                            <option value="terca">Terça-feira</option>
+                            <option value="quarta">Quarta-feira</option>
+                            <option value="quinta">Quinta-feira</option>
+                            <option value="sexta">Sexta-feira</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="grade-container">
                 <div id="grade-content">
-                    <div class="empty-state">Selecione uma categoria para visualizar a grade</div>
+                    <div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>
                 </div>
             </div>
         </div>
-
         <div id="relatorios" class="day-content">
             <h2>📈 Relatórios e Estatísticas</h2>
             <div class="reports-container">
@@ -131,7 +132,6 @@
         </div>
     </div>
 </div>
-
 <!-- Modal: Adicionar Usuário -->
 <div id="userModal" class="modal">
     <div class="modal-content">
@@ -162,7 +162,6 @@
         </form>
     </div>
 </div>
-
 <!-- Modal: Adicionar Profissional ao Grupo -->
 <div id="professionalModal" class="modal">
     <div class="modal-content">
@@ -181,7 +180,6 @@
         </form>
     </div>
 </div>
-
 <!-- Modal: Cadastrar Novo Profissional -->
 <div id="registerProfessionalModal" class="modal">
     <div class="modal-content">
@@ -220,7 +218,6 @@
         </form>
     </div>
 </div>
-
 <!-- Modal: Login de Administrador -->
 <div id="loginModal" class="modal">
     <div class="modal-content">
@@ -239,9 +236,92 @@
         </form>
     </div>
 </div>
-
 <!-- Botão de exportação -->
 <button class="export-btn" onclick="exportToCSV()">📊 Exportar como planilha</button>
+
+<!-- Novos estilos CSS para o filtro por dia -->
+<style>
+.grade-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.grade-controls .form-group {
+    margin: 0;
+    min-width: 250px;
+}
+
+.day-grid {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.day-grid-title {
+    color: #1e293b;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.day-cell {
+    width: 80%;
+    max-width: none;
+    padding: 12px;
+}
+
+.day-activity-item {
+    background: #3b82f6;
+    color: white;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    line-height: 1.3;
+}
+
+.day-activity-item:last-child {
+    margin-bottom: 0;
+}
+
+.activity-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.activity-professionals {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    margin-bottom: 2px;
+}
+
+.activity-users {
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .grade-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .grade-controls .form-group {
+        min-width: 200px;
+        width: 100%;
+        max-width: 300px;
+    }
+}
+</style>
 
 <script src="script.js"></script>
 </body>

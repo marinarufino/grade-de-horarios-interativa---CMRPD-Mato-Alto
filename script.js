@@ -171,10 +171,15 @@ function switchToTab(tabName) {
         window.currentSelectedProfessionalId = null;
     } else if (tabName === 'grade') {
         document.getElementById('categoryFilter').value = '';
+        document.getElementById('dayFilter').value = '';
         updateGradeView();
         const categoryFilter = document.getElementById('categoryFilter');
+        const dayFilter = document.getElementById('dayFilter');
         if (categoryFilter) {
             categoryFilter.disabled = false;
+        }
+        if (dayFilter) {
+            dayFilter.disabled = false;
         }
     } else if (tabName === 'relatorios') {
         updateReports();
@@ -576,22 +581,124 @@ function showProfessionalDetails(profId) {
 // Grade de Horários
 function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
+    const selectedDay = document.getElementById('dayFilter').value;
     const gradeContent = document.getElementById('grade-content');
-    if (!selectedCategory) {
-        gradeContent.innerHTML = '<div class="empty-state">Selecione uma categoria para visualizar a grade</div>';
+
+    // Se nenhum filtro foi selecionado
+    if (!selectedCategory && !selectedDay) {
+        gradeContent.innerHTML = '<div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>';
         return;
     }
-    const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
-    if (professionalsByCategory.length === 0) {
-        gradeContent.innerHTML = `<div class="empty-state">Nenhum profissional cadastrado na categoria "${selectedCategory}"</div>`;
+
+    // Se foi selecionado filtro por categoria
+    if (selectedCategory && !selectedDay) {
+        const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
+        
+        if (professionalsByCategory.length === 0) {
+            gradeContent.innerHTML = `<div class="empty-state">Nenhum profissional cadastrado na categoria "${selectedCategory}"</div>`;
+            return;
+        }
+
+        let gradeHTML = '<div class="grade-professionals">';
+        professionalsByCategory.forEach(prof => {
+            gradeHTML += generateProfessionalGrid(prof);
+        });
+        gradeHTML += '</div>';
+        gradeContent.innerHTML = gradeHTML;
         return;
     }
-    let gradeHTML = '<div class="grade-professionals">';
-    professionalsByCategory.forEach(prof => {
-        gradeHTML += generateProfessionalGrid(prof);
+
+    // Se foi selecionado filtro por dia da semana
+    if (selectedDay) {
+        gradeContent.innerHTML = generateDayGrid(selectedDay);
+        return;
+    }
+}
+
+// NOVA FUNÇÃO: Gera grade completa para um dia específico
+function generateDayGrid(selectedDay) {
+    let gridHTML = `
+        <div class="day-grid">
+            <h3 class="day-grid-title">📅 Grade Completa - ${dayNames[selectedDay]}</h3>
+            <div class="grid-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horário</th>
+                            <th>Atividades</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    timeSlots.forEach(timeSlot => {
+        gridHTML += `<tr><td class="time-cell">${timeSlot}</td>`;
+        
+        const activitiesAtTime = getAllActivitiesAtTime(selectedDay, timeSlot);
+        const cellClass = activitiesAtTime.length > 0 ? 'occupied-cell day-cell' : 'empty-cell day-cell';
+        
+        gridHTML += `<td class="${cellClass}">`;
+        if (activitiesAtTime.length > 0) {
+            activitiesAtTime.forEach(activity => {
+                if (isSpecificActivity(activity.groupCategory)) {
+                    // Para atividades específicas: só mostrar o nome
+                    gridHTML += `<div class="day-activity-item">
+                        <div class="activity-name">${activity.groupCategory}</div>
+                        <div class="activity-professionals">${activity.professionalNames}</div>
+                    </div>`;
+                } else {
+                    // Para grupos normais: mostrar grupo + categoria + profissionais
+                    gridHTML += `<div class="day-activity-item">
+                        <div class="activity-name">Grupo ${activity.groupId} - ${activity.groupCategory}</div>
+                        <div class="activity-professionals">${activity.professionalNames}</div>
+                        <div class="activity-users">${activity.userNames}</div>
+                    </div>`;
+                }
+            });
+        }
+        gridHTML += `</td>`;
+        gridHTML += `</tr>`;
     });
-    gradeHTML += '</div>';
-    gradeContent.innerHTML = gradeHTML;
+
+    gridHTML += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    return gridHTML;
+}
+
+// NOVA FUNÇÃO: Busca todas as atividades de um dia/horário específico
+function getAllActivitiesAtTime(day, timeSlot) {
+    const activities = [];
+
+    Object.keys(scheduleData[day]).forEach(groupId => {
+        const group = scheduleData[day][groupId];
+        if (group.horario === timeSlot && (group.usuarios.length > 0 || group.profissionais.length > 0)) {
+            const userNames = group.usuarios.length > 0
+                ? group.usuarios.map(user => user.nome).join(', ')
+                : '';
+
+            const professionalNames = group.profissionais.length > 0
+                ? group.profissionais
+                    .map(profId => masterProfessionals.find(prof => prof.id === profId))
+                    .filter(prof => prof)
+                    .map(prof => prof.nome)
+                    .join(', ')
+                : 'Sem profissional';
+
+            activities.push({
+                groupId: groupId,
+                groupCategory: group.categoria || 'Sem categoria',
+                userNames: userNames,
+                professionalNames: professionalNames
+            });
+        }
+    });
+
+    return activities;
 }
 function generateProfessionalGrid(professional) {
     let gridHTML = `
