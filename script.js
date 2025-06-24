@@ -17,22 +17,23 @@ const timeSlots = [
 let scheduleData = {};
 let masterProfessionals = [];
 let currentModalContext = {};
-// Categorias disponíveis para os grupos
+// Categorias disponíveis para os grupos - ADICIONADA INDIVIDUAL
 const groupCategories = [
     "CENTRO DE CONVIVENCIA",
     "GAIA",
     "EMPREGABILIDADE",
     "ATENDIMENTO A FAMILIA",
     "EVOLUÇÃO",
-    "REUNIÃO GAIA"
+    "REUNIÃO GAIA",
+    "INDIVIDUAL"
 ];
 
-// NOVA FUNÇÃO: Verifica se é uma atividade específica (não é grupo)
+// FUNÇÃO ATUALIZADA: Verifica se é uma atividade específica (não é grupo)
 function isSpecificActivity(category) {
-    return category === "EVOLUÇÃO" || category === "REUNIÃO GAIA";
+    return category === "EVOLUÇÃO" || category === "REUNIÃO GAIA" || category === "INDIVIDUAL";
 }
 
-// NOVA FUNÇÃO: Gera o texto do cabeçalho do grupo/atividade
+// FUNÇÃO ATUALIZADA: Gera o texto do cabeçalho do grupo/atividade
 function getGroupHeaderText(day, groupId, category) {
     if (isSpecificActivity(category)) {
         return `📋 ${category} – ${dayNames[day]}`;
@@ -55,6 +56,7 @@ function resetDataStructure() {
         }
     });
 }
+
 // Dashboard
 function updateDashboard() {
     let totalUsuarios = 0;
@@ -81,6 +83,7 @@ function updateDashboard() {
     document.getElementById('ocupacaoMedia').textContent = ocupacaoMedia + '%';
     updateAlertas();
 }
+
 function updateAlertas() {
     const container = document.getElementById('alertas');
     let alertas = [];
@@ -111,11 +114,13 @@ function updateAlertas() {
     });
     container.innerHTML = alertas.length > 0 ? alertas.slice(0, 5).map(a => `<p>${a}</p>`).join('') : '<p>✅ Nenhum alerta no momento</p>';
 }
+
 // Relatórios
 function updateReports() {
     updateAtendimentosPorDia();
     updateHorariosMaisUtilizados();
 }
+
 function updateAtendimentosPorDia() {
     const container = document.getElementById('atendimentosPorDia');
     let html = '';
@@ -128,6 +133,7 @@ function updateAtendimentosPorDia() {
     });
     container.innerHTML = html;
 }
+
 function updateHorariosMaisUtilizados() {
     const container = document.getElementById('horariosMaisUtilizados');
     const horarioStats = {};
@@ -148,6 +154,7 @@ function updateHorariosMaisUtilizados() {
     });
     container.innerHTML = html || '<p>Nenhum dado disponível</p>';
 }
+
 // Navegação entre abas
 function switchToTab(tabName) {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -185,6 +192,7 @@ function switchToTab(tabName) {
         }
     }
 }
+
 /*autenticação*/
 function checkAuth() {
     if (!isAuthenticated) {
@@ -193,11 +201,13 @@ function checkAuth() {
     }
     return true;
 }
+
 function openLoginModal() {
     document.getElementById("loginModal").style.display = "block";
     document.getElementById("loginForm").reset();
     document.getElementById("loginPassword").focus();
 }
+
 function toggleEditButtons(enable) {
     document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
         if (el.id === 'categoryFilter' || el.id === 'gradeWeekdayFilter') {
@@ -206,6 +216,7 @@ function toggleEditButtons(enable) {
         el.disabled = !enable;
     });
 }
+
 // controla visibilidade do botão de exportação CSV
 function toggleExportButton(show) {
     const exportBtn = document.querySelector('.export-btn');
@@ -213,6 +224,7 @@ function toggleExportButton(show) {
         exportBtn.style.display = show ? 'block' : 'none';
     }
 }
+
 function updateUserStatus() {
     const statusText = document.getElementById('userStatusText');
     const loginBtn = document.getElementById('loginToggleBtn');
@@ -225,7 +237,7 @@ function updateUserStatus() {
             updateTabsVisibility();
             updateUserStatus();
             toggleEditButtons(false);
-            toggleExportButton(false); // ESCONDER botão CSV no logout
+            toggleExportButton(false);
             const categoryFilter = document.getElementById('categoryFilter');
             const weekdayFilter = document.getElementById('gradeWeekdayFilter');
             if (categoryFilter) {
@@ -237,15 +249,16 @@ function updateUserStatus() {
             switchToTab('grade');
             alert('Logout realizado! Agora você está no modo visualização.');
         };
-        toggleExportButton(true); // MOSTRAR botão CSV no login
+        toggleExportButton(true);
     } else {
         statusText.textContent = 'Modo Visualização';
         statusText.style.color = '#6b7280';
         loginBtn.textContent = '🔓 Fazer Login Admin';
         loginBtn.onclick = () => openLoginModal();
-        toggleExportButton(false); // ESCONDER botão CSV quando não logado
+        toggleExportButton(false);
     }
 }
+
 function updateTabsVisibility() {
     const tabs = document.querySelectorAll('.tab');
     const restrictedTabs = ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
@@ -264,6 +277,7 @@ function updateTabsVisibility() {
         });
     }
 }
+
 /*visualização dos grupos*/
 function createGroupElement(day, groupId) {
     const div = document.createElement("div");
@@ -332,6 +346,7 @@ function initializeGroups() {
         }
     });
 }
+
 /*ações realizadas nos grupos*/
 function updateGroupTime(day, groupId, time) {
     if (!checkAuth()) {
@@ -342,6 +357,7 @@ function updateGroupTime(day, groupId, time) {
     updateDashboard();
     return true;
 }
+
 function updateGroupCategory(day, groupId, category) {
     if (!checkAuth()) {
         alert("⛔ Faça login para alterar categorias!");
@@ -354,6 +370,7 @@ function updateGroupCategory(day, groupId, category) {
     updateDashboard();
     return true;
 }
+
 function openUserModal(day, groupId) {
     if (!checkAuth()) return;
     if (scheduleData[day][groupId].usuarios.length >= 5) {
@@ -365,6 +382,7 @@ function openUserModal(day, groupId) {
     document.getElementById("userForm").reset();
     document.getElementById("userName").focus();
 }
+
 function openProfessionalModal(day, groupId) {
     if (!checkAuth()) return;
     if (scheduleData[day][groupId].profissionais.length >= 5) {
@@ -384,10 +402,12 @@ function openProfessionalModal(day, groupId) {
     });
     document.getElementById("professionalModal").style.display = "block";
 }
+
 function closeModal(id) {
     document.getElementById(id).style.display = "none";
     currentModalContext = {};
 }
+
 /*renderização dos grupos*/
 function renderUsers(day, groupId) {
     const el = document.getElementById(`usuarios-${day}-${groupId}`);
@@ -412,6 +432,7 @@ function renderUsers(day, groupId) {
         el.appendChild(card);
     });
 }
+
 function renderProfessionals(day, groupId) {
     const el = document.getElementById(`profissionais-${day}-${groupId}`);
     if (!el) return;
@@ -435,6 +456,7 @@ function renderProfessionals(day, groupId) {
         el.appendChild(card);
     });
 }
+
 /*remover usuarios ou profissionais*/
 function removeUser(day, groupId, idx) {
     if (!checkAuth()) return;
@@ -444,6 +466,7 @@ function removeUser(day, groupId, idx) {
         updateDashboard();
     }
 }
+
 function removeProfessional(day, groupId, idx) {
     if (!checkAuth()) return;
     if (confirm("Tem certeza que deseja remover este profissional?")) {
@@ -452,12 +475,14 @@ function removeProfessional(day, groupId, idx) {
         updateDashboard();
     }
 }
+
 function openRegisterProfessionalModal() {
     if (!checkAuth()) return;
     document.getElementById('registerProfessionalForm').reset();
     document.getElementById('registerProfessionalModal').style.display = 'block';
     document.getElementById('regProfName').focus();
 }
+
 function removeMasterProfessional(profId) {
     if (!checkAuth()) return;
     const prof = masterProfessionals.find(p => p.id === profId);
@@ -485,6 +510,7 @@ function removeMasterProfessional(profId) {
         }
     }
 }
+
 function renderMasterProfessionalsList() {
     const listContainer = document.getElementById('master-professionals-list');
     listContainer.innerHTML = `
@@ -522,6 +548,7 @@ function renderMasterProfessionalsList() {
         listContainer.appendChild(item);
     });
 }
+
 function updateProfessionalDetailsFilter() {
     const selectedItem = document.querySelector('.professional-list-item.selected');
     if (!selectedItem) return;
@@ -529,6 +556,7 @@ function updateProfessionalDetailsFilter() {
         showProfessionalDetails(window.currentSelectedProfessionalId);
     }
 }
+
 function showProfessionalDetails(profId) {
     const prof = masterProfessionals.find(p => p.id === profId);
     if (!prof) return;
@@ -615,7 +643,7 @@ function updateGradeView() {
     }
 }
 
-// NOVA FUNÇÃO: Mostra visão geral de todas as atividades de um dia
+// FUNÇÃO ATUALIZADA: Mostra visão geral de todas as atividades de um dia
 function showDayOverview(selectedDay) {
     const gradeContent = document.getElementById('grade-content');
     
@@ -649,21 +677,29 @@ function showDayOverview(selectedDay) {
                 html += `<div class="${activityClass}">`;
                 
                 if (isSpecificActivity(activity.categoria)) {
-                    // Atividade específica: só nome da atividade
-                    html += `<div class="day-activity-name">${activity.categoria}</div>`;
+                    if (activity.categoria === "INDIVIDUAL") {
+                        // Para INDIVIDUAL: mostrar nome + usuário
+                        html += `<div class="day-activity-name">INDIVIDUAL</div>`;
+                        if (activity.usuarios.length > 0) {
+                            html += `<div class="day-activity-details">👤 ${activity.usuarios.join(', ')}</div>`;
+                        }
+                    } else {
+                        // Para outras atividades específicas: só nome da atividade
+                        html += `<div class="day-activity-name">${activity.categoria}</div>`;
+                    }
                 } else {
                     // Grupo normal: nome do grupo + categoria
                     html += `<div class="day-activity-name">Grupo ${activity.groupId} - ${activity.categoria || 'Sem categoria'}</div>`;
+                    
+                    // Mostrar usuários se houver
+                    if (activity.usuarios.length > 0) {
+                        html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(', ')}</div>`;
+                    }
                 }
                 
-                // Mostrar profissionais se houver
+                // Mostrar profissionais se houver (para todos os tipos)
                 if (activity.profissionais.length > 0) {
                     html += `<div class="day-activity-details">👨‍⚕️ Profissionais: ${activity.profissionais.join(', ')}</div>`;
-                }
-                
-                // Mostrar usuários se houver (apenas para grupos normais)
-                if (!isSpecificActivity(activity.categoria) && activity.usuarios.length > 0) {
-                    html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(', ')}</div>`;
                 }
                 
                 html += `</div>`;
@@ -748,7 +784,7 @@ function showCategoryAndDayView(selectedCategory, selectedDay) {
     gradeContent.innerHTML = gradeHTML;
 }
 
-// NOVA FUNÇÃO: Gera grade de um profissional para um dia específico
+// FUNÇÃO ATUALIZADA: Gera grade de um profissional para um dia específico
 function generateProfessionalGridForDay(professional, selectedDay) {
     let gridHTML = `
         <div class="professional-grid">
@@ -774,17 +810,26 @@ function generateProfessionalGridForDay(professional, selectedDay) {
         if (activities.length > 0) {
             activities.forEach(activity => {
                 if (isSpecificActivity(activity.groupCategory)) {
-                    // Para atividades específicas: só mostrar o nome
-                    gridHTML += `<div class="activity-item">
-                        <div class="activity-group">${activity.groupCategory}</div>
-                    </div>`;
+                    if (activity.groupCategory === "INDIVIDUAL") {
+                        // Para INDIVIDUAL: mostrar nome + usuário
+                        gridHTML += `<div class="activity-item">
+                            <div class="activity-group">INDIVIDUAL</div>`;
+                        if (activity.userNames !== 'Nenhum usuário') {
+                            gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                        }
+                        gridHTML += `</div>`;
+                    } else {
+                        // Para outras atividades específicas: só mostrar o nome
+                        gridHTML += `<div class="activity-item">
+                            <div class="activity-group">${activity.groupCategory}</div>
+                        </div>`;
+                    }
                 } else {
                     // Para grupos normais: mostrar tudo com rótulos
                     gridHTML += `<div class="activity-item">
                         <div class="activity-group">Grupo ${activity.groupId}</div>
                         <div class="activity-category">${activity.groupCategory}</div>`;
                     
-                    // Só mostrar usuários se não for "Nenhum usuário"
                     if (activity.userNames !== 'Nenhum usuário') {
                         gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
                     }
@@ -807,6 +852,7 @@ function generateProfessionalGridForDay(professional, selectedDay) {
     return gridHTML;
 }
 
+// FUNÇÃO ATUALIZADA: Gera grade de um profissional
 function generateProfessionalGrid(professional) {
     let gridHTML = `
         <div class="professional-grid">
@@ -834,10 +880,20 @@ function generateProfessionalGrid(professional) {
             if (activities.length > 0) {
                 activities.forEach(activity => {
                     if (isSpecificActivity(activity.groupCategory)) {
-                        // Para atividades específicas (EVOLUÇÃO/REUNIÃO GAIA): só mostrar o nome
-                        gridHTML += `<div class="activity-item">
-                            <div class="activity-group">${activity.groupCategory}</div>
-                        </div>`;
+                        if (activity.groupCategory === "INDIVIDUAL") {
+                            // Para INDIVIDUAL: mostrar nome + usuário
+                            gridHTML += `<div class="activity-item">
+                                <div class="activity-group">INDIVIDUAL</div>`;
+                            if (activity.userNames !== 'Nenhum usuário') {
+                                gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                            }
+                            gridHTML += `</div>`;
+                        } else {
+                            // Para outras atividades específicas: só mostrar o nome
+                            gridHTML += `<div class="activity-item">
+                                <div class="activity-group">${activity.groupCategory}</div>
+                            </div>`;
+                        }
                     } else {
                         // Para grupos normais: mostrar tudo como antes com rótulos
                         gridHTML += `<div class="activity-item">
@@ -865,6 +921,7 @@ function generateProfessionalGrid(professional) {
     `;
     return gridHTML;
 }
+
 function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
     const activities = [];
     Object.keys(scheduleData[day]).forEach(groupId => {
@@ -882,9 +939,9 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
     });
     return activities;
 }
-/*exportação CSV*/
+
+// FUNÇÃO ATUALIZADA: Exportação CSV
 function exportToCSV() {
-    // adicionar verificação de autenticação
     if (!isAuthenticated) {
         alert("⛔ Acesso negado! Faça login como administrador para exportar dados.");
         return;
@@ -920,6 +977,7 @@ function exportToCSV() {
     link.click();
     document.body.removeChild(link);
 }
+
 /*eventos*/
 window.addEventListener("click", e => {
     if (e.target === document.getElementById("userModal")) closeModal("userModal");
@@ -927,72 +985,7 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("loginModal")) closeModal("loginModal");
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
 });
-/* Troca de abas */
-document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", e => {
-        const clickedDay = e.currentTarget.dataset.day;
-        if (!isAuthenticated && ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'].includes(clickedDay)) {
-            alert("⛔ Esta aba requer permissões de administrador!");
-            openLoginModal();
-            return;
-        }
-        switchToTab(clickedDay);
-    });
-});
-/* formulários */
-document.getElementById("loginForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const pass = document.getElementById("loginPassword").value.trim();
-    if (pass === ADMIN_PASSWORD) {
-        isAuthenticated = true;
-        closeModal("loginModal");
-        toggleEditButtons(true);
-        updateTabsVisibility();
-        updateUserStatus();
-        alert("Acesso liberado! Agora você tem acesso a todas as funcionalidades.");
-    } else {
-        alert("Senha incorreta!");
-    }
-});
-document.getElementById("userForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const data = {
-        nome: document.getElementById("userName").value.trim(),
-        idade: document.getElementById("userAge").value.trim(),
-        deficiencia: document.getElementById("userDeficiency").value.trim(),
-        programa: document.getElementById("userProgram").value.trim(),
-    };
-    const { day, groupId } = currentModalContext;
-    scheduleData[day][groupId].usuarios.push(data);
-    renderUsers(day, groupId);
-    updateDashboard();
-    closeModal("userModal");
-});
-document.getElementById("professionalForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const { day, groupId } = currentModalContext;
-    const professionalId = document.getElementById('professionalSelect').value;
-    if (!professionalId) {
-        alert("Por favor, selecione um profissional.");
-        return;
-    }
-    scheduleData[day][groupId].profissionais.push(parseInt(professionalId));
-    renderProfessionals(day, groupId);
-    updateDashboard();
-    closeModal("professionalModal");
-});
-document.getElementById("registerProfessionalForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const newProf = {
-        id: Date.now(),
-        nome: document.getElementById('regProfName').value.trim(),
-        categoria: document.getElementById('regProfCategory').value
-    };
-    masterProfessionals.push(newProf);
-    renderMasterProfessionalsList();
-    updateDashboard();
-    closeModal('registerProfessionalModal');
-});
+
 /*inicializa a aplicação*/
 document.addEventListener("DOMContentLoaded", () => {
     resetDataStructure();
@@ -1016,5 +1009,76 @@ document.addEventListener("DOMContentLoaded", () => {
         input.addEventListener('input', (e) => {
             e.target.value = e.target.value.toUpperCase();
         });
+    });
+
+    // EVENT LISTENERS PARA TROCA DE ABAS
+    document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", e => {
+            const clickedDay = e.currentTarget.dataset.day;
+            if (!isAuthenticated && ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'].includes(clickedDay)) {
+                alert("⛔ Esta aba requer permissões de administrador!");
+                openLoginModal();
+                return;
+            }
+            switchToTab(clickedDay);
+        });
+    });
+
+    // EVENT LISTENERS PARA FORMULÁRIOS
+    document.getElementById("loginForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const pass = document.getElementById("loginPassword").value.trim();
+        if (pass === ADMIN_PASSWORD) {
+            isAuthenticated = true;
+            closeModal("loginModal");
+            toggleEditButtons(true);
+            updateTabsVisibility();
+            updateUserStatus();
+            alert("Acesso liberado! Agora você tem acesso a todas as funcionalidades.");
+        } else {
+            alert("Senha incorreta!");
+        }
+    });
+
+    document.getElementById("userForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const data = {
+            nome: document.getElementById("userName").value.trim(),
+            idade: document.getElementById("userAge").value.trim(),
+            deficiencia: document.getElementById("userDeficiency").value.trim(),
+            programa: document.getElementById("userProgram").value.trim(),
+        };
+        const { day, groupId } = currentModalContext;
+        scheduleData[day][groupId].usuarios.push(data);
+        renderUsers(day, groupId);
+        updateDashboard();
+        closeModal("userModal");
+    });
+
+    document.getElementById("professionalForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const { day, groupId } = currentModalContext;
+        const professionalId = document.getElementById('professionalSelect').value;
+        if (!professionalId) {
+            alert("Por favor, selecione um profissional.");
+            return;
+        }
+        scheduleData[day][groupId].profissionais.push(parseInt(professionalId));
+        renderProfessionals(day, groupId);
+        updateDashboard();
+        closeModal("professionalModal");
+    });
+
+    document.getElementById("registerProfessionalForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const newProf = {
+            id: Date.now(),
+            nome: document.getElementById('regProfName').value.trim(),
+            categoria: document.getElementById('regProfCategory').value
+        };
+        masterProfessionals.push(newProf);
+        renderMasterProfessionalsList();
+        updateDashboard();
+        closeModal('registerProfessionalModal');
     });
 });
