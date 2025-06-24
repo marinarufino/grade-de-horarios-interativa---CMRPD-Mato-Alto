@@ -162,8 +162,9 @@ function switchToTab(tabName) {
         content.classList.add("active");
         content.style.display = 'block';
     }
-    if (tabName === 'dashboard') {
+    if (tabName === 'dashboards-relatorios') {
         updateDashboard();
+        updateReports();
     } else if (tabName === 'profissionais') {
         renderMasterProfessionalsList();
         document.getElementById('professional-details-view').innerHTML =
@@ -182,8 +183,6 @@ function switchToTab(tabName) {
         if (weekdayFilter) {
             weekdayFilter.disabled = false;
         }
-    } else if (tabName === 'relatorios') {
-        updateReports();
     }
 }
 /*autenticação*/
@@ -249,7 +248,7 @@ function updateUserStatus() {
 }
 function updateTabsVisibility() {
     const tabs = document.querySelectorAll('.tab');
-    const restrictedTabs = ['dashboard', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais', 'relatorios'];
+    const restrictedTabs = ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
     if (isAuthenticated) {
         tabs.forEach(tab => {
             tab.style.display = 'block';
@@ -659,12 +658,12 @@ function showDayOverview(selectedDay) {
                 
                 // Mostrar profissionais se houver
                 if (activity.profissionais.length > 0) {
-                    html += `<div class="day-activity-details">👨‍⚕️ ${activity.profissionais.join(', ')}</div>`;
+                    html += `<div class="day-activity-details">👨‍⚕️ Profissionais: ${activity.profissionais.join(', ')}</div>`;
                 }
                 
                 // Mostrar usuários se houver (apenas para grupos normais)
                 if (!isSpecificActivity(activity.categoria) && activity.usuarios.length > 0) {
-                    html += `<div class="day-activity-details">👤 ${activity.usuarios.join(', ')}</div>`;
+                    html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(', ')}</div>`;
                 }
                 
                 html += `</div>`;
@@ -780,12 +779,17 @@ function generateProfessionalGridForDay(professional, selectedDay) {
                         <div class="activity-group">${activity.groupCategory}</div>
                     </div>`;
                 } else {
-                    // Para grupos normais: mostrar tudo como antes
+                    // Para grupos normais: mostrar tudo com rótulos
                     gridHTML += `<div class="activity-item">
                         <div class="activity-group">Grupo ${activity.groupId}</div>
-                        <div class="activity-category">${activity.groupCategory}</div>
-                        <div class="activity-users">${activity.userNames}</div>
-                    </div>`;
+                        <div class="activity-category">${activity.groupCategory}</div>`;
+                    
+                    // Só mostrar usuários se não for "Nenhum usuário"
+                    if (activity.userNames !== 'Nenhum usuário') {
+                        gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                    }
+                    
+                    gridHTML += `</div>`;
                 }
             });
         }
@@ -835,12 +839,17 @@ function generateProfessionalGrid(professional) {
                             <div class="activity-group">${activity.groupCategory}</div>
                         </div>`;
                     } else {
-                        // Para grupos normais: mostrar tudo como antes
+                        // Para grupos normais: mostrar tudo como antes com rótulos
                         gridHTML += `<div class="activity-item">
                             <div class="activity-group">Grupo ${activity.groupId}</div>
-                            <div class="activity-category">${activity.groupCategory}</div>
-                            <div class="activity-users">${activity.userNames}</div>
-                        </div>`;
+                            <div class="activity-category">${activity.groupCategory}</div>`;
+                        
+                        // Só mostrar usuários se não for "Nenhum usuário"
+                        if (activity.userNames !== 'Nenhum usuário') {
+                            gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                        }
+                        
+                        gridHTML += `</div>`;
                     }
                 });
             }
@@ -922,7 +931,7 @@ window.addEventListener("click", e => {
 document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", e => {
         const clickedDay = e.currentTarget.dataset.day;
-        if (!isAuthenticated && ['dashboard', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais', 'relatorios'].includes(clickedDay)) {
+        if (!isAuthenticated && ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'].includes(clickedDay)) {
             alert("⛔ Esta aba requer permissões de administrador!");
             openLoginModal();
             return;

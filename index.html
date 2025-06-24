@@ -17,7 +17,7 @@
     </div>
 
     <div class="tabs">
-        <button class="tab" data-day="dashboard">📊 Dashboard</button>
+        <button class="tab" data-day="dashboards-relatorios">📊 Dashboards e Relatórios</button>
         <button class="tab" data-day="segunda">Segunda-feira</button>
         <button class="tab" data-day="terca">Terça-feira</button>
         <button class="tab" data-day="quarta">Quarta-feira</button>
@@ -25,32 +25,54 @@
         <button class="tab" data-day="sexta">Sexta-feira</button>
         <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
         <button class="tab active" data-day="grade">📊 Grade</button>
-        <button class="tab" data-day="relatorios">📈 Relatórios</button>
     </div>
 
     <div class="content">
-        <div id="dashboard" class="day-content">
-            <div class="dashboard-overview">
-                <div class="dashboard-card">
-                    <h3 id="totalUsuarios">0</h3>
-                    <p>👤 Total de Usuários</p>
+        <div id="dashboards-relatorios" class="day-content">
+            <!-- SEÇÃO DASHBOARD -->
+            <div class="dashboard-section">
+                <h2>📊 Dashboard Geral</h2>
+                <div class="dashboard-overview">
+                    <div class="dashboard-card">
+                        <h3 id="totalUsuarios">0</h3>
+                        <p>👤 Total de Usuários</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 id="totalProfissionais">0</h3>
+                        <p>👨‍⚕️ Profissionais Ativos</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 id="gruposAtivos">0</h3>
+                        <p>👥 Grupos com Atividades</p>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3 id="ocupacaoMedia">0%</h3>
+                        <p>📊 Ocupação Média</p>
+                    </div>
                 </div>
-                <div class="dashboard-card">
-                    <h3 id="totalProfissionais">0</h3>
-                    <p>👨‍⚕️ Profissionais Ativos</p>
-                </div>
-                <div class="dashboard-card">
-                    <h3 id="gruposAtivos">0</h3>
-                    <p>👥 Grupos com Atividades</p>
-                </div>
-                <div class="dashboard-card">
-                    <h3 id="ocupacaoMedia">0%</h3>
-                    <p>📊 Ocupação Média</p>
+                
+                <div class="alerts-section">
+                    <h3>⚠️ Alertas do Sistema</h3>
+                    <div id="alertas"></div>
                 </div>
             </div>
-            <div class="alerts-section">
-                <h3>⚠️ Alertas</h3>
-                <div id="alertas"></div>
+
+            <!-- DIVISOR -->
+            <div class="section-divider"></div>
+
+            <!-- SEÇÃO RELATÓRIOS -->
+            <div class="reports-section">
+                <h2>📈 Relatórios e Estatísticas</h2>
+                <div class="reports-container">
+                    <div class="report-card">
+                        <h3>📅 Atendimentos por Dia</h3>
+                        <div id="atendimentosPorDia"></div>
+                    </div>
+                    <div class="report-card">
+                        <h3>⏰ Horários Mais Utilizados</h3>
+                        <div id="horariosMaisUtilizados"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -123,20 +145,6 @@
             <div class="grade-container">
                 <div id="grade-content">
                     <div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="relatorios" class="day-content">
-            <h2>📈 Relatórios e Estatísticas</h2>
-            <div class="reports-container">
-                <div class="report-card">
-                    <h3>📅 Atendimentos por Dia</h3>
-                    <div id="atendimentosPorDia"></div>
-                </div>
-                <div class="report-card">
-                    <h3>⏰ Horários Mais Utilizados</h3>
-                    <div id="horariosMaisUtilizados"></div>
                 </div>
             </div>
         </div>
@@ -253,110 +261,6 @@
 
 <!-- Botão de exportação -->
 <button class="export-btn" onclick="exportToCSV()">📊 Exportar como planilha</button>
-
-<style>
-/* Estilos para o filtro por dia da semana */
-.grade-controls {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.grade-controls .form-group {
-    margin: 0;
-    min-width: 250px;
-}
-
-/* Estilos para visualização por dia */
-.day-overview {
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.day-overview-title {
-    color: #1e293b;
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-bottom: 20px;
-    text-align: center;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.day-overview-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-
-.day-overview-table th,
-.day-overview-table td {
-    border: 1px solid #e2e8f0;
-    padding: 12px;
-    text-align: left;
-    vertical-align: top;
-}
-
-.day-overview-table th {
-    background: linear-gradient(135deg, #13335a);
-    color: white;
-    font-weight: 600;
-}
-
-.day-overview-table .time-column {
-    background-color: #f8fafc;
-    font-weight: 600;
-    color: #374151;
-    width: 100px;
-    text-align: center;
-}
-
-.day-activity {
-    background: #3b82f6;
-    color: white;
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-.day-activity:last-child {
-    margin-bottom: 0;
-}
-
-.day-activity.specific {
-    background: #10b981;
-}
-
-.day-activity-name {
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.day-activity-details {
-    font-size: 0.8rem;
-    opacity: 0.9;
-}
-
-@media (max-width: 768px) {
-    .grade-controls {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .grade-controls .form-group {
-        min-width: 200px;
-        width: 100%;
-        max-width: 300px;
-    }
-}
-</style>
 
 <script src="script.js"></script>
 </body>
