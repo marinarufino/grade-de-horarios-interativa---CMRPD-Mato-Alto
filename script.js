@@ -672,7 +672,19 @@ function showDayOverview(selectedDay) {
         if (activities.length > 0) {
             hasActivities = true;
             activities.forEach(activity => {
-                const activityClass = isSpecificActivity(activity.categoria) ? 'day-activity specific' : 'day-activity';
+                // DETERMINAR CLASSE CSS BASEADA NA CATEGORIA
+                let activityClass = 'day-activity';
+                if (activity.categoria === 'EVOLUÇÃO') {
+                    activityClass += ' evolucao';
+                } else if (activity.categoria === 'REUNIÃO GAIA') {
+                    activityClass += ' reuniao-gaia';
+                } else if (activity.categoria === 'INDIVIDUAL') {
+                    activityClass += ' individual';
+                }
+                
+                if (isSpecificActivity(activity.categoria)) {
+                    activityClass += ' specific';
+                }
                 
                 html += `<div class="${activityClass}">`;
                 
@@ -688,8 +700,12 @@ function showDayOverview(selectedDay) {
                         html += `<div class="day-activity-name">${activity.categoria}</div>`;
                     }
                 } else {
-                    // Grupo normal: nome do grupo + categoria
-                    html += `<div class="day-activity-name">Grupo ${activity.groupId} - ${activity.categoria || 'Sem categoria'}</div>`;
+                    // MODIFICAÇÃO PRINCIPAL: Grupo normal com categoria ao lado
+                    const groupDisplayText = activity.categoria && activity.categoria !== '' 
+                        ? `Grupo ${activity.groupId} - ${activity.categoria.toUpperCase()}`
+                        : `Grupo ${activity.groupId} - Sem categoria`;
+                    
+                    html += `<div class="day-activity-name">${groupDisplayText}</div>`;
                     
                     // Mostrar usuários se houver
                     if (activity.usuarios.length > 0) {
@@ -809,10 +825,20 @@ function generateProfessionalGridForDay(professional, selectedDay) {
         gridHTML += `<td class="${cellClass}">`;
         if (activities.length > 0) {
             activities.forEach(activity => {
+                // DETERMINAR CLASSE CSS BASEADA NA CATEGORIA
+                let activityClass = 'activity-item';
+                if (activity.groupCategory === 'EVOLUÇÃO') {
+                    activityClass += ' evolucao';
+                } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                    activityClass += ' reuniao-gaia';
+                } else if (activity.groupCategory === 'INDIVIDUAL') {
+                    activityClass += ' individual';
+                }
+
                 if (isSpecificActivity(activity.groupCategory)) {
                     if (activity.groupCategory === "INDIVIDUAL") {
                         // Para INDIVIDUAL: mostrar nome + usuário
-                        gridHTML += `<div class="activity-item">
+                        gridHTML += `<div class="${activityClass}">
                             <div class="activity-group">INDIVIDUAL</div>`;
                         if (activity.userNames !== 'Nenhum usuário') {
                             gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
@@ -820,15 +846,18 @@ function generateProfessionalGridForDay(professional, selectedDay) {
                         gridHTML += `</div>`;
                     } else {
                         // Para outras atividades específicas: só mostrar o nome
-                        gridHTML += `<div class="activity-item">
+                        gridHTML += `<div class="${activityClass}">
                             <div class="activity-group">${activity.groupCategory}</div>
                         </div>`;
                     }
                 } else {
-                    // Para grupos normais: mostrar tudo com rótulos
-                    gridHTML += `<div class="activity-item">
-                        <div class="activity-group">Grupo ${activity.groupId}</div>
-                        <div class="activity-category">${activity.groupCategory}</div>`;
+                    // MODIFICAÇÃO PRINCIPAL: Para grupos normais, mostrar "Grupo X - CATEGORIA"
+                    const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                        ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                        : `Grupo ${activity.groupId}`;
+                    
+                    gridHTML += `<div class="${activityClass}">
+                        <div class="activity-group">${groupDisplayText}</div>`;
                     
                     if (activity.userNames !== 'Nenhum usuário') {
                         gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
@@ -852,7 +881,7 @@ function generateProfessionalGridForDay(professional, selectedDay) {
     return gridHTML;
 }
 
-// FUNÇÃO ATUALIZADA: Gera grade de um profissional
+// FUNÇÃO ATUALIZADA: Gera grade de um profissional (visão completa da semana)
 function generateProfessionalGrid(professional) {
     let gridHTML = `
         <div class="professional-grid">
@@ -879,10 +908,20 @@ function generateProfessionalGrid(professional) {
             gridHTML += `<td class="${cellClass}">`;
             if (activities.length > 0) {
                 activities.forEach(activity => {
+                    // DETERMINAR CLASSE CSS BASEADA NA CATEGORIA
+                    let activityClass = 'activity-item';
+                    if (activity.groupCategory === 'EVOLUÇÃO') {
+                        activityClass += ' evolucao';
+                    } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                        activityClass += ' reuniao-gaia';
+                    } else if (activity.groupCategory === 'INDIVIDUAL') {
+                        activityClass += ' individual';
+                    }
+
                     if (isSpecificActivity(activity.groupCategory)) {
                         if (activity.groupCategory === "INDIVIDUAL") {
                             // Para INDIVIDUAL: mostrar nome + usuário
-                            gridHTML += `<div class="activity-item">
+                            gridHTML += `<div class="${activityClass}">
                                 <div class="activity-group">INDIVIDUAL</div>`;
                             if (activity.userNames !== 'Nenhum usuário') {
                                 gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
@@ -890,15 +929,18 @@ function generateProfessionalGrid(professional) {
                             gridHTML += `</div>`;
                         } else {
                             // Para outras atividades específicas: só mostrar o nome
-                            gridHTML += `<div class="activity-item">
+                            gridHTML += `<div class="${activityClass}">
                                 <div class="activity-group">${activity.groupCategory}</div>
                             </div>`;
                         }
                     } else {
-                        // Para grupos normais: mostrar tudo como antes com rótulos
-                        gridHTML += `<div class="activity-item">
-                            <div class="activity-group">Grupo ${activity.groupId}</div>
-                            <div class="activity-category">${activity.groupCategory}</div>`;
+                        // MODIFICAÇÃO PRINCIPAL: Para grupos normais, mostrar "Grupo X - CATEGORIA"
+                        const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                            ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                            : `Grupo ${activity.groupId}`;
+                        
+                        gridHTML += `<div class="${activityClass}">
+                            <div class="activity-group">${groupDisplayText}</div>`;
                         
                         // Só mostrar usuários se não for "Nenhum usuário"
                         if (activity.userNames !== 'Nenhum usuário') {
