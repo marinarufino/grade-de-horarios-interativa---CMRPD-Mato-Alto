@@ -828,6 +828,107 @@ body {
     transform: scale(0.95);
 }
 
+/* NOVOS ESTILOS PARA SISTEMA DE FOLGAS */
+.btn-manage-days-off {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    position: absolute;
+    top: 8px;
+    right: 40px;
+    transition: all 0.2s ease;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.btn-manage-days-off:hover {
+    background: #d97706;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.days-off-indicator {
+    display: block;
+    margin-top: 4px;
+    color: #d97706;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.days-off-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #374151;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.checkbox-label:hover {
+    background-color: #e0e7ff;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.days-off-info {
+    background-color: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    color: #92400e;
+    font-size: 0.9rem;
+}
+
+.day-off-cell {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    font-weight: 600;
+    text-align: center;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.day-off-notice {
+    background-color: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: #92400e;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 20px 0;
+}
+
+/* Fim dos novos estilos para folgas */
+
 .details-group-card {
     background-color: #f8fafc;
     border: 1px solid #e2e8f0;
@@ -1151,7 +1252,21 @@ body {
     background: #10b981; 
 }
 
+/* Estilos específicos para atividades especiais */
+.activity-item.evolucao,
+.day-activity.evolucao {
+    background: #8b5cf6;
+}
 
+.activity-item.reuniao-gaia,
+.day-activity.reuniao-gaia {
+    background: #ec4899;
+}
+
+.activity-item.individual,
+.day-activity.individual {
+    background: #14b8a6;
+}
 
 .day-activity-name {
     font-weight: 600;

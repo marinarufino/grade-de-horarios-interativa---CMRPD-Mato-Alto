@@ -57,6 +57,27 @@ function resetDataStructure() {
     });
 }
 
+// NOVA FUNÇÃO: Verifica se o profissional está de folga em um dia específico
+function isProfessionalOnDayOff(professionalId, day) {
+    const prof = masterProfessionals.find(p => p.id === professionalId);
+    if (!prof || !prof.daysOff) return false;
+    return prof.daysOff.includes(day);
+}
+
+// NOVA FUNÇÃO: Remove profissional dos grupos nos dias de folga
+function removeProfessionalFromDayOffGroups(professionalId, daysOff) {
+    daysOff.forEach(day => {
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            const index = group.profissionais.indexOf(professionalId);
+            if (index !== -1) {
+                group.profissionais.splice(index, 1);
+                renderProfessionals(day, groupId);
+            }
+        });
+    });
+}
+
 // Dashboard
 function updateDashboard() {
     let totalUsuarios = 0;
@@ -383,6 +404,7 @@ function openUserModal(day, groupId) {
     document.getElementById("userName").focus();
 }
 
+// FUNÇÃO ATUALIZADA: Verifica folgas antes de abrir modal
 function openProfessionalModal(day, groupId) {
     if (!checkAuth()) return;
     if (scheduleData[day][groupId].profissionais.length >= 5) {
@@ -392,15 +414,58 @@ function openProfessionalModal(day, groupId) {
     currentModalContext = { day, groupId };
     const select = document.getElementById('professionalSelect');
     select.innerHTML = '<option value="">Selecione um profissional</option>';
+    
+    // Filtra profissionais que não estão de folga neste dia
     masterProfessionals.forEach(prof => {
-        if (!scheduleData[day][groupId].profissionais.includes(prof.id)) {
+        if (!scheduleData[day][groupId].profissionais.includes(prof.id) && !isProfessionalOnDayOff(prof.id, day)) {
             const option = document.createElement('option');
             option.value = prof.id;
             option.textContent = `${prof.nome} (${prof.categoria})`;
             select.appendChild(option);
         }
     });
+    
+    // Adiciona profissionais de folga como desabilitados para informação
+    masterProfessionals.forEach(prof => {
+        if (!scheduleData[day][groupId].profissionais.includes(prof.id) && isProfessionalOnDayOff(prof.id, day)) {
+            const option = document.createElement('option');
+            option.value = prof.id;
+            option.textContent = `${prof.nome} (${prof.categoria}) - FOLGA`;
+            option.disabled = true;
+            option.style.color = '#999';
+            select.appendChild(option);
+        }
+    });
+    
     document.getElementById("professionalModal").style.display = "block";
+}
+
+// NOVA FUNÇÃO: Abre modal de gerenciar folgas
+function openManageDaysOffModal(professionalId) {
+    if (!checkAuth()) return;
+    
+    const prof = masterProfessionals.find(p => p.id === professionalId);
+    if (!prof) return;
+    
+    currentModalContext = { professionalId };
+    
+    // Preenche o nome do profissional
+    document.getElementById('profNameDaysOff').value = prof.nome;
+    
+    // Limpa todos os checkboxes
+    document.querySelectorAll('input[name="daysOff"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Marca os dias de folga atuais
+    if (prof.daysOff && prof.daysOff.length > 0) {
+        prof.daysOff.forEach(day => {
+            const checkbox = document.querySelector(`input[name="daysOff"][value="${day}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+    
+    document.getElementById("manageDaysOffModal").style.display = "block";
 }
 
 function closeModal(id) {
@@ -511,6 +576,7 @@ function removeMasterProfessional(profId) {
     }
 }
 
+// FUNÇÃO ATUALIZADA: Renderiza lista com botão de folgas
 function renderMasterProfessionalsList() {
     const listContainer = document.getElementById('master-professionals-list');
     listContainer.innerHTML = `
@@ -535,13 +601,24 @@ function renderMasterProfessionalsList() {
     masterProfessionals.forEach(prof => {
         const item = document.createElement('div');
         item.className = 'professional-list-item';
+        
+        // Monta lista de dias de folga
+        let daysOffText = '';
+        if (prof.daysOff && prof.daysOff.length > 0) {
+            const daysOffNames = prof.daysOff.map(d => dayNames[d]).join(', ');
+            daysOffText = `<span class="days-off-indicator">🏖️ Folga: ${daysOffNames}</span>`;
+        }
+        
         item.innerHTML = `
             <button class="btn-remove-professional" onclick="removeMasterProfessional(${prof.id})" title="Remover profissional">×</button>
+            <button class="btn-manage-days-off" onclick="openManageDaysOffModal(${prof.id})" title="Gerenciar folgas">🏖️</button>
             <strong>${prof.nome}</strong><br>
             <span>${prof.categoria}</span>
+            ${daysOffText}
         `;
         item.onclick = (e) => {
-            if (!e.target.classList.contains('btn-remove-professional')) {
+            if (!e.target.classList.contains('btn-remove-professional') && 
+                !e.target.classList.contains('btn-manage-days-off')) {
                 showProfessionalDetails(prof.id);
             }
         };
@@ -572,6 +649,13 @@ function showProfessionalDetails(profId) {
         content += ` - ${dayNames[dayFilter]}`;
     }
     content += `</h3>`;
+    
+    // Mostra dias de folga se houver
+    if (prof.daysOff && prof.daysOff.length > 0) {
+        const daysOffNames = prof.daysOff.map(d => dayNames[d]).join(', ');
+        content += `<div class="days-off-info">🏖️ <strong>Dias de Folga:</strong> ${daysOffNames}</div>`;
+    }
+    
     let foundInGroups = false;
     const daysToShow = dayFilter ? [dayFilter] : days;
     daysToShow.forEach(day => {
@@ -581,7 +665,6 @@ function showProfessionalDetails(profId) {
                 foundInGroups = true;
                 const categoriaTexto = group.categoria || "Categoria não definida";
                 
-                // MODIFICAR o título para não mostrar número do grupo se for atividade específica
                 const displayTitle = isSpecificActivity(group.categoria)
                     ? `${dayNames[day]} - ${group.categoria} (${group.horario})`
                     : `${dayNames[day]} - Grupo ${groupId} (${group.horario}) - ${categoriaTexto}`;
@@ -672,7 +755,6 @@ function showDayOverview(selectedDay) {
         if (activities.length > 0) {
             hasActivities = true;
             activities.forEach(activity => {
-                // DETERMINAR CLASSE CSS BASEADA NA CATEGORIA
                 let activityClass = 'day-activity';
                 if (activity.categoria === 'EVOLUÇÃO') {
                     activityClass += ' evolucao';
@@ -690,30 +772,25 @@ function showDayOverview(selectedDay) {
                 
                 if (isSpecificActivity(activity.categoria)) {
                     if (activity.categoria === "INDIVIDUAL") {
-                        // Para INDIVIDUAL: mostrar nome + usuário
                         html += `<div class="day-activity-name">INDIVIDUAL</div>`;
                         if (activity.usuarios.length > 0) {
                             html += `<div class="day-activity-details">👤 ${activity.usuarios.join(', ')}</div>`;
                         }
                     } else {
-                        // Para outras atividades específicas: só nome da atividade
                         html += `<div class="day-activity-name">${activity.categoria}</div>`;
                     }
                 } else {
-                    // MODIFICAÇÃO PRINCIPAL: Grupo normal com categoria ao lado
                     const groupDisplayText = activity.categoria && activity.categoria !== '' 
                         ? `Grupo ${activity.groupId} - ${activity.categoria.toUpperCase()}`
                         : `Grupo ${activity.groupId} - Sem categoria`;
                     
                     html += `<div class="day-activity-name">${groupDisplayText}</div>`;
                     
-                    // Mostrar usuários se houver
                     if (activity.usuarios.length > 0) {
                         html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(', ')}</div>`;
                     }
                 }
                 
-                // Mostrar profissionais se houver (para todos os tipos)
                 if (activity.profissionais.length > 0) {
                     html += `<div class="day-activity-details">👨‍⚕️ Profissionais: ${activity.profissionais.join(', ')}</div>`;
                 }
@@ -743,7 +820,6 @@ function getDayActivitiesAtTime(day, timeSlot) {
     Object.keys(scheduleData[day]).forEach(groupId => {
         const group = scheduleData[day][groupId];
         
-        // Só incluir se tem o horário correto E tem pelo menos profissional ou usuário
         if (group.horario === timeSlot && (group.usuarios.length > 0 || group.profissionais.length > 0)) {
             const profissionais = group.profissionais
                 .map(profId => masterProfessionals.find(prof => prof.id === profId))
@@ -805,6 +881,17 @@ function generateProfessionalGridForDay(professional, selectedDay) {
     let gridHTML = `
         <div class="professional-grid">
             <h3 class="professional-name">${professional.nome} - ${dayNames[selectedDay]}</h3>
+    `;
+    
+    // Verifica se o profissional está de folga neste dia
+    if (isProfessionalOnDayOff(professional.id, selectedDay)) {
+        gridHTML += `
+            <div class="day-off-notice">
+                🏖️ Este profissional está de folga na ${dayNames[selectedDay]}
+            </div>
+        `;
+    } else {
+        gridHTML += `
             <div class="grid-table">
                 <table>
                     <thead>
@@ -814,70 +901,67 @@ function generateProfessionalGridForDay(professional, selectedDay) {
                         </tr>
                     </thead>
                     <tbody>
-    `;
+        `;
 
-    timeSlots.forEach(timeSlot => {
-        gridHTML += `<tr><td class="time-cell">${timeSlot}</td>`;
-        
-        const activities = getProfessionalActivitiesAtTime(professional.id, selectedDay, timeSlot);
-        const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
+        timeSlots.forEach(timeSlot => {
+            gridHTML += `<tr><td class="time-cell">${timeSlot}</td>`;
+            
+            const activities = getProfessionalActivitiesAtTime(professional.id, selectedDay, timeSlot);
+            const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
 
-        gridHTML += `<td class="${cellClass}">`;
-        if (activities.length > 0) {
-            activities.forEach(activity => {
-                // DETERMINAR CLASSE CSS BASEADA NA CATEGORIA
-                let activityClass = 'activity-item';
-                if (activity.groupCategory === 'EVOLUÇÃO') {
-                    activityClass += ' evolucao';
-                } else if (activity.groupCategory === 'REUNIÃO GAIA') {
-                    activityClass += ' reuniao-gaia';
-                } else if (activity.groupCategory === 'INDIVIDUAL') {
-                    activityClass += ' individual';
-                }
+            gridHTML += `<td class="${cellClass}">`;
+            if (activities.length > 0) {
+                activities.forEach(activity => {
+                    let activityClass = 'activity-item';
+                    if (activity.groupCategory === 'EVOLUÇÃO') {
+                        activityClass += ' evolucao';
+                    } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                        activityClass += ' reuniao-gaia';
+                    } else if (activity.groupCategory === 'INDIVIDUAL') {
+                        activityClass += ' individual';
+                    }
 
-                if (isSpecificActivity(activity.groupCategory)) {
-                    if (activity.groupCategory === "INDIVIDUAL") {
-                        // Para INDIVIDUAL: mostrar nome + usuário
-                        gridHTML += `<div class="${activityClass}">
-                            <div class="activity-group">INDIVIDUAL</div>`;
-                        if (activity.userNames !== 'Nenhum usuário') {
-                            gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                    if (isSpecificActivity(activity.groupCategory)) {
+                        if (activity.groupCategory === "INDIVIDUAL") {
+                            gridHTML += `<div class="${activityClass}">
+                                <div class="activity-group">INDIVIDUAL</div>`;
+                            if (activity.userNames !== 'Nenhum usuário') {
+                                gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                            }
+                            gridHTML += `</div>`;
+                        } else {
+                            gridHTML += `<div class="${activityClass}">
+                                <div class="activity-group">${activity.groupCategory}</div>
+                            </div>`;
                         }
-                        gridHTML += `</div>`;
                     } else {
-                        // Para outras atividades específicas: só mostrar o nome
+                        const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                            ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                            : `Grupo ${activity.groupId}`;
+                        
                         gridHTML += `<div class="${activityClass}">
-                            <div class="activity-group">${activity.groupCategory}</div>
-                        </div>`;
+                            <div class="activity-group">${groupDisplayText}</div>`;
+                        
+                        if (activity.userNames !== 'Nenhum usuário') {
+                            gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                        }
+                        
+                        gridHTML += `</div>`;
                     }
-                } else {
-                    // MODIFICAÇÃO PRINCIPAL: Para grupos normais, mostrar "Grupo X - CATEGORIA"
-                    const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-                        ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-                        : `Grupo ${activity.groupId}`;
-                    
-                    gridHTML += `<div class="${activityClass}">
-                        <div class="activity-group">${groupDisplayText}</div>`;
-                    
-                    if (activity.userNames !== 'Nenhum usuário') {
-                        gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
-                    }
-                    
-                    gridHTML += `</div>`;
-                }
-            });
-        }
-        gridHTML += `</td>`;
-        gridHTML += `</tr>`;
-    });
+                });
+            }
+            gridHTML += `</td>`;
+            gridHTML += `</tr>`;
+        });
 
-    gridHTML += `
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
-
+        gridHTML += `
+                        </tbody>
+                    </table>
+                </div>
+        `;
+    }
+    
+    gridHTML += `</div>`;
     return gridHTML;
 }
 
@@ -886,6 +970,15 @@ function generateProfessionalGrid(professional) {
     let gridHTML = `
         <div class="professional-grid">
             <h3 class="professional-name">${professional.nome}</h3>
+    `;
+    
+    // Mostra dias de folga se houver
+    if (professional.daysOff && professional.daysOff.length > 0) {
+        const daysOffNames = professional.daysOff.map(d => dayNames[d]).join(', ');
+        gridHTML += `<div class="days-off-info">🏖️ <strong>Dias de Folga:</strong> ${daysOffNames}</div>`;
+    }
+    
+    gridHTML += `
             <div class="grid-table">
                 <table>
                     <thead>
@@ -903,55 +996,55 @@ function generateProfessionalGrid(professional) {
     timeSlots.forEach(timeSlot => {
         gridHTML += `<tr><td class="time-cell">${timeSlot}</td>`;
         days.forEach(day => {
-            const activities = getProfessionalActivitiesAtTime(professional.id, day, timeSlot);
-            const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
-            gridHTML += `<td class="${cellClass}">`;
-            if (activities.length > 0) {
-                activities.forEach(activity => {
-                    // DETERMINAR CLASSE CSS BASEADA NA CATEGORIA
-                    let activityClass = 'activity-item';
-                    if (activity.groupCategory === 'EVOLUÇÃO') {
-                        activityClass += ' evolucao';
-                    } else if (activity.groupCategory === 'REUNIÃO GAIA') {
-                        activityClass += ' reuniao-gaia';
-                    } else if (activity.groupCategory === 'INDIVIDUAL') {
-                        activityClass += ' individual';
-                    }
+            // Verifica se está de folga
+            if (isProfessionalOnDayOff(professional.id, day)) {
+                gridHTML += `<td class="day-off-cell">🏖️ FOLGA</td>`;
+            } else {
+                const activities = getProfessionalActivitiesAtTime(professional.id, day, timeSlot);
+                const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
+                gridHTML += `<td class="${cellClass}">`;
+                if (activities.length > 0) {
+                    activities.forEach(activity => {
+                        let activityClass = 'activity-item';
+                        if (activity.groupCategory === 'EVOLUÇÃO') {
+                            activityClass += ' evolucao';
+                        } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                            activityClass += ' reuniao-gaia';
+                        } else if (activity.groupCategory === 'INDIVIDUAL') {
+                            activityClass += ' individual';
+                        }
 
-                    if (isSpecificActivity(activity.groupCategory)) {
-                        if (activity.groupCategory === "INDIVIDUAL") {
-                            // Para INDIVIDUAL: mostrar nome + usuário
-                            gridHTML += `<div class="${activityClass}">
-                                <div class="activity-group">INDIVIDUAL</div>`;
-                            if (activity.userNames !== 'Nenhum usuário') {
-                                gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                        if (isSpecificActivity(activity.groupCategory)) {
+                            if (activity.groupCategory === "INDIVIDUAL") {
+                                gridHTML += `<div class="${activityClass}">
+                                    <div class="activity-group">INDIVIDUAL</div>`;
+                                if (activity.userNames !== 'Nenhum usuário') {
+                                    gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                                }
+                                gridHTML += `</div>`;
+                            } else {
+                                gridHTML += `<div class="${activityClass}">
+                                    <div class="activity-group">${activity.groupCategory}</div>
+                                </div>`;
                             }
-                            gridHTML += `</div>`;
                         } else {
-                            // Para outras atividades específicas: só mostrar o nome
+                            const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                                ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                                : `Grupo ${activity.groupId}`;
+                            
                             gridHTML += `<div class="${activityClass}">
-                                <div class="activity-group">${activity.groupCategory}</div>
-                            </div>`;
+                                <div class="activity-group">${groupDisplayText}</div>`;
+                            
+                            if (activity.userNames !== 'Nenhum usuário') {
+                                gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                            }
+                            
+                            gridHTML += `</div>`;
                         }
-                    } else {
-                        // MODIFICAÇÃO PRINCIPAL: Para grupos normais, mostrar "Grupo X - CATEGORIA"
-                        const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-                            ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-                            : `Grupo ${activity.groupId}`;
-                        
-                        gridHTML += `<div class="${activityClass}">
-                            <div class="activity-group">${groupDisplayText}</div>`;
-                        
-                        // Só mostrar usuários se não for "Nenhum usuário"
-                        if (activity.userNames !== 'Nenhum usuário') {
-                            gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
-                        }
-                        
-                        gridHTML += `</div>`;
-                    }
-                });
+                    });
+                }
+                gridHTML += `</td>`;
             }
-            gridHTML += `</td>`;
         });
         gridHTML += `</tr>`;
     });
@@ -988,32 +1081,43 @@ function exportToCSV() {
         alert("⛔ Acesso negado! Faça login como administrador para exportar dados.");
         return;
     }
-    let csv = "Dia da Semana;Grupo;Horário;Categoria;Tipo;Nome;Idade;Deficiência;Programa;Categoria Profissional\n";
+    let csv = "Dia da Semana;Grupo;Horário;Categoria;Tipo;Nome;Idade;Deficiência;Programa;Categoria Profissional;Status\n";
     days.forEach(day => {
         Object.keys(scheduleData[day]).forEach(gid => {
             const g = scheduleData[day][gid];
             const categoriaTexto = g.categoria || "Categoria não definida";
             
-            // MODIFICAR o nome do grupo/atividade no CSV
             const groupDisplayName = isSpecificActivity(g.categoria) 
                 ? g.categoria 
                 : `Grupo ${gid}`;
             
             g.usuarios.forEach(u => {
-                csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Usuário;${u.nome};${u.idade};${u.deficiencia};${u.programa};\n`;
+                csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Usuário;${u.nome};${u.idade};${u.deficiencia};${u.programa};;Ativo\n`;
             });
             g.profissionais.forEach(profId => {
                 const p = masterProfessionals.find(prof => prof.id === profId);
                 if (p) {
-                    csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Profissional;${p.nome};;;;${p.categoria}\n`;
+                    const status = isProfessionalOnDayOff(profId, day) ? 'FOLGA' : 'Ativo';
+                    csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Profissional;${p.nome};;;;${p.categoria};${status}\n`;
                 }
             });
         });
     });
+    
+    // Adiciona informações de folgas dos profissionais
+    csv += "\n\nPROFISSIONAIS - DIAS DE FOLGA\n";
+    csv += "Nome;Categoria;Dias de Folga\n";
+    masterProfessionals.forEach(prof => {
+        const daysOffText = prof.daysOff && prof.daysOff.length > 0 
+            ? prof.daysOff.map(d => dayNames[d]).join(', ')
+            : 'Nenhuma folga definida';
+        csv += `${prof.nome};${prof.categoria};${daysOffText}\n`;
+    });
+    
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "grade_horarios.csv";
+    link.download = "grade_horarios_com_folgas.csv";
     link.style.display = "none";
     document.body.appendChild(link);
     link.click();
@@ -1026,6 +1130,7 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("professionalModal")) closeModal("professionalModal");
     if (e.target === document.getElementById("loginModal")) closeModal("loginModal");
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
+    if (e.target === document.getElementById("manageDaysOffModal")) closeModal("manageDaysOffModal");
 });
 
 /*inicializa a aplicação*/
@@ -1105,6 +1210,13 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Por favor, selecione um profissional.");
             return;
         }
+        
+        // Verifica se o profissional está de folga
+        if (isProfessionalOnDayOff(parseInt(professionalId), day)) {
+            alert("Este profissional está de folga neste dia!");
+            return;
+        }
+        
         scheduleData[day][groupId].profissionais.push(parseInt(professionalId));
         renderProfessionals(day, groupId);
         updateDashboard();
@@ -1116,11 +1228,46 @@ document.addEventListener("DOMContentLoaded", () => {
         const newProf = {
             id: Date.now(),
             nome: document.getElementById('regProfName').value.trim(),
-            categoria: document.getElementById('regProfCategory').value
+            categoria: document.getElementById('regProfCategory').value,
+            daysOff: [] // Inicializa sem folgas
         };
         masterProfessionals.push(newProf);
         renderMasterProfessionalsList();
         updateDashboard();
         closeModal('registerProfessionalModal');
+    });
+    
+    // NOVO EVENT LISTENER: Gerenciar folgas
+    document.getElementById("manageDaysOffForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const { professionalId } = currentModalContext;
+        const prof = masterProfessionals.find(p => p.id === professionalId);
+        if (!prof) return;
+        
+        // Coleta os dias de folga selecionados
+        const selectedDaysOff = [];
+        document.querySelectorAll('input[name="daysOff"]:checked').forEach(checkbox => {
+            selectedDaysOff.push(checkbox.value);
+        });
+        
+        // Armazena os dias de folga anteriores
+        const previousDaysOff = prof.daysOff || [];
+        
+        // Atualiza os dias de folga
+        prof.daysOff = selectedDaysOff;
+        
+        // Remove o profissional dos grupos nos novos dias de folga
+        removeProfessionalFromDayOffGroups(professionalId, selectedDaysOff);
+        
+        // Atualiza a visualização
+        renderMasterProfessionalsList();
+        if (window.currentSelectedProfessionalId === professionalId) {
+            showProfessionalDetails(professionalId);
+        }
+        
+        updateDashboard();
+        closeModal('manageDaysOffModal');
+        
+        alert(`Folgas atualizadas para ${prof.nome}!`);
     });
 });

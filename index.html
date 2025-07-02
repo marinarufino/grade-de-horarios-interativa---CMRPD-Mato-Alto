@@ -242,6 +242,50 @@
     </div>
 </div>
 
+<!-- Modal: Gerenciar Folgas do Profissional -->
+<div id="manageDaysOffModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">🏖️ Gerenciar Folgas do Profissional</h2>
+        </div>
+        <form id="manageDaysOffForm">
+            <div class="form-group">
+                <label>Profissional:</label>
+                <input type="text" id="profNameDaysOff" readonly disabled>
+            </div>
+            <div class="form-group">
+                <label>Dias de Folga:</label>
+                <div class="days-off-checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="daysOff" value="segunda">
+                        Segunda-feira
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="daysOff" value="terca">
+                        Terça-feira
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="daysOff" value="quarta">
+                        Quarta-feira
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="daysOff" value="quinta">
+                        Quinta-feira
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="daysOff" value="sexta">
+                        Sexta-feira
+                    </label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('manageDaysOffModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Salvar Folgas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: Login de Administrador -->
 <div id="loginModal" class="modal">
     <div class="modal-content">
