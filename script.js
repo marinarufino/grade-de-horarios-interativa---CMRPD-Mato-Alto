@@ -1,421 +1,52 @@
-const ADMIN_PASSWORD = "123";
-let isAuthenticated = false;
-const days = ["segunda", "terca", "quarta", "quinta", "sexta"];
-const dayNames = {
-    segunda: "Segunda-feira",
-    terca: "Terça-feira",
-    quarta: "Quarta-feira",
-    quinta: "Quinta-feira",
-    sexta: "Sexta-feira",
-};
-const timeSlots = [
-    "08:00", "09:00", "10:00",
-    "11:00", "13:00",
-    "14:00", "15:00", "16:00",
-];
-// DADOS EM MEMÓRIA
-let scheduleData = {};
-let masterProfessionals = [];
-let currentModalContext = {};
-// Categorias disponíveis para os grupos - ADICIONADA INDIVIDUAL
-const groupCategories = [
-    "CENTRO DE CONVIVENCIA",
-    "GAIA",
-    "EMPREGABILIDADE",
-    "ATENDIMENTO A FAMILIA",
-    "EVOLUÇÃO",
-    "REUNIÃO GAIA",
-    "INDIVIDUAL"
-];
 
-// FUNÇÃO ATUALIZADA: Verifica se é uma atividade específica (não é grupo)
-function isSpecificActivity(category) {
-    return category === "EVOLUÇÃO" || category === "REUNIÃO GAIA" || category === "INDIVIDUAL";
-}
-
-// FUNÇÃO ATUALIZADA: Gera o texto do cabeçalho do grupo/atividade
-function getGroupHeaderText(day, groupId, category) {
-    if (isSpecificActivity(category)) {
-        return `📋 ${category} – ${dayNames[day]}`;
-    }
-    return `👥 Grupo ${groupId} – ${dayNames[day]}`;
-}
-
-function resetDataStructure() {
-    let tmpGroupId = 1;
-    days.forEach(day => {
-        scheduleData[day] = {};
-        for (let i = 1; i <= 20; i++) {
-            scheduleData[day][tmpGroupId] = {
-                horario: "09:00",
-                categoria: "",
-                usuarios: [],
-                profissionais: [],
-            };
-            tmpGroupId++;
-        }
-    });
-}
-
-// NOVA FUNÇÃO: Verifica se o profissional está de folga em um dia específico
-function isProfessionalOnDayOff(professionalId, day) {
-    const prof = masterProfessionals.find(p => p.id === professionalId);
-    if (!prof || !prof.daysOff) return false;
-    return prof.daysOff.includes(day);
-}
-
-// NOVA FUNÇÃO: Remove profissional dos grupos nos dias de folga
-function removeProfessionalFromDayOffGroups(professionalId, daysOff) {
-    daysOff.forEach(day => {
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            const index = group.profissionais.indexOf(professionalId);
-            if (index !== -1) {
-                group.profissionais.splice(index, 1);
-                renderProfessionals(day, groupId);
-            }
-        });
-    });
-}
-
-// Dashboard
-function updateDashboard() {
-    let totalUsuarios = 0;
-    let totalProfissionaisUnicos = new Set();
-    let gruposComAtividade = 0;
-    let totalCapacidade = 0;
-    let ocupacaoTotal = 0;
-    days.forEach(day => {
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            totalUsuarios += group.usuarios.length;
-            group.profissionais.forEach(id => totalProfissionaisUnicos.add(id));
-            if (group.usuarios.length > 0 || group.profissionais.length > 0) {
-                gruposComAtividade++;
-            }
-            totalCapacidade += 10;
-            ocupacaoTotal += group.usuarios.length + group.profissionais.length;
-        });
-    });
-    const ocupacaoMedia = totalCapacidade > 0 ? Math.round((ocupacaoTotal / totalCapacidade) * 100) : 0;
-    document.getElementById('totalUsuarios').textContent = totalUsuarios;
-    document.getElementById('totalProfissionais').textContent = totalProfissionaisUnicos.size;
-    document.getElementById('gruposAtivos').textContent = gruposComAtividade;
-    document.getElementById('ocupacaoMedia').textContent = ocupacaoMedia + '%';
-    updateAlertas();
-}
-
-function updateAlertas() {
-    const container = document.getElementById('alertas');
-    let alertas = [];
-    // Verifica grupos lotados
-    days.forEach(day => {
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            const ocupacao = group.usuarios.length + group.profissionais.length;
-            if (ocupacao >= 10) {
-                const displayName = isSpecificActivity(group.categoria) 
-                    ? group.categoria 
-                    : `Grupo ${groupId}`;
-                alertas.push(`⚠️ ${displayName} (${dayNames[day]}) está com capacidade máxima`);
-            }
-        });
-    });
-    // Verifica profissionais sem grupos
-    const profissionaisAtivos = new Set();
-    days.forEach(day => {
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            scheduleData[day][groupId].profissionais.forEach(id => profissionaisAtivos.add(id));
-        });
-    });
-    masterProfessionals.forEach(prof => {
-        if (!profissionaisAtivos.has(prof.id)) {
-            alertas.push(`ℹ️ ${prof.nome} não está alocado em nenhum grupo`);
-        }
-    });
-    container.innerHTML = alertas.length > 0 ? alertas.slice(0, 5).map(a => `<p>${a}</p>`).join('') : '<p>✅ Nenhum alerta no momento</p>';
-}
-
-// Relatórios
-function updateReports() {
-    updateAtendimentosPorDia();
-    updateHorariosMaisUtilizados();
-}
-
-function updateAtendimentosPorDia() {
-    const container = document.getElementById('atendimentosPorDia');
-    let html = '';
-    days.forEach(day => {
-        let totalUsuarios = 0;
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            totalUsuarios += scheduleData[day][groupId].usuarios.length;
-        });
-        html += `<p><strong>${dayNames[day]}:</strong> ${totalUsuarios} atendimentos</p>`;
-    });
-    container.innerHTML = html;
-}
-
-function updateHorariosMaisUtilizados() {
-    const container = document.getElementById('horariosMaisUtilizados');
-    const horarioStats = {};
-    days.forEach(day => {
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            if (group.usuarios.length > 0) {
-                horarioStats[group.horario] = (horarioStats[group.horario] || 0) + 1;
-            }
-        });
-    });
-    const sortedHorarios = Object.entries(horarioStats)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5);
-    let html = '';
-    sortedHorarios.forEach(([horario, count]) => {
-        html += `<p><strong>${horario}:</strong> ${count} grupos</p>`;
-    });
-    container.innerHTML = html || '<p>Nenhum dado disponível</p>';
-}
-
-// Navegação entre abas
-function switchToTab(tabName) {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".day-content").forEach(c => {
-        c.classList.remove("active");
-        c.style.display = 'none';
-    });
-    const tab = document.querySelector(`[data-day="${tabName}"]`);
-    const content = document.getElementById(tabName);
-    if (tab && content) {
-        tab.classList.add("active");
-        content.classList.add("active");
-        content.style.display = 'block';
-    }
-    if (tabName === 'dashboards-relatorios') {
-        updateDashboard();
-        updateReports();
-    } else if (tabName === 'profissionais') {
-        renderMasterProfessionalsList();
-        document.getElementById('professional-details-view').innerHTML =
-            '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
-        window.currentSelectedProfessionalId = null;
-    } else if (tabName === 'grade') {
-        // Limpar filtros ao entrar na aba Grade
-        document.getElementById('categoryFilter').value = '';
-        document.getElementById('gradeWeekdayFilter').value = '';
-        updateGradeView();
-        const categoryFilter = document.getElementById('categoryFilter');
-        const weekdayFilter = document.getElementById('gradeWeekdayFilter');
-        if (categoryFilter) {
-            categoryFilter.disabled = false;
-        }
-        if (weekdayFilter) {
-            weekdayFilter.disabled = false;
-        }
-    }
-}
-
-/*autenticação*/
-function checkAuth() {
-    if (!isAuthenticated) {
-        openLoginModal();
-        return false;
-    }
-    return true;
-}
-
-function openLoginModal() {
-    document.getElementById("loginModal").style.display = "block";
-    document.getElementById("loginForm").reset();
-    document.getElementById("loginPassword").focus();
-}
-
-function toggleEditButtons(enable) {
-    document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
-        if (el.id === 'categoryFilter' || el.id === 'gradeWeekdayFilter') {
-            return;
-        }
-        el.disabled = !enable;
-    });
-}
-
-// controla visibilidade do botão de exportação CSV
-function toggleExportButton(show) {
-    const exportBtn = document.querySelector('.export-btn');
-    if (exportBtn) {
-        exportBtn.style.display = show ? 'block' : 'none';
-    }
-}
-
-function updateUserStatus() {
-    const statusText = document.getElementById('userStatusText');
-    const loginBtn = document.getElementById('loginToggleBtn');
-    if (isAuthenticated) {
-        statusText.textContent = 'Modo Administrador';
-        statusText.style.color = '#10b981';
-        loginBtn.textContent = '🔒 Logout';
-        loginBtn.onclick = () => {
-            isAuthenticated = false;
-            updateTabsVisibility();
-            updateUserStatus();
-            toggleEditButtons(false);
-            toggleExportButton(false);
-            const categoryFilter = document.getElementById('categoryFilter');
-            const weekdayFilter = document.getElementById('gradeWeekdayFilter');
-            if (categoryFilter) {
-                categoryFilter.disabled = false;
-            }
-            if (weekdayFilter) {
-                weekdayFilter.disabled = false;
-            }
-            switchToTab('grade');
-            alert('Logout realizado! Agora você está no modo visualização.');
-        };
-        toggleExportButton(true);
-    } else {
-        statusText.textContent = 'Modo Visualização';
-        statusText.style.color = '#6b7280';
-        loginBtn.textContent = '🔓 Fazer Login Admin';
-        loginBtn.onclick = () => openLoginModal();
-        toggleExportButton(false);
-    }
-}
-
-function updateTabsVisibility() {
-    const tabs = document.querySelectorAll('.tab');
-    const restrictedTabs = ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
-    if (isAuthenticated) {
-        tabs.forEach(tab => {
-            tab.style.display = 'block';
-        });
-    } else {
-        tabs.forEach(tab => {
-            const day = tab.dataset.day;
-            if (restrictedTabs.includes(day)) {
-                tab.style.display = 'none';
-            } else {
-                tab.style.display = 'block';
-            }
-        });
-    }
-}
-
-/*visualização dos grupos*/
-function createGroupElement(day, groupId) {
-    const div = document.createElement("div");
-    div.className = "group";
-    div.innerHTML = `
-    <div class="group-header">
-      <span id="group-header-${day}-${groupId}">👥 Grupo ${groupId} – ${dayNames[day]}</span>
-      <div class="group-controls">
-        <select onchange="if (updateGroupCategory('${day}', ${groupId}, this.value)) { this.blur(); }" class="category-select">
-          <option value="">Selecione categoria do grupo</option>
-          ${groupCategories.map(cat => `<option value="${cat}" ${scheduleData[day][groupId].categoria === cat ? "selected" : ""}>${cat}</option>`).join("")}
-        </select>
-        <select onchange="if (updateGroupTime('${day}', ${groupId}, this.value)) { this.blur(); }" class="time-select">
-          ${timeSlots.map(t => `<option value="${t}" ${scheduleData[day][groupId].horario === t ? "selected" : ""}>${t}</option>`).join("")}
-        </select>
-      </div>
-    </div>
-    <div class="group-content">
-      <div class="section usuarios">
-        <div class="section-title">
-          <span>👤 Usuários</span>
-          <button class="btn-add" onclick="openUserModal('${day}', ${groupId})">+ Adicionar</button>
-        </div>
-        <div class="person-list" id="usuarios-${day}-${groupId}">
-          <div class="empty-state">Nenhum usuário adicionado</div>
-        </div>
-      </div>
-      <div class="section profissionais">
-        <div class="section-title">
-          <span>👨‍⚕️ Profissionais</span>
-          <button class="btn-add" onclick="openProfessionalModal('${day}', ${groupId})">+ Adicionar</button>
-        </div>
-        <div class="person-list" id="profissionais-${day}-${groupId}">
-          <div class="empty-state">Nenhum profissional adicionado</div>
-        </div>
-      </div>
-    </div>
-  `;
-    return div;
-}
-
-// NOVA FUNÇÃO: Atualiza o texto do cabeçalho do grupo
-function updateGroupHeaderText(day, groupId, category) {
-    const headerElement = document.getElementById(`group-header-${day}-${groupId}`);
-    if (headerElement) {
-        headerElement.textContent = getGroupHeaderText(day, groupId, category);
-    }
-}
-
-function initializeGroups() {
-    let gid = 1;
-    days.forEach(day => {
-        const container = document.getElementById(`groups-${day}`);
-        container.innerHTML = "";
-        for (let i = 1; i <= 20; i++) {
-            container.appendChild(createGroupElement(day, gid));
-            gid++;
-        }
-    });
-    days.forEach(day => {
-        let gid = day === "segunda" ? 1 : day === "terca" ? 21 : day === "quarta" ? 41 : day === "quinta" ? 61 : 81;
-        for (let i = 1; i <= 20; i++) {
-            renderUsers(day, gid);
-            renderProfessionals(day, gid);
-            gid++;
-        }
-    });
-}
-
-/*ações realizadas nos grupos*/
-function updateGroupTime(day, groupId, time) {
-    if (!checkAuth()) {
-        alert("⛔ Faça login para alterar horários!");
-        return false;
-    }
-    scheduleData[day][groupId].horario = time;
-    updateDashboard();
-    return true;
-}
-
-function updateGroupCategory(day, groupId, category) {
-    if (!checkAuth()) {
-        alert("⛔ Faça login para alterar categorias!");
-        return false;
-    }
-    scheduleData[day][groupId].categoria = category;
-    
-    updateGroupHeaderText(day, groupId, category);
-    
-    updateDashboard();
-    return true;
-}
+// modais e ações
 
 function openUserModal(day, groupId) {
     if (!checkAuth()) return;
-    if (scheduleData[day][groupId].usuarios.length >= 5) {
+    
+    if (!scheduleData[day] || !scheduleData[day][groupId]) {
+        alert("Erro: Grupo não encontrado");
+        return;
+    }
+    
+    // Verifica se usuarios existe e é array, senão inicializa
+if (!scheduleData[day][groupId].usuarios) {
+    scheduleData[day][groupId].usuarios = [];
+}
+
+if (scheduleData[day][groupId].usuarios.length >= 5) {
         alert("Máximo de 5 usuários por grupo");
         return;
     }
+    
     currentModalContext = { day, groupId, type: "user" };
     document.getElementById("userModal").style.display = "block";
     document.getElementById("userForm").reset();
     document.getElementById("userName").focus();
 }
 
-// FUNÇÃO ATUALIZADA: Verifica folgas antes de abrir modal
 function openProfessionalModal(day, groupId) {
     if (!checkAuth()) return;
-    if (scheduleData[day][groupId].profissionais.length >= 5) {
+    
+    if (!scheduleData[day] || !scheduleData[day][groupId]) {
+        alert("Erro: Grupo não encontrado");
+        return;
+    }
+    
+    // Verifica se profissionais existe e é array, senão inicializa
+if (!scheduleData[day][groupId].profissionais) {
+    scheduleData[day][groupId].profissionais = [];
+}
+
+if (scheduleData[day][groupId].profissionais.length >= 5) {
         alert("Máximo de 5 profissionais por grupo");
         return;
     }
+    
     currentModalContext = { day, groupId };
     const select = document.getElementById('professionalSelect');
     select.innerHTML = '<option value="">Selecione um profissional</option>';
     
-    // Filtra profissionais que não estão de folga neste dia
     masterProfessionals.forEach(prof => {
         if (!scheduleData[day][groupId].profissionais.includes(prof.id) && !isProfessionalOnDayOff(prof.id, day)) {
             const option = document.createElement('option');
@@ -425,7 +56,6 @@ function openProfessionalModal(day, groupId) {
         }
     });
     
-    // Adiciona profissionais de folga como desabilitados para informação
     masterProfessionals.forEach(prof => {
         if (!scheduleData[day][groupId].profissionais.includes(prof.id) && isProfessionalOnDayOff(prof.id, day)) {
             const option = document.createElement('option');
@@ -440,7 +70,13 @@ function openProfessionalModal(day, groupId) {
     document.getElementById("professionalModal").style.display = "block";
 }
 
-// NOVA FUNÇÃO: Abre modal de gerenciar folgas
+function openRegisterProfessionalModal() {
+    if (!checkAuth()) return;
+    document.getElementById('registerProfessionalForm').reset();
+    document.getElementById('registerProfessionalModal').style.display = 'block';
+    document.getElementById('regProfName').focus();
+}
+
 function openManageDaysOffModal(professionalId) {
     if (!checkAuth()) return;
     
@@ -449,15 +85,12 @@ function openManageDaysOffModal(professionalId) {
     
     currentModalContext = { professionalId };
     
-    // Preenche o nome do profissional
     document.getElementById('profNameDaysOff').value = prof.nome;
     
-    // Limpa todos os checkboxes
     document.querySelectorAll('input[name="daysOff"]').forEach(checkbox => {
         checkbox.checked = false;
     });
     
-    // Marca os dias de folga atuais
     if (prof.daysOff && prof.daysOff.length > 0) {
         prof.daysOff.forEach(day => {
             const checkbox = document.querySelector(`input[name="daysOff"][value="${day}"]`);
@@ -473,158 +106,123 @@ function closeModal(id) {
     currentModalContext = {};
 }
 
-/*renderização dos grupos*/
-function renderUsers(day, groupId) {
-    const el = document.getElementById(`usuarios-${day}-${groupId}`);
-    if (!el) return;
-    const list = scheduleData[day][groupId].usuarios;
-    if (list.length === 0) {
-        el.innerHTML = '<div class="empty-state">Nenhum usuário adicionado</div>';
-        return;
-    }
-    el.innerHTML = "";
-    list.forEach((u, idx) => {
-        const card = document.createElement("div");
-        card.className = "person-card";
-        card.innerHTML = `
-      <button class="btn-remove" onclick="removeUser('${day}', ${groupId}, ${idx})">×</button>
-      <div class="person-info">
-        <div><div class="info-label">Nome</div><div class="info-item">${u.nome}</div></div>
-        <div><div class="info-label">Idade</div><div class="info-item">${u.idade} anos</div></div>
-        <div><div class="info-label">Deficiência</div><div class="info-item">${u.deficiencia}</div></div>
-        <div><div class="info-label">Programa</div><div class="info-item">${u.programa}</div></div>
-      </div>`;
-        el.appendChild(card);
-    });
-}
 
-function renderProfessionals(day, groupId) {
-    const el = document.getElementById(`profissionais-${day}-${groupId}`);
-    if (!el) return;
-    const list = scheduleData[day][groupId].profissionais;
-    if (list.length === 0) {
-        el.innerHTML = '<div class="empty-state">Nenhum profissional adicionado</div>';
-        return;
-    }
-    el.innerHTML = "";
-    list.forEach((profId, idx) => {
-        const p = masterProfessionals.find(prof => prof.id === profId);
-        if (!p) return;
-        const card = document.createElement("div");
-        card.className = "person-card";
-        card.innerHTML = `
-      <button class="btn-remove" onclick="removeProfessional('${day}', ${groupId}, ${idx})">×</button>
-      <div class="profissional-info">
-        <div><div class="info-label">Nome</div><div class="info-item">${p.nome}</div></div>
-        <div><div class="info-label">Categoria</div><div class="info-item">${p.categoria}</div></div>
-      </div>`;
-        el.appendChild(card);
-    });
-}
+// remoçao de dados
 
-/*remover usuarios ou profissionais*/
 function removeUser(day, groupId, idx) {
     if (!checkAuth()) return;
     if (confirm("Tem certeza que deseja remover este usuário?")) {
-        scheduleData[day][groupId].usuarios.splice(idx, 1);
-        renderUsers(day, groupId);
-        updateDashboard();
+        if (scheduleData[day] && scheduleData[day][groupId] && scheduleData[day][groupId].usuarios) {
+            scheduleData[day][groupId].usuarios.splice(idx, 1);
+            
+            saveScheduleData().then(() => {
+                console.log('✅ Usuário removido e salvo no Firebase');
+            }).catch(error => {
+                console.error('❌ Erro ao remover usuário:', error);
+                alert('Erro ao remover usuário. Tente novamente.');
+            });
+            
+            renderUsers(day, groupId);
+            updateDashboard();
+        }
     }
 }
 
 function removeProfessional(day, groupId, idx) {
     if (!checkAuth()) return;
     if (confirm("Tem certeza que deseja remover este profissional?")) {
-        scheduleData[day][groupId].profissionais.splice(idx, 1);
-        renderProfessionals(day, groupId);
-        updateDashboard();
+        if (scheduleData[day] && scheduleData[day][groupId] && scheduleData[day][groupId].profissionais) {
+            scheduleData[day][groupId].profissionais.splice(idx, 1);
+            
+            saveScheduleData().then(() => {
+                console.log('✅ Profissional removido e salvo no Firebase');
+            }).catch(error => {
+                console.error('❌ Erro ao remover profissional:', error);
+                alert('Erro ao remover profissional. Tente novamente.');
+            });
+            
+            renderProfessionals(day, groupId);
+            updateDashboard();
+        }
     }
-}
-
-function openRegisterProfessionalModal() {
-    if (!checkAuth()) return;
-    document.getElementById('registerProfessionalForm').reset();
-    document.getElementById('registerProfessionalModal').style.display = 'block';
-    document.getElementById('regProfName').focus();
 }
 
 function removeMasterProfessional(profId) {
     if (!checkAuth()) return;
+    
     const prof = masterProfessionals.find(p => p.id === profId);
     if (!prof) return;
+    
     let isInUse = false;
     days.forEach(day => {
+        if (!scheduleData[day]) return;
+        
         Object.keys(scheduleData[day]).forEach(groupId => {
-            if (scheduleData[day][groupId].profissionais.includes(profId)) {
+            const group = scheduleData[day][groupId];
+            if (group && group.profissionais && Array.isArray(group.profissionais) && group.profissionais.includes(profId)) {
                 isInUse = true;
             }
         });
     });
+    
     if (isInUse) {
         alert(`❌ Não é possível remover ${prof.nome}.\nEste profissional está alocado em um ou mais grupos.\nRemova-o primeiro dos grupos antes de excluí-lo.`);
         return;
     }
+    
     if (confirm(`Tem certeza que deseja remover ${prof.nome} da lista de profissionais?`)) {
         const index = masterProfessionals.findIndex(p => p.id === profId);
         if (index !== -1) {
             masterProfessionals.splice(index, 1);
+        }
+        
+        deleteProfessional(profId).then(() => {
+            console.log('✅ Profissional removido do Firebase');
             renderMasterProfessionalsList();
             updateDashboard();
-            document.getElementById('professional-details-view').innerHTML =
-                '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
-        }
+            
+            const detailsView = document.getElementById('professional-details-view');
+            if (detailsView) {
+                detailsView.innerHTML = '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
+            }
+        }).catch(error => {
+            console.error('❌ Erro ao remover profissional:', error);
+            alert('Erro ao remover profissional. Tente novamente.');
+            
+            if (index !== -1) {
+                masterProfessionals.splice(index, 0, prof);
+                renderMasterProfessionalsList();
+            }
+        });
     }
 }
 
-// FUNÇÃO ATUALIZADA: Renderiza lista com botão de folgas
-function renderMasterProfessionalsList() {
-    const listContainer = document.getElementById('master-professionals-list');
-    listContainer.innerHTML = `
-        <h3>Profissionais Cadastrados</h3>
-        <div class="day-filter">
-            <label for="dayFilter">Filtrar por dia:</label>
-            <select id="dayFilter" onchange="updateProfessionalDetailsFilter()">
-                <option value="">Todos os dias</option>
-                <option value="segunda">Segunda-feira</option>
-                <option value="terca">Terça-feira</option>
-                <option value="quarta">Quarta-feira</option>
-                <option value="quinta">Quinta-feira</option>
-                <option value="sexta">Sexta-feira</option>
-            </select>
-        </div>
-    `;
-    if (masterProfessionals.length === 0) {
-        listContainer.innerHTML += '<div class="empty-state">Nenhum profissional cadastrado.</div>';
-        return;
-    }
-    masterProfessionals.sort((a, b) => a.nome.localeCompare(b.nome));
-    masterProfessionals.forEach(prof => {
-        const item = document.createElement('div');
-        item.className = 'professional-list-item';
+function removeProfessionalFromDayOffGroups(professionalId, daysOff) {
+    daysOff.forEach(day => {
+        if (!scheduleData[day]) return;
         
-        // Monta lista de dias de folga
-        let daysOffText = '';
-        if (prof.daysOff && prof.daysOff.length > 0) {
-            const daysOffNames = prof.daysOff.map(d => dayNames[d]).join(', ');
-            daysOffText = `<span class="days-off-indicator">🏖️ Folga: ${daysOffNames}</span>`;
-        }
-        
-        item.innerHTML = `
-            <button class="btn-remove-professional" onclick="removeMasterProfessional(${prof.id})" title="Remover profissional">×</button>
-            <button class="btn-manage-days-off" onclick="openManageDaysOffModal(${prof.id})" title="Gerenciar folgas">🏖️</button>
-            <strong>${prof.nome}</strong><br>
-            <span>${prof.categoria}</span>
-            ${daysOffText}
-        `;
-        item.onclick = (e) => {
-            if (!e.target.classList.contains('btn-remove-professional') && 
-                !e.target.classList.contains('btn-manage-days-off')) {
-                showProfessionalDetails(prof.id);
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (!group || !group.profissionais || !Array.isArray(group.profissionais)) return;
+            
+            const index = group.profissionais.indexOf(professionalId);
+            if (index !== -1) {
+                group.profissionais.splice(index, 1);
+                renderProfessionals(day, groupId);
             }
-        };
-        listContainer.appendChild(item);
+        });
+    });
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Profissional removido dos dias de folga e salvo no Firebase');
+    }).catch(error => {
+        console.error('❌ Erro ao salvar mudanças de folgas:', error);
     });
 }
+
+
+// detalhes dos profissionais
+
 
 function updateProfessionalDetailsFilter() {
     const selectedItem = document.querySelector('.professional-list-item.selected');
@@ -637,20 +235,23 @@ function updateProfessionalDetailsFilter() {
 function showProfessionalDetails(profId) {
     const prof = masterProfessionals.find(p => p.id === profId);
     if (!prof) return;
+    
     window.currentSelectedProfessionalId = profId;
     document.querySelectorAll('.professional-list-item').forEach(item => {
         item.classList.remove('selected');
     });
     event.currentTarget.classList.add('selected');
+    
     const dayFilter = document.getElementById('dayFilter')?.value || '';
     const detailsContainer = document.getElementById('professional-details-view');
+    if (!detailsContainer) return;
+    
     let content = `<h3>Grupos de ${prof.nome}`;
     if (dayFilter) {
         content += ` - ${dayNames[dayFilter]}`;
     }
     content += `</h3>`;
     
-    // Mostra dias de folga se houver
     if (prof.daysOff && prof.daysOff.length > 0) {
         const daysOffNames = prof.daysOff.map(d => dayNames[d]).join(', ');
         content += `<div class="days-off-info">🏖️ <strong>Dias de Folga:</strong> ${daysOffNames}</div>`;
@@ -658,10 +259,13 @@ function showProfessionalDetails(profId) {
     
     let foundInGroups = false;
     const daysToShow = dayFilter ? [dayFilter] : days;
+    
     daysToShow.forEach(day => {
+        if (!scheduleData[day]) return;
+        
         Object.keys(scheduleData[day]).forEach(groupId => {
             const group = scheduleData[day][groupId];
-            if (group.profissionais.includes(prof.id)) {
+            if (group && group.profissionais && group.profissionais.includes(prof.id)) {
                 foundInGroups = true;
                 const categoriaTexto = group.categoria || "Categoria não definida";
                 
@@ -673,7 +277,8 @@ function showProfessionalDetails(profId) {
                     <div class="details-group-card">
                         <h4>${displayTitle}</h4>
                 `;
-                if (group.usuarios.length > 0) {
+                
+                if (group.usuarios && group.usuarios.length > 0) {
                     content += '<ul>';
                     group.usuarios.forEach(user => {
                         content += `<li>👤 ${user.nome}</li>`;
@@ -686,14 +291,19 @@ function showProfessionalDetails(profId) {
             }
         });
     });
+    
     if (!foundInGroups) {
         const dayText = dayFilter ? `na ${dayNames[dayFilter]}` : 'em nenhum grupo';
         content += `<div class="empty-state">Este profissional não está alocado ${dayText}.</div>`;
     }
+    
     detailsContainer.innerHTML = content;
 }
 
-// Grade de Horários - VERSÃO ATUALIZADA COM FILTRO POR DIA
+
+// grade de horários
+
+
 function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
     const selectedWeekday = document.getElementById('gradeWeekdayFilter').value;
@@ -701,32 +311,27 @@ function updateGradeView() {
 
     console.log('Filtros selecionados:', { selectedCategory, selectedWeekday });
 
-    // Se nenhum filtro foi selecionado
     if (!selectedCategory && !selectedWeekday) {
         gradeContent.innerHTML = '<div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>';
         return;
     }
 
-    // Se apenas dia da semana foi selecionado -> Mostrar visão geral do dia
     if (!selectedCategory && selectedWeekday) {
         showDayOverview(selectedWeekday);
         return;
     }
 
-    // Se apenas categoria foi selecionada -> Funcionalidade original
     if (selectedCategory && !selectedWeekday) {
         showCategoryView(selectedCategory);
         return;
     }
 
-    // Se ambos foram selecionados -> Categoria específica em um dia específico
     if (selectedCategory && selectedWeekday) {
         showCategoryAndDayView(selectedCategory, selectedWeekday);
         return;
     }
 }
 
-// FUNÇÃO ATUALIZADA: Mostra visão geral de todas as atividades de um dia
 function showDayOverview(selectedDay) {
     const gradeContent = document.getElementById('grade-content');
     
@@ -813,20 +418,24 @@ function showDayOverview(selectedDay) {
     gradeContent.innerHTML = html;
 }
 
-// NOVA FUNÇÃO: Busca todas as atividades de um dia/horário específico
 function getDayActivitiesAtTime(day, timeSlot) {
     const activities = [];
+    
+    if (!scheduleData[day]) return activities;
     
     Object.keys(scheduleData[day]).forEach(groupId => {
         const group = scheduleData[day][groupId];
         
-        if (group.horario === timeSlot && (group.usuarios.length > 0 || group.profissionais.length > 0)) {
-            const profissionais = group.profissionais
+        if (group && group.horario === timeSlot && 
+            ((group.usuarios && group.usuarios.length > 0) || 
+             (group.profissionais && group.profissionais.length > 0))) {
+            
+            const profissionais = (group.profissionais || [])
                 .map(profId => masterProfessionals.find(prof => prof.id === profId))
                 .filter(prof => prof)
                 .map(prof => prof.nome);
                 
-            const usuarios = group.usuarios.map(user => user.nome);
+            const usuarios = (group.usuarios || []).map(user => user.nome);
             
             activities.push({
                 groupId: groupId,
@@ -840,7 +449,6 @@ function getDayActivitiesAtTime(day, timeSlot) {
     return activities;
 }
 
-// Função original para mostrar categoria (mantida como estava)
 function showCategoryView(selectedCategory) {
     const gradeContent = document.getElementById('grade-content');
     const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
@@ -858,7 +466,6 @@ function showCategoryView(selectedCategory) {
     gradeContent.innerHTML = gradeHTML;
 }
 
-// NOVA FUNÇÃO: Mostra categoria específica em um dia específico
 function showCategoryAndDayView(selectedCategory, selectedDay) {
     const gradeContent = document.getElementById('grade-content');
     const professionalsByCategory = masterProfessionals.filter(prof => prof.categoria === selectedCategory);
@@ -876,14 +483,12 @@ function showCategoryAndDayView(selectedCategory, selectedDay) {
     gradeContent.innerHTML = gradeHTML;
 }
 
-// FUNÇÃO ATUALIZADA: Gera grade de um profissional para um dia específico
 function generateProfessionalGridForDay(professional, selectedDay) {
     let gridHTML = `
         <div class="professional-grid">
             <h3 class="professional-name">${professional.nome} - ${dayNames[selectedDay]}</h3>
     `;
     
-    // Verifica se o profissional está de folga neste dia
     if (isProfessionalOnDayOff(professional.id, selectedDay)) {
         gridHTML += `
             <div class="day-off-notice">
@@ -965,14 +570,12 @@ function generateProfessionalGridForDay(professional, selectedDay) {
     return gridHTML;
 }
 
-// FUNÇÃO ATUALIZADA: Gera grade de um profissional (visão completa da semana)
 function generateProfessionalGrid(professional) {
     let gridHTML = `
         <div class="professional-grid">
             <h3 class="professional-name">${professional.nome}</h3>
     `;
     
-    // Mostra dias de folga se houver
     if (professional.daysOff && professional.daysOff.length > 0) {
         const daysOffNames = professional.daysOff.map(d => dayNames[d]).join(', ');
         gridHTML += `<div class="days-off-info">🏖️ <strong>Dias de Folga:</strong> ${daysOffNames}</div>`;
@@ -996,7 +599,6 @@ function generateProfessionalGrid(professional) {
     timeSlots.forEach(timeSlot => {
         gridHTML += `<tr><td class="time-cell">${timeSlot}</td>`;
         days.forEach(day => {
-            // Verifica se está de folga
             if (isProfessionalOnDayOff(professional.id, day)) {
                 gridHTML += `<td class="day-off-cell">🏖️ FOLGA</td>`;
             } else {
@@ -1059,12 +661,18 @@ function generateProfessionalGrid(professional) {
 
 function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
     const activities = [];
+    
+    if (!scheduleData[day]) return activities;
+    
     Object.keys(scheduleData[day]).forEach(groupId => {
         const group = scheduleData[day][groupId];
-        if (group.horario === timeSlot && group.profissionais.includes(professionalId)) {
-            const userNames = group.usuarios.length > 0
+        if (group && group.horario === timeSlot && 
+            group.profissionais && group.profissionais.includes(professionalId)) {
+            
+            const userNames = (group.usuarios && group.usuarios.length > 0)
                 ? group.usuarios.map(user => user.nome).join(', ')
                 : 'Nenhum usuário';
+                
             activities.push({
                 groupId: groupId,
                 groupCategory: group.categoria || 'Sem categoria',
@@ -1075,36 +683,47 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
     return activities;
 }
 
-// FUNÇÃO ATUALIZADA: Exportação CSV
+
+// exportação
+
 function exportToCSV() {
     if (!isAuthenticated) {
         alert("⛔ Acesso negado! Faça login como administrador para exportar dados.");
         return;
     }
+    
     let csv = "Dia da Semana;Grupo;Horário;Categoria;Tipo;Nome;Idade;Deficiência;Programa;Categoria Profissional;Status\n";
+    
     days.forEach(day => {
+        if (!scheduleData[day]) return;
+        
         Object.keys(scheduleData[day]).forEach(gid => {
             const g = scheduleData[day][gid];
-            const categoriaTexto = g.categoria || "Categoria não definida";
+            if (!g) return;
             
+            const categoriaTexto = g.categoria || "Categoria não definida";
             const groupDisplayName = isSpecificActivity(g.categoria) 
                 ? g.categoria 
                 : `Grupo ${gid}`;
             
-            g.usuarios.forEach(u => {
-                csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Usuário;${u.nome};${u.idade};${u.deficiencia};${u.programa};;Ativo\n`;
-            });
-            g.profissionais.forEach(profId => {
-                const p = masterProfessionals.find(prof => prof.id === profId);
-                if (p) {
-                    const status = isProfessionalOnDayOff(profId, day) ? 'FOLGA' : 'Ativo';
-                    csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Profissional;${p.nome};;;;${p.categoria};${status}\n`;
-                }
-            });
+            if (g.usuarios && g.usuarios.length > 0) {
+                g.usuarios.forEach(u => {
+                    csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Usuário;${u.nome};${u.idade};${u.deficiencia};${u.programa};;Ativo\n`;
+                });
+            }
+            
+            if (g.profissionais && g.profissionais.length > 0) {
+                g.profissionais.forEach(profId => {
+                    const p = masterProfessionals.find(prof => prof.id === profId);
+                    if (p) {
+                        const status = isProfessionalOnDayOff(profId, day) ? 'FOLGA' : 'Ativo';
+                        csv += `${dayNames[day]};${groupDisplayName};${g.horario};${categoriaTexto};Profissional;${p.nome};;;;${p.categoria};${status}\n`;
+                    }
+                });
+            }
         });
     });
     
-    // Adiciona informações de folgas dos profissionais
     csv += "\n\nPROFISSIONAIS - DIAS DE FOLGA\n";
     csv += "Nome;Categoria;Dias de Folga\n";
     masterProfessionals.forEach(prof => {
@@ -1124,7 +743,9 @@ function exportToCSV() {
     document.body.removeChild(link);
 }
 
-/*eventos*/
+
+// event lisnteners e incializaçao
+
 window.addEventListener("click", e => {
     if (e.target === document.getElementById("userModal")) closeModal("userModal");
     if (e.target === document.getElementById("professionalModal")) closeModal("professionalModal");
@@ -1133,24 +754,24 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("manageDaysOffModal")) closeModal("manageDaysOffModal");
 });
 
-/*inicializa a aplicação*/
 document.addEventListener("DOMContentLoaded", () => {
-    resetDataStructure();
-    initializeGroups();
-    renderMasterProfessionalsList();
-    // Inicia com Grade ativa (para usuários não autenticados)
+    console.log('🚀 Iniciando aplicação...');
+    
+    // Inicializa Firebase primeiro
+    initializeFirebase();
+    
+    // Inicia com Grade ativa
     switchToTab('grade');
     updateTabsVisibility();
     updateUserStatus();
-    // GARANTIR que os filtros sempre funcionem
+    
+    // Garante que os filtros funcionem
     const categoryFilter = document.getElementById('categoryFilter');
     const weekdayFilter = document.getElementById('gradeWeekdayFilter');
-    if (categoryFilter) {
-        categoryFilter.disabled = false;
-    }
-    if (weekdayFilter) {
-        weekdayFilter.disabled = false;
-    }
+    if (categoryFilter) categoryFilter.disabled = false;
+    if (weekdayFilter) weekdayFilter.disabled = false;
+    
+    // Converte texto para maiúsculo
     const textInputs = document.querySelectorAll('.modal-content input[type="text"]');
     textInputs.forEach(input => {
         input.addEventListener('input', (e) => {
@@ -1158,7 +779,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // EVENT LISTENERS PARA TROCA DE ABAS
+    // Event listeners para abas
     document.querySelectorAll(".tab").forEach(tab => {
         tab.addEventListener("click", e => {
             const clickedDay = e.currentTarget.dataset.day;
@@ -1171,7 +792,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // EVENT LISTENERS PARA FORMULÁRIOS
+    // Event listeners para formulários
+    
+    // Login
     document.getElementById("loginForm").addEventListener("submit", e => {
         e.preventDefault();
         const pass = document.getElementById("loginPassword").value.trim();
@@ -1187,6 +810,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    // Adicionar usuário
     document.getElementById("userForm").addEventListener("submit", e => {
         e.preventDefault();
         const data = {
@@ -1195,79 +819,921 @@ document.addEventListener("DOMContentLoaded", () => {
             deficiencia: document.getElementById("userDeficiency").value.trim(),
             programa: document.getElementById("userProgram").value.trim(),
         };
+        
         const { day, groupId } = currentModalContext;
+        
+        if (!scheduleData[day] || !scheduleData[day][groupId]) {
+            alert("Erro: Grupo não encontrado");
+            return;
+        }
+        
         scheduleData[day][groupId].usuarios.push(data);
+        
+        saveScheduleData().then(() => {
+            console.log('✅ Usuário adicionado e salvo no Firebase');
+        }).catch(error => {
+            console.error('❌ Erro ao salvar usuário:', error);
+            alert('Erro ao salvar usuário. Tente novamente.');
+            scheduleData[day][groupId].usuarios.pop();
+            return;
+        });
+        
         renderUsers(day, groupId);
         updateDashboard();
         closeModal("userModal");
     });
 
+    // Adicionar profissional
     document.getElementById("professionalForm").addEventListener("submit", e => {
         e.preventDefault();
         const { day, groupId } = currentModalContext;
         const professionalId = document.getElementById('professionalSelect').value;
+        
         if (!professionalId) {
             alert("Por favor, selecione um profissional.");
             return;
         }
         
-        // Verifica se o profissional está de folga
+        if (!scheduleData[day] || !scheduleData[day][groupId]) {
+            alert("Erro: Grupo não encontrado");
+            return;
+        }
+        
         if (isProfessionalOnDayOff(parseInt(professionalId), day)) {
             alert("Este profissional está de folga neste dia!");
             return;
         }
         
         scheduleData[day][groupId].profissionais.push(parseInt(professionalId));
+        
+        saveScheduleData().then(() => {
+            console.log('✅ Profissional adicionado e salvo no Firebase');
+        }).catch(error => {
+            console.error('❌ Erro ao salvar profissional:', error);
+            alert('Erro ao salvar profissional. Tente novamente.');
+            scheduleData[day][groupId].profissionais.pop();
+            return;
+        });
+        
         renderProfessionals(day, groupId);
         updateDashboard();
         closeModal("professionalModal");
     });
 
+    // Cadastrar novo profissional
     document.getElementById("registerProfessionalForm").addEventListener("submit", e => {
         e.preventDefault();
         const newProf = {
             id: Date.now(),
             nome: document.getElementById('regProfName').value.trim(),
             categoria: document.getElementById('regProfCategory').value,
-            daysOff: [] // Inicializa sem folgas
+            daysOff: []
         };
+        
         masterProfessionals.push(newProf);
-        renderMasterProfessionalsList();
-        updateDashboard();
-        closeModal('registerProfessionalModal');
+        
+        saveProfessional(newProf).then(() => {
+            console.log('✅ Profissional cadastrado e salvo no Firebase');
+            renderMasterProfessionalsList();
+            updateDashboard();
+            closeModal('registerProfessionalModal');
+        }).catch(error => {
+            console.error('❌ Erro ao salvar profissional:', error);
+            alert('Erro ao cadastrar profissional. Tente novamente.');
+            const index = masterProfessionals.findIndex(p => p.id === newProf.id);
+            if (index !== -1) {
+                masterProfessionals.splice(index, 1);
+            }
+        });
     });
     
-    // NOVO EVENT LISTENER: Gerenciar folgas
+    // Gerenciar folgas
     document.getElementById("manageDaysOffForm").addEventListener("submit", e => {
         e.preventDefault();
         const { professionalId } = currentModalContext;
         const prof = masterProfessionals.find(p => p.id === professionalId);
         if (!prof) return;
         
-        // Coleta os dias de folga selecionados
         const selectedDaysOff = [];
         document.querySelectorAll('input[name="daysOff"]:checked').forEach(checkbox => {
             selectedDaysOff.push(checkbox.value);
         });
         
-        // Armazena os dias de folga anteriores
-        const previousDaysOff = prof.daysOff || [];
-        
-        // Atualiza os dias de folga
         prof.daysOff = selectedDaysOff;
         
-        // Remove o profissional dos grupos nos novos dias de folga
         removeProfessionalFromDayOffGroups(professionalId, selectedDaysOff);
         
-        // Atualiza a visualização
-        renderMasterProfessionalsList();
-        if (window.currentSelectedProfessionalId === professionalId) {
-            showProfessionalDetails(professionalId);
-        }
-        
-        updateDashboard();
-        closeModal('manageDaysOffModal');
-        
-        alert(`Folgas atualizadas para ${prof.nome}!`);
+        saveProfessional(prof).then(() => {
+            console.log('✅ Folgas atualizadas e salvas no Firebase');
+            
+            renderMasterProfessionalsList();
+            if (window.currentSelectedProfessionalId === professionalId) {
+                showProfessionalDetails(professionalId);
+            }
+            
+            updateDashboard();
+            closeModal('manageDaysOffModal');
+            alert(`Folgas atualizadas para ${prof.nome}!`);
+            
+        }).catch(error => {
+            console.error('❌ Erro ao salvar folgas:', error);
+            alert('Erro ao salvar folgas. Tente novamente.');
+        });
     });
 });
+
+// variaveis globais
+
+const ADMIN_PASSWORD = "123";
+let isAuthenticated = false;
+let isFirebaseConnected = false;
+let isDataLoading = false;
+
+const days = ["segunda", "terca", "quarta", "quinta", "sexta"];
+const dayNames = {
+    segunda: "Segunda-feira",
+    terca: "Terça-feira",
+    quarta: "Quarta-feira",
+    quinta: "Quinta-feira",
+    sexta: "Sexta-feira",
+};
+const timeSlots = [
+    "08:00", "09:00", "10:00",
+    "11:00", "13:00",
+    "14:00", "15:00", "16:00",
+];
+
+// aados em memoria
+let scheduleData = {};
+let masterProfessionals = [];
+let currentModalContext = {};
+
+// categorias disponíveis para os grupos
+const groupCategories = [
+    "CENTRO DE CONVIVENCIA",
+    "GAIA",
+    "EMPREGABILIDADE",
+    "ATENDIMENTO A FAMILIA",
+    "EVOLUÇÃO",
+    "REUNIÃO GAIA",
+    "INDIVIDUAL"
+];
+
+// Referência do Firebase
+const db = () => window.database;
+
+
+// funçoes utilitarias
+
+function isSpecificActivity(category) {
+    return category === "EVOLUÇÃO" || category === "REUNIÃO GAIA" || category === "INDIVIDUAL";
+}
+
+function getGroupHeaderText(day, groupId, category) {
+    if (isSpecificActivity(category)) {
+        return `📋 ${category} – ${dayNames[day]}`;
+    }
+    return `👥 Grupo ${groupId} – ${dayNames[day]}`;
+}
+
+function isProfessionalOnDayOff(professionalId, day) {
+    const prof = masterProfessionals.find(p => p.id === professionalId);
+    if (!prof || !prof.daysOff) return false;
+    return prof.daysOff.includes(day);
+}
+
+function resetDataStructure() {
+    let tmpGroupId = 1;
+    scheduleData = {};
+    days.forEach(day => {
+        scheduleData[day] = {};
+        for (let i = 1; i <= 20; i++) {
+            scheduleData[day][tmpGroupId] = {
+                horario: "09:00",
+                categoria: "",
+                usuarios: [],
+                profissionais: [],
+            };
+            tmpGroupId++;
+        }
+    });
+}
+
+
+// funçoes do firebase
+
+function initializeFirebase() {
+    console.log('🔥 Inicializando conexão com Firebase...');
+    
+    // Cria indicador de conexão
+    createConnectionIndicator();
+    
+    // Monitora conexão
+    db().ref('.info/connected').on('value', (snapshot) => {
+        const connected = snapshot.val();
+        
+        if (connected !== isFirebaseConnected) {
+            isFirebaseConnected = connected;
+            console.log(connected ? '✅ Conectado ao Firebase' : '❌ Desconectado do Firebase');
+            updateConnectionStatus();
+            
+            // Se conectou e não está carregando, carrega dados
+            if (connected && !isDataLoading) {
+                loadAllData();
+            }
+        }
+    });
+    
+    // Carrega dados iniciais
+    loadAllData();
+}
+
+function createConnectionIndicator() {
+    const existing = document.getElementById('connectionStatus');
+    if (existing) existing.remove();
+    
+    const indicator = document.createElement('span');
+    indicator.id = 'connectionStatus';
+    indicator.style.cssText = `
+        font-size: 0.8rem;
+        padding: 6px 12px;
+        border-radius: 15px;
+        background: rgba(245, 158, 11, 0.1);
+        margin-left: 10px;
+        color: #f59e0b;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    `;
+    indicator.textContent = '🔄 Conectando...';
+    
+    const userStatus = document.querySelector('.user-status');
+    if (userStatus) {
+        const loginBtn = document.getElementById('loginToggleBtn');
+        if (loginBtn) {
+            userStatus.insertBefore(indicator, loginBtn);
+        }
+    }
+}
+
+function updateConnectionStatus() {
+    const indicator = document.getElementById('connectionStatus');
+    if (!indicator) return;
+    
+    if (isFirebaseConnected) {
+        indicator.textContent = '🟢 Sincronizado';
+        indicator.style.color = '#10b981';
+        indicator.style.background = 'rgba(16, 185, 129, 0.1)';
+    } else {
+        indicator.textContent = '🔴 Reconectando...';
+        indicator.style.color = '#ef4444';
+        indicator.style.background = 'rgba(239, 68, 68, 0.1)';
+    }
+}
+
+async function loadAllData() {
+    if (isDataLoading) return;
+    
+    isDataLoading = true;
+    console.log('📥 Carregando dados do Firebase...');
+    
+    try {
+        await loadProfessionals();
+        await loadScheduleData();
+        
+        console.log('✅ Todos os dados carregados com sucesso!');
+        
+        // Atualiza interface
+        renderMasterProfessionalsList();
+        initializeGroups();
+        updateDashboard();
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados:', error);
+        handleDataLoadError(error);
+    } finally {
+        isDataLoading = false;
+    }
+}
+
+async function loadProfessionals() {
+    return new Promise((resolve, reject) => {
+        db().ref('profissionais').once('value', (snapshot) => {
+            try {
+                const data = snapshot.val();
+                if (data) {
+                    masterProfessionals = Object.keys(data).map(key => ({
+                        id: parseInt(key),
+                        ...data[key]
+                    }));
+                    console.log(`📋 ${masterProfessionals.length} profissionais carregados`);
+                } else {
+                    masterProfessionals = [];
+                    console.log('📋 Nenhum profissional encontrado - inicializando lista vazia');
+                }
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        }, reject);
+    });
+}
+
+async function loadScheduleData() {
+    return new Promise((resolve, reject) => {
+        db().ref('horarios').once('value', (snapshot) => {
+            try {
+                const data = snapshot.val();
+                if (data) {
+                    scheduleData = data;
+                    console.log('📅 Dados da grade carregados');
+                } else {
+                    console.log('📅 Inicializando nova estrutura de dados');
+                    resetDataStructure();
+                    if (isFirebaseConnected) {
+                        saveScheduleData();
+                    }
+                }
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        }, reject);
+    });
+}
+
+function handleDataLoadError(error) {
+    console.error('Erro detalhado:', error);
+    
+    // Não mostra alerta imediatamente - tenta usar dados locais
+    console.log('⚠️ Usando dados locais temporariamente...');
+    resetDataStructure();
+    masterProfessionals = [];
+    renderMasterProfessionalsList();
+    initializeGroups();
+    
+    // Tenta reconectar a cada 10 segundos
+    const reconnectInterval = setInterval(() => {
+        if (isFirebaseConnected && !isDataLoading) {
+            clearInterval(reconnectInterval);
+            console.log('🔄 Reconectado! Recarregando dados...');
+            loadAllData();
+        }
+    }, 10000);
+}
+
+function saveProfessional(professional) {
+    if (!isFirebaseConnected) {
+        console.warn('⚠️ Offline - dados serão sincronizados quando conectar');
+        return Promise.resolve();
+    }
+    
+    return db().ref(`profissionais/${professional.id}`).set({
+        nome: professional.nome,
+        categoria: professional.categoria,
+        daysOff: professional.daysOff || []
+    });
+}
+
+function saveScheduleData() {
+    if (!isFirebaseConnected) {
+        console.warn('⚠️ Offline - dados serão sincronizados quando conectar');
+        return Promise.resolve();
+    }
+    
+    return db().ref('horarios').set(scheduleData);
+}
+
+function deleteProfessional(professionalId) {
+    if (!isFirebaseConnected) {
+        console.warn('⚠️ Offline - operação será sincronizada quando conectar');
+        return Promise.resolve();
+    }
+    
+    return db().ref(`profissionais/${professionalId}`).remove();
+}
+
+
+// funçoes de atualizaçoes de grupos
+
+function updateGroupCategory(day, groupId, category) {
+    if (!checkAuth()) {
+        alert("⛔ Faça login para alterar categorias!");
+        return false;
+    }
+    
+    scheduleData[day][groupId].categoria = category;
+    updateGroupHeaderText(day, groupId, category);
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Categoria salva no Firebase');
+    }).catch(error => {
+        console.error('❌ Erro ao salvar categoria:', error);
+        alert('Erro ao salvar categoria. Tente novamente.');
+    });
+    
+    updateDashboard();
+    return true;
+}
+
+function updateGroupTime(day, groupId, time) {
+    if (!checkAuth()) {
+        alert("⛔ Faça login para alterar horários!");
+        return false;
+    }
+    
+    scheduleData[day][groupId].horario = time;
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Horário salvo no Firebase');
+    }).catch(error => {
+        console.error('❌ Erro ao salvar horário:', error);
+        alert('Erro ao salvar horário. Tente novamente.');
+    });
+    
+    updateDashboard();
+    return true;
+}
+
+function updateGroupHeaderText(day, groupId, category) {
+    const headerElement = document.getElementById(`group-header-${day}-${groupId}`);
+    if (headerElement) {
+        headerElement.textContent = getGroupHeaderText(day, groupId, category);
+    }
+}
+
+
+// dashboards e relatorios
+
+function updateDashboard() {
+    if (!scheduleData || typeof scheduleData !== 'object') {
+        console.warn('⚠️ scheduleData não está definido');
+        return;
+    }
+    
+    let totalUsuarios = 0;
+    let totalProfissionaisUnicos = new Set();
+    let gruposComAtividade = 0;
+    let totalCapacidade = 0;
+    let ocupacaoTotal = 0;
+    
+    days.forEach(day => {
+        if (!scheduleData[day]) return;
+        
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (!group) return;
+            
+            // Conta usuários
+            if (group.usuarios && Array.isArray(group.usuarios)) {
+                totalUsuarios += group.usuarios.length;
+            }
+            
+            // Conta profissionais
+            if (group.profissionais && Array.isArray(group.profissionais)) {
+                group.profissionais.forEach(id => {
+                    if (id !== null && id !== undefined) {
+                        totalProfissionaisUnicos.add(id);
+                    }
+                });
+            }
+            
+            // Conta grupos com atividade
+            const hasUsers = group.usuarios && group.usuarios.length > 0;
+            const hasProfs = group.profissionais && group.profissionais.length > 0;
+            
+            if (hasUsers || hasProfs) {
+                gruposComAtividade++;
+            }
+            
+            // Calcula ocupação
+            totalCapacidade += 10;
+            const userCount = group.usuarios ? group.usuarios.length : 0;
+            const profCount = group.profissionais ? group.profissionais.length : 0;
+            ocupacaoTotal += userCount + profCount;
+        });
+    });
+    
+    const ocupacaoMedia = totalCapacidade > 0 ? Math.round((ocupacaoTotal / totalCapacidade) * 100) : 0;
+    
+    // Atualiza elementos da interface
+    const elements = {
+        totalUsuarios: document.getElementById('totalUsuarios'),
+        totalProfissionais: document.getElementById('totalProfissionais'),
+        gruposAtivos: document.getElementById('gruposAtivos'),
+        ocupacaoMedia: document.getElementById('ocupacaoMedia')
+    };
+    
+    if (elements.totalUsuarios) elements.totalUsuarios.textContent = totalUsuarios;
+    if (elements.totalProfissionais) elements.totalProfissionais.textContent = totalProfissionaisUnicos.size;
+    if (elements.gruposAtivos) elements.gruposAtivos.textContent = gruposComAtividade;
+    if (elements.ocupacaoMedia) elements.ocupacaoMedia.textContent = ocupacaoMedia + '%';
+    
+    updateAlertas();
+}
+
+function updateAlertas() {
+    const container = document.getElementById('alertas');
+    if (!container) return;
+    
+    let alertas = [];
+    
+    days.forEach(day => {
+        if (!scheduleData[day]) return;
+        
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (!group) return;
+            
+            const userCount = group.usuarios ? group.usuarios.length : 0;
+            const profCount = group.profissionais ? group.profissionais.length : 0;
+            const ocupacao = userCount + profCount;
+            
+            if (ocupacao >= 10) {
+                const displayName = isSpecificActivity(group.categoria) 
+                    ? group.categoria 
+                    : `Grupo ${groupId}`;
+                alertas.push(`⚠️ ${displayName} (${dayNames[day]}) está com capacidade máxima`);
+            }
+        });
+    });
+    
+    // Verifica profissionais sem grupos
+    const profissionaisAtivos = new Set();
+    days.forEach(day => {
+        if (!scheduleData[day]) return;
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (group && group.profissionais) {
+                group.profissionais.forEach(id => profissionaisAtivos.add(id));
+            }
+        });
+    });
+    
+    masterProfessionals.forEach(prof => {
+        if (!profissionaisAtivos.has(prof.id)) {
+            alertas.push(`ℹ️ ${prof.nome} não está alocado em nenhum grupo`);
+        }
+    });
+    
+    container.innerHTML = alertas.length > 0 
+        ? alertas.slice(0, 5).map(a => `<p>${a}</p>`).join('') 
+        : '<p>✅ Nenhum alerta no momento</p>';
+}
+
+function updateReports() {
+    updateAtendimentosPorDia();
+    updateHorariosMaisUtilizados();
+}
+
+function updateAtendimentosPorDia() {
+    const container = document.getElementById('atendimentosPorDia');
+    if (!container) return;
+    
+    let html = '';
+    days.forEach(day => {
+        let totalUsuarios = 0;
+        if (scheduleData[day]) {
+            Object.keys(scheduleData[day]).forEach(groupId => {
+                const group = scheduleData[day][groupId];
+                if (group && group.usuarios) {
+                    totalUsuarios += group.usuarios.length;
+                }
+            });
+        }
+        html += `<p><strong>${dayNames[day]}:</strong> ${totalUsuarios} atendimentos</p>`;
+    });
+    container.innerHTML = html;
+}
+
+function updateHorariosMaisUtilizados() {
+    const container = document.getElementById('horariosMaisUtilizados');
+    if (!container) return;
+    
+    const horarioStats = {};
+    days.forEach(day => {
+        if (!scheduleData[day]) return;
+        Object.keys(scheduleData[day]).forEach(groupId => {
+            const group = scheduleData[day][groupId];
+            if (group && group.usuarios && group.usuarios.length > 0) {
+                horarioStats[group.horario] = (horarioStats[group.horario] || 0) + 1;
+            }
+        });
+    });
+    
+    const sortedHorarios = Object.entries(horarioStats)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5);
+    
+    let html = '';
+    sortedHorarios.forEach(([horario, count]) => {
+        html += `<p><strong>${horario}:</strong> ${count} grupos</p>`;
+    });
+    container.innerHTML = html || '<p>Nenhum dado disponível</p>';
+}
+
+
+// navegaçao e autenticaçao
+
+function switchToTab(tabName) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".day-content").forEach(c => {
+        c.classList.remove("active");
+        c.style.display = 'none';
+    });
+    
+    const tab = document.querySelector(`[data-day="${tabName}"]`);
+    const content = document.getElementById(tabName);
+    if (tab && content) {
+        tab.classList.add("active");
+        content.classList.add("active");
+        content.style.display = 'block';
+    }
+    
+    if (tabName === 'dashboards-relatorios') {
+        updateDashboard();
+        updateReports();
+    } else if (tabName === 'profissionais') {
+        renderMasterProfessionalsList();
+        const detailsView = document.getElementById('professional-details-view');
+        if (detailsView) {
+            detailsView.innerHTML = '<div class="empty-state">Selecione um profissional da lista para ver os detalhes.</div>';
+        }
+        window.currentSelectedProfessionalId = null;
+    } else if (tabName === 'grade') {
+        const categoryFilter = document.getElementById('categoryFilter');
+        const weekdayFilter = document.getElementById('gradeWeekdayFilter');
+        if (categoryFilter) categoryFilter.value = '';
+        if (weekdayFilter) weekdayFilter.value = '';
+        updateGradeView();
+    }
+}
+
+function checkAuth() {
+    if (!isAuthenticated) {
+        openLoginModal();
+        return false;
+    }
+    return true;
+}
+
+function openLoginModal() {
+    document.getElementById("loginModal").style.display = "block";
+    document.getElementById("loginForm").reset();
+    document.getElementById("loginPassword").focus();
+}
+
+function toggleEditButtons(enable) {
+    document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
+        if (el.id === 'categoryFilter' || el.id === 'gradeWeekdayFilter') {
+            return;
+        }
+        el.disabled = !enable;
+    });
+}
+
+function toggleExportButton(show) {
+    const exportBtn = document.querySelector('.export-btn');
+    if (exportBtn) {
+        exportBtn.style.display = show ? 'block' : 'none';
+    }
+}
+
+function updateUserStatus() {
+    const statusText = document.getElementById('userStatusText');
+    const loginBtn = document.getElementById('loginToggleBtn');
+    
+    if (isAuthenticated) {
+        statusText.textContent = 'Modo Administrador';
+        statusText.style.color = '#10b981';
+        loginBtn.textContent = '🔒 Logout';
+        loginBtn.onclick = () => {
+            isAuthenticated = false;
+            updateTabsVisibility();
+            updateUserStatus();
+            toggleEditButtons(false);
+            toggleExportButton(false);
+            switchToTab('grade');
+            alert('Logout realizado! Agora você está no modo visualização.');
+        };
+        toggleExportButton(true);
+    } else {
+        statusText.textContent = 'Modo Visualização';
+        statusText.style.color = '#6b7280';
+        loginBtn.textContent = '🔓 Fazer Login Admin';
+        loginBtn.onclick = () => openLoginModal();
+        toggleExportButton(false);
+    }
+}
+
+function updateTabsVisibility() {
+    const tabs = document.querySelectorAll('.tab');
+    const restrictedTabs = ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
+    
+    tabs.forEach(tab => {
+        const day = tab.dataset.day;
+        if (isAuthenticated || !restrictedTabs.includes(day)) {
+            tab.style.display = 'block';
+        } else {
+            tab.style.display = 'none';
+        }
+    });
+}
+
+
+// visualizaçao dos grupos
+
+
+function createGroupElement(day, groupId) {
+    const div = document.createElement("div");
+    div.className = "group";
+    
+    // Verifica se o grupo existe no scheduleData
+    const groupData = scheduleData[day] && scheduleData[day][groupId] 
+        ? scheduleData[day][groupId] 
+        : { categoria: "", horario: "09:00" };
+    
+    div.innerHTML = `
+        <div class="group-header">
+            <span id="group-header-${day}-${groupId}">👥 Grupo ${groupId} – ${dayNames[day]}</span>
+            <div class="group-controls">
+                <select onchange="if (updateGroupCategory('${day}', ${groupId}, this.value)) { this.blur(); }" class="category-select">
+                    <option value="">Selecione categoria do grupo</option>
+                    ${groupCategories.map(cat => `<option value="${cat}" ${groupData.categoria === cat ? "selected" : ""}>${cat}</option>`).join("")}
+                </select>
+                <select onchange="if (updateGroupTime('${day}', ${groupId}, this.value)) { this.blur(); }" class="time-select">
+                    ${timeSlots.map(t => `<option value="${t}" ${groupData.horario === t ? "selected" : ""}>${t}</option>`).join("")}
+                </select>
+            </div>
+        </div>
+        <div class="group-content">
+            <div class="section usuarios">
+                <div class="section-title">
+                    <span>👤 Usuários</span>
+                    <button class="btn-add" onclick="openUserModal('${day}', ${groupId})">+ Adicionar</button>
+                </div>
+                <div class="person-list" id="usuarios-${day}-${groupId}">
+                    <div class="empty-state">Nenhum usuário adicionado</div>
+                </div>
+            </div>
+            <div class="section profissionais">
+                <div class="section-title">
+                    <span>👨‍⚕️ Profissionais</span>
+                    <button class="btn-add" onclick="openProfessionalModal('${day}', ${groupId})">+ Adicionar</button>
+                </div>
+                <div class="person-list" id="profissionais-${day}-${groupId}">
+                    <div class="empty-state">Nenhum profissional adicionado</div>
+                </div>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+function initializeGroups() {
+    let gid = 1;
+    days.forEach(day => {
+        const container = document.getElementById(`groups-${day}`);
+        if (!container) return;
+        
+        container.innerHTML = "";
+        for (let i = 1; i <= 20; i++) {
+            container.appendChild(createGroupElement(day, gid));
+            gid++;
+        }
+    });
+    
+    // Renderiza dados existentes
+    days.forEach(day => {
+        let gid = day === "segunda" ? 1 : day === "terca" ? 21 : day === "quarta" ? 41 : day === "quinta" ? 61 : 81;
+        for (let i = 1; i <= 20; i++) {
+            renderUsers(day, gid);
+            renderProfessionals(day, gid);
+            gid++;
+        }
+    });
+}
+
+
+// renderiaçao de dados
+
+function renderUsers(day, groupId) {
+    const el = document.getElementById(`usuarios-${day}-${groupId}`);
+    if (!el) return;
+    
+    if (!scheduleData[day] || !scheduleData[day][groupId]) {
+        el.innerHTML = '<div class="empty-state">Nenhum usuário adicionado</div>';
+        return;
+    }
+    
+    const list = scheduleData[day][groupId].usuarios;
+    
+    if (!list || !Array.isArray(list) || list.length === 0) {
+        el.innerHTML = '<div class="empty-state">Nenhum usuário adicionado</div>';
+        return;
+    }
+    
+    el.innerHTML = "";
+    list.forEach((u, idx) => {
+        if (!u || typeof u !== 'object') return;
+        
+        const card = document.createElement("div");
+        card.className = "person-card";
+        card.innerHTML = `
+            <button class="btn-remove" onclick="removeUser('${day}', ${groupId}, ${idx})">×</button>
+            <div class="person-info">
+                <div><div class="info-label">Nome</div><div class="info-item">${u.nome || 'Nome não informado'}</div></div>
+                <div><div class="info-label">Idade</div><div class="info-item">${u.idade || 'Idade não informada'} anos</div></div>
+                <div><div class="info-label">Deficiência</div><div class="info-item">${u.deficiencia || 'Não informado'}</div></div>
+                <div><div class="info-label">Programa</div><div class="info-item">${u.programa || 'Não informado'}</div></div>
+            </div>
+        `;
+        el.appendChild(card);
+    });
+}
+
+function renderProfessionals(day, groupId) {
+    const el = document.getElementById(`profissionais-${day}-${groupId}`);
+    if (!el) return;
+    
+    if (!scheduleData[day] || !scheduleData[day][groupId]) {
+        el.innerHTML = '<div class="empty-state">Nenhum profissional adicionado</div>';
+        return;
+    }
+    
+    const list = scheduleData[day][groupId].profissionais;
+    
+    if (!list || !Array.isArray(list) || list.length === 0) {
+        el.innerHTML = '<div class="empty-state">Nenhum profissional adicionado</div>';
+        return;
+    }
+    
+    el.innerHTML = "";
+    list.forEach((profId, idx) => {
+        const p = masterProfessionals.find(prof => prof.id === profId);
+        if (!p) return;
+        
+        const card = document.createElement("div");
+        card.className = "person-card";
+        card.innerHTML = `
+            <button class="btn-remove" onclick="removeProfessional('${day}', ${groupId}, ${idx})">×</button>
+            <div class="profissional-info">
+                <div><div class="info-label">Nome</div><div class="info-item">${p.nome || 'Nome não informado'}</div></div>
+                <div><div class="info-label">Categoria</div><div class="info-item">${p.categoria || 'Categoria não informada'}</div></div>
+            </div>
+        `;
+        el.appendChild(card);
+    });
+}
+
+function renderMasterProfessionalsList() {
+    const listContainer = document.getElementById('master-professionals-list');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = `
+        <h3>Profissionais Cadastrados</h3>
+        <div class="day-filter">
+            <label for="dayFilter">Filtrar por dia:</label>
+            <select id="dayFilter" onchange="updateProfessionalDetailsFilter()">
+                <option value="">Todos os dias</option>
+                <option value="segunda">Segunda-feira</option>
+                <option value="terca">Terça-feira</option>
+                <option value="quarta">Quarta-feira</option>
+                <option value="quinta">Quinta-feira</option>
+                <option value="sexta">Sexta-feira</option>
+            </select>
+        </div>
+    `;
+    
+    if (masterProfessionals.length === 0) {
+        listContainer.innerHTML += '<div class="empty-state">Nenhum profissional cadastrado.</div>';
+        return;
+    }
+    
+    masterProfessionals.sort((a, b) => a.nome.localeCompare(b.nome));
+    masterProfessionals.forEach(prof => {
+        const item = document.createElement('div');
+        item.className = 'professional-list-item';
+        
+        let daysOffText = '';
+        if (prof.daysOff && prof.daysOff.length > 0) {
+            const daysOffNames = prof.daysOff.map(d => dayNames[d]).join(', ');
+            daysOffText = `<span class="days-off-indicator">🏖️ Folga: ${daysOffNames}</span>`;
+        }
+        
+        item.innerHTML = `
+            <button class="btn-remove-professional" onclick="removeMasterProfessional(${prof.id})" title="Remover profissional">×</button>
+            <button class="btn-manage-days-off" onclick="openManageDaysOffModal(${prof.id})" title="Gerenciar folgas">🏖️</button>
+            <strong>${prof.nome}</strong><br>
+            <span>${prof.categoria}</span>
+            ${daysOffText}
+        `;
+        item.onclick = (e) => {
+            if (!e.target.classList.contains('btn-remove-professional') && 
+                !e.target.classList.contains('btn-manage-days-off')) {
+                showProfessionalDetails(prof.id);
+            }
+        };
+        listContainer.appendChild(item);
+    });
+}
+

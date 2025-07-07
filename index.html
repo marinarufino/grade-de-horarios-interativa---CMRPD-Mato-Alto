@@ -230,7 +230,6 @@
                     <option value="Psicologo">Psicologo</option>
                     <option value="Psicomotricista">Psicomotricista</option>
                     <option value="Terapeuta ocupacional">Terapeuta ocupacional</option>
-                    <option value="INDIVIDUAL">INDIVIDUAL</option>
                     <option value="Outro">Outro</option>
                 </select>
             </div>
@@ -307,6 +306,31 @@
 
 <!-- Botão de exportação -->
 <button class="export-btn" onclick="exportToCSV()">📊 Exportar como planilha</button>
+
+<!-- Firebase SDK - VERSÃO COMPATÍVEL -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+  // Configuração do Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyD5jjlR83-1ogtcbTWLTx17Xtfr04DM5mM",
+    authDomain: "grade-mato-alto-4fe78.firebaseapp.com",
+    databaseURL: "https://grade-mato-alto-4fe78-default-rtdb.firebaseio.com/",
+    projectId: "grade-mato-alto-4fe78",
+    storageBucket: "grade-mato-alto-4fe78.firebasestorage.app",
+    messagingSenderId: "745504578404",
+    appId: "1:745504578404:web:62d8e29e3b4fd043677871"
+  };
+
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+  
+  // Referência do banco de dados
+  window.database = firebase.database();
+  
+  console.log("🔥 Firebase inicializado com sucesso!");
+</script>
 
 <script src="script.js"></script>
 </body>
