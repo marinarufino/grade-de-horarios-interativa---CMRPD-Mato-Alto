@@ -305,21 +305,25 @@ function updateGradeView() {
 
     console.log('Filtros selecionados:', { selectedCategory, selectedWeekday });
 
+    // Se nenhum filtro selecionado
     if (!selectedCategory && !selectedWeekday) {
         gradeContent.innerHTML = '<div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>';
         return;
     }
 
+    // Se só dia selecionado (categoria vazia ou "todas")
     if (!selectedCategory && selectedWeekday) {
         showDayOverview(selectedWeekday);
         return;
     }
 
+    // Se só categoria selecionada (dia vazio ou "todos")
     if (selectedCategory && !selectedWeekday) {
         showCategoryView(selectedCategory);
         return;
     }
 
+    // Se ambos selecionados (categoria específica + dia específico)
     if (selectedCategory && selectedWeekday) {
         showCategoryAndDayView(selectedCategory, selectedWeekday);
         return;
@@ -429,7 +433,7 @@ function getDayActivitiesAtTime(day, timeSlot) {
                 .filter(prof => prof)
                 .map(prof => prof.nome);
                 
-            const usuarios = (group.usuarios || []).map(user => user.nome).join(' - ');
+            const usuarios = (group.usuarios || []).map(user => user.nome);
             
             activities.push({
     groupId: groupId,
