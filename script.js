@@ -14,10 +14,7 @@ if (!scheduleData[day][groupId].usuarios) {
     scheduleData[day][groupId].usuarios = [];
 }
 
-if (scheduleData[day][groupId].usuarios.length >= 5) {
-        alert("Máximo de 5 usuários por grupo");
-        return;
-    }
+
     
     currentModalContext = { day, groupId, type: "user" };
     document.getElementById("userModal").style.display = "block";
@@ -38,10 +35,7 @@ if (!scheduleData[day][groupId].profissionais) {
     scheduleData[day][groupId].profissionais = [];
 }
 
-if (scheduleData[day][groupId].profissionais.length >= 5) {
-        alert("Máximo de 5 profissionais por grupo");
-        return;
-    }
+
     
     currentModalContext = { day, groupId };
     const select = document.getElementById('professionalSelect');
@@ -379,7 +373,7 @@ function showDayOverview(selectedDay) {
                     if (activity.categoria === "INDIVIDUAL") {
                         html += `<div class="day-activity-name">INDIVIDUAL</div>`;
                         if (activity.usuarios.length > 0) {
-                            html += `<div class="day-activity-details">👤 ${activity.usuarios.join(', ')}</div>`;
+                            html += `<div class="day-activity-details">👤 ${activity.usuarios.join(' - ')}</div>`;
                         }
                     } else {
                         html += `<div class="day-activity-name">${activity.categoria}</div>`;
@@ -392,7 +386,7 @@ function showDayOverview(selectedDay) {
                     html += `<div class="day-activity-name">${groupDisplayText}</div>`;
                     
                     if (activity.usuarios.length > 0) {
-                        html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(', ')}</div>`;
+                        html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(' - ')}</div>`;
                     }
                 }
                 
@@ -435,7 +429,7 @@ function getDayActivitiesAtTime(day, timeSlot) {
                 .filter(prof => prof)
                 .map(prof => prof.nome);
                 
-            const usuarios = (group.usuarios || []).map(user => user.nome);
+            const usuarios = (group.usuarios || []).map(user => user.nome).join(' - ');
             
             activities.push({
     groupId: groupId,
@@ -673,7 +667,7 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
             group.profissionais && group.profissionais.includes(professionalId)) {
             
             const userNames = (group.usuarios && group.usuarios.length > 0)
-                ? group.usuarios.map(user => user.nome).join(', ')
+                ? group.usuarios.map(user => user.nome).join(' - ')
                 : 'Nenhum usuário';
                 
             activities.push({
