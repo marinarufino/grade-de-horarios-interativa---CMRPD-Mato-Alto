@@ -534,10 +534,15 @@ function generateProfessionalGridForDay(professional, selectedDay) {
                             }
                             gridHTML += `</div>`;
                         } else {
-                            gridHTML += `<div class="${activityClass}">
-                                <div class="activity-group">${activity.groupCategory}</div>
-                            </div>`;
-                        }
+    gridHTML += `<div class="${activityClass}">
+        <div class="activity-group">${activity.groupCategory}</div>`;
+    
+    if (activity.allProfessionals && activity.allProfessionals.length > 1) {
+        gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
+    }
+    
+    gridHTML += `</div>`;
+}
                     } else {
                         
 const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
@@ -621,25 +626,38 @@ function generateProfessionalGrid(professional) {
                                 gridHTML += `<div class="${activityClass}">
                                     <div class="activity-group">INDIVIDUAL</div>`;
                                 if (activity.userNames !== 'Nenhum usuário') {
-                                    gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                                    gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
                                 }
+
+                                if (activity.allProfessionals && activity.allProfessionals.length > 1) {
+                                    gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
+                                }
+
                                 gridHTML += `</div>`;
                             } else {
                                 gridHTML += `<div class="${activityClass}">
-                                    <div class="activity-group">${activity.groupCategory}</div>
-                                </div>`;
+                                    <div class="activity-group">${activity.groupCategory}</div>`;
+                                
+                                if (activity.allProfessionals && activity.allProfessionals.length > 1) {
+                                    gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
+                                }
+                                
+                                gridHTML += `</div>`;
                             }
                         } else {
-                            
-const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-    : `Grupo ${activity.numeroGrupo || activity.groupId}`;
+                            const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                                ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                                : `Grupo ${activity.numeroGrupo || activity.groupId}`;
                             
                             gridHTML += `<div class="${activityClass}">
                                 <div class="activity-group">${groupDisplayText}</div>`;
                             
                             if (activity.userNames !== 'Nenhum usuário') {
                                 gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                            }
+                            
+                            if (activity.allProfessionals && activity.allProfessionals.length > 1) {
+                                gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
                             }
                             
                             gridHTML += `</div>`;
@@ -670,15 +688,21 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
         if (group && group.horario === timeSlot && 
             group.profissionais && group.profissionais.includes(professionalId)) {
             
-            const userNames = (group.usuarios && group.usuarios.length > 0)
-                ? group.usuarios.map(user => user.nome).join(' - ')
-                : 'Nenhum usuário';
-                
-            activities.push({
+           const userNames = (group.usuarios && group.usuarios.length > 0)
+    ? group.usuarios.map(user => user.nome).join(' - ')
+    : 'Nenhum usuário';
+
+const allProfessionals = (group.profissionais || [])
+    .map(profId => masterProfessionals.find(prof => prof.id === profId))
+    .filter(prof => prof)
+    .map(prof => prof.nome);
+    
+activities.push({
     groupId: groupId,
-    numeroGrupo: group.numeroGrupo, // <-- ADICIONADO AQUI
+    numeroGrupo: group.numeroGrupo,
     groupCategory: group.categoria || 'Sem categoria',
-    userNames: userNames
+    userNames: userNames,
+    allProfessionals: allProfessionals
 });
         }
     });

@@ -1638,5 +1638,13 @@ body {
     /* Garante que não haja borda no modo visualização */
     border-color: transparent !important; 
 }
- 
+
+.activity-professionals {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    font-weight: 500;
+    color: #000000;
+    margin-top: 2px;
+}
+
 }
