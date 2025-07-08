@@ -363,6 +363,9 @@ function showDayOverview(selectedDay) {
                     activityClass += ' evolucao';
                 } else if (activity.categoria === 'REUNIÃO GAIA') {
                     activityClass += ' reuniao-gaia';
+                    } else if (activity.groupCategory === 'GAIA') {
+                activityClass += ' gaia';
+                    
                 } else if (activity.categoria === 'INDIVIDUAL') {
                     activityClass += ' individual';
                 }
@@ -520,6 +523,9 @@ function generateProfessionalGridForDay(professional, selectedDay) {
                     if (activity.groupCategory === 'EVOLUÇÃO') {
                         activityClass += ' evolucao';
                     } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                        } else if (activity.groupCategory === 'GAIA') {
+                     activityClass += ' gaia';
+                        
                         activityClass += ' reuniao-gaia';
                     } else if (activity.groupCategory === 'INDIVIDUAL') {
                         activityClass += ' individual';
@@ -617,6 +623,8 @@ function generateProfessionalGrid(professional) {
                             activityClass += ' evolucao';
                         } else if (activity.groupCategory === 'REUNIÃO GAIA') {
                             activityClass += ' reuniao-gaia';
+                            } else if (activity.groupCategory === 'GAIA') {
+                        activityClass += ' gaia';
                         } else if (activity.groupCategory === 'INDIVIDUAL') {
                             activityClass += ' individual';
                         }

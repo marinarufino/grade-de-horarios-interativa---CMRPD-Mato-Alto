@@ -1255,17 +1255,26 @@ body {
 /* Estilos específicos para atividades especiais */
 .activity-item.evolucao,
 .day-activity.evolucao {
-    background: #8b5cf6;
+    background: #000000;
+    color: white;
+}
+
+.activity-item[class*="gaia"]:not([class*="reuniao-gaia"]),
+.day-activity[class*="gaia"]:not([class*="reuniao-gaia"]) {
+    background: #f54f94;
+    color: white;
 }
 
 .activity-item.reuniao-gaia,
 .day-activity.reuniao-gaia {
-    background: #ec4899;
+    background: #000000;
+    color: white;
 }
 
 .activity-item.individual,
 .day-activity.individual {
-    background: #14b8a6;
+    background: #515153;
+    color: white;
 }
 
 .day-activity-name {
