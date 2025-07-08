@@ -1602,4 +1602,41 @@ body {
     .section-divider {
         margin: 40px 0;
     }
+/* estilo de grupos editáveis*/
+
+.group-title-span {
+    display: inline-flex; /* Usa flex para alinhar o input com o texto */
+    align-items: center;  /* Alinha verticalmente */
+}
+
+.group-number-input {
+    /* Faz o input se parecer com o texto ao redor */
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    
+    /* Remove a aparência de um campo de texto */
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0 0.25em; /* Pequeno espaço horizontal */
+    
+    /* Define um tamanho e alinhamento */
+    width: 35px; /* Ajuste se precisar de mais ou menos espaço */
+    text-align: center;
+}
+
+.group-number-input:focus {
+    /* Estilo para quando você clica para editar */
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.group-number-input:disabled {
+    /* Garante que não haja borda no modo visualização */
+    border-color: transparent !important; 
+}
+ 
 }

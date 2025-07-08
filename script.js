@@ -385,9 +385,9 @@ function showDayOverview(selectedDay) {
                         html += `<div class="day-activity-name">${activity.categoria}</div>`;
                     }
                 } else {
-                    const groupDisplayText = activity.categoria && activity.categoria !== '' 
-                        ? `Grupo ${activity.groupId} - ${activity.categoria.toUpperCase()}`
-                        : `Grupo ${activity.groupId} - Sem categoria`;
+                     const groupDisplayText = activity.categoria && activity.categoria !== '' 
+    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.categoria.toUpperCase()}` // <-- MUDANÇA AQUI
+    : `Grupo ${activity.numeroGrupo || activity.groupId} - Sem categoria`; // <-- MUDANÇA AQUI
                     
                     html += `<div class="day-activity-name">${groupDisplayText}</div>`;
                     
@@ -438,11 +438,12 @@ function getDayActivitiesAtTime(day, timeSlot) {
             const usuarios = (group.usuarios || []).map(user => user.nome);
             
             activities.push({
-                groupId: groupId,
-                categoria: group.categoria,
-                profissionais: profissionais,
-                usuarios: usuarios
-            });
+    groupId: groupId,
+    numeroGrupo: group.numeroGrupo, 
+    categoria: group.categoria,
+    profissionais: profissionais,
+    usuarios: usuarios
+});
         }
     });
     
@@ -540,9 +541,10 @@ function generateProfessionalGridForDay(professional, selectedDay) {
                             </div>`;
                         }
                     } else {
-                        const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-                            ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-                            : `Grupo ${activity.groupId}`;
+                        
+const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+    : `Grupo ${activity.numeroGrupo || activity.groupId}`;
                         
                         gridHTML += `<div class="${activityClass}">
                             <div class="activity-group">${groupDisplayText}</div>`;
@@ -630,9 +632,10 @@ function generateProfessionalGrid(professional) {
                                 </div>`;
                             }
                         } else {
-                            const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-                                ? `Grupo ${activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-                                : `Grupo ${activity.groupId}`;
+                            
+const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+    : `Grupo ${activity.numeroGrupo || activity.groupId}`;
                             
                             gridHTML += `<div class="${activityClass}">
                                 <div class="activity-group">${groupDisplayText}</div>`;
@@ -674,10 +677,11 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
                 : 'Nenhum usuário';
                 
             activities.push({
-                groupId: groupId,
-                groupCategory: group.categoria || 'Sem categoria',
-                userNames: userNames
-            });
+    groupId: groupId,
+    numeroGrupo: group.numeroGrupo, // <-- ADICIONADO AQUI
+    groupCategory: group.categoria || 'Sem categoria',
+    userNames: userNames
+});
         }
     });
     return activities;
@@ -704,7 +708,7 @@ function exportToCSV() {
             const categoriaTexto = g.categoria || "Categoria não definida";
             const groupDisplayName = isSpecificActivity(g.categoria) 
                 ? g.categoria 
-                : `Grupo ${gid}`;
+                : `Grupo ${g.numeroGrupo || gid}`;
             
             if (g.usuarios && g.usuarios.length > 0) {
                 g.usuarios.forEach(u => {
@@ -990,10 +994,13 @@ function isSpecificActivity(category) {
 }
 
 function getGroupHeaderText(day, groupId, category) {
+    const groupData = scheduleData[day]?.[groupId];
+    const numero = groupData?.numeroGrupo || groupId; // Usa o novo número
+
     if (isSpecificActivity(category)) {
         return `📋 ${category} – ${dayNames[day]}`;
     }
-    return `👥 Grupo ${groupId} – ${dayNames[day]}`;
+    return `👥 Grupo ${numero} – ${dayNames[day]}`;
 }
 
 function isProfessionalOnDayOff(professionalId, day) {
@@ -1003,20 +1010,21 @@ function isProfessionalOnDayOff(professionalId, day) {
 }
 
 function resetDataStructure() {
-    let tmpGroupId = 1;
-    scheduleData = {};
-    days.forEach(day => {
-        scheduleData[day] = {};
-        for (let i = 1; i <= 20; i++) {
-            scheduleData[day][tmpGroupId] = {
-                horario: "09:00",
-                categoria: "",
-                usuarios: [],
-                profissionais: [],
-            };
-            tmpGroupId++;
-        }
-    });
+    let tmpGroupId = 1;
+    scheduleData = {};
+    days.forEach(day => {
+        scheduleData[day] = {};
+        for (let i = 1; i <= 20; i++) {
+            scheduleData[day][tmpGroupId] = {
+                numeroGrupo: tmpGroupId.toString(), // <-- ADICIONADO AQUI
+                horario: "09:00",
+                categoria: "",
+                usuarios: [],
+                profissionais: [],
+            };
+            tmpGroupId++;
+        }
+    });
 }
 
 
@@ -1139,26 +1147,36 @@ async function loadProfessionals() {
 }
 
 async function loadScheduleData() {
-    return new Promise((resolve, reject) => {
-        db().ref('horarios').once('value', (snapshot) => {
-            try {
-                const data = snapshot.val();
-                if (data) {
+    return new Promise((resolve, reject) => {
+        db().ref('horarios').once('value', (snapshot) => {
+            try {
+                const data = snapshot.val();
+                if (data) {
+                    // Lógica para garantir que numeroGrupo exista
+                    Object.keys(data).forEach(day => {
+                        if (data[day]) {
+                            Object.keys(data[day]).forEach(groupId => {
+                                if (data[day][groupId] && !data[day][groupId].numeroGrupo) {
+                                    data[day][groupId].numeroGrupo = groupId;
+                                }
+                            });
+                        }
+                    });
                     scheduleData = data;
-                    console.log('📅 Dados da grade carregados');
-                } else {
-                    console.log('📅 Inicializando nova estrutura de dados');
-                    resetDataStructure();
-                    if (isFirebaseConnected) {
-                        saveScheduleData();
-                    }
-                }
-                resolve();
-            } catch (error) {
-                reject(error);
-            }
-        }, reject);
-    });
+                    console.log('📅 Dados da grade carregados e normalizados');
+                } else {
+                    console.log('📅 Inicializando nova estrutura de dados');
+                    resetDataStructure();
+                    if (isFirebaseConnected) {
+                        saveScheduleData();
+                    }
+                }
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        }, reject);
+    });
 }
 
 function handleDataLoadError(error) {
@@ -1235,6 +1253,38 @@ function updateGroupCategory(day, groupId, category) {
     return true;
 }
 
+function updateGroupNumber(day, groupId, newNumber) {
+    if (!checkAuth()) {
+        alert("⛔ Faça login para alterar o número do grupo!");
+        const groupData = scheduleData[day]?.[groupId];
+        if (groupData) {
+            document.getElementById(`gn-input-${day}-${groupId}`).value = groupData.numeroGrupo;
+        }
+        return false;
+    }
+
+    if (!newNumber || newNumber.trim() === '') {
+        alert('❌ O número do grupo não pode ser vazio.');
+        const groupData = scheduleData[day]?.[groupId];
+        if (groupData) {
+            document.getElementById(`gn-input-${day}-${groupId}`).value = groupData.numeroGrupo;
+        }
+        return false;
+    }
+
+    scheduleData[day][groupId].numeroGrupo = newNumber.trim();
+
+    saveScheduleData().then(() => {
+        console.log(`✅ Número do Grupo ${groupId} atualizado para "${newNumber}"`);
+        // Atualiza o cabeçalho para refletir a mudança, se necessário
+        updateGroupHeaderText(day, groupId, scheduleData[day][groupId].categoria);
+    }).catch(error => {
+        console.error('❌ Erro ao salvar o número do grupo:', error);
+        alert('Erro ao salvar o número do grupo. Tente novamente.');
+    });
+    return true;
+}
+
 function updateGroupTime(day, groupId, time) {
     if (!checkAuth()) {
         alert("⛔ Faça login para alterar horários!");
@@ -1256,8 +1306,28 @@ function updateGroupTime(day, groupId, time) {
 
 function updateGroupHeaderText(day, groupId, category) {
     const headerElement = document.getElementById(`group-header-${day}-${groupId}`);
-    if (headerElement) {
-        headerElement.textContent = getGroupHeaderText(day, groupId, category);
+    const groupData = scheduleData[day]?.[groupId];
+
+    if (headerElement && groupData) {
+        const numero = groupData.numeroGrupo || groupId; // Usa o novo número
+
+        if (isSpecificActivity(category)) {
+            // Se for uma atividade específica, o input do número não deve aparecer
+            headerElement.innerHTML = `📋 ${category} – ${dayNames[day]}`;
+        } else {
+            // Remonta o HTML com o input
+            headerElement.innerHTML = `
+                👥 Grupo 
+                <input type="text" 
+                       class="group-number-input" 
+                       id="gn-input-${day}-${groupId}"
+                       value="${numero}"
+                       onchange="updateGroupNumber('${day}', ${groupId}, this.value)"
+                       size="2"
+                       ${!isAuthenticated ? 'disabled' : ''}>
+                 – ${dayNames[day]}
+            `;
+        }
     }
 }
 
@@ -1482,8 +1552,10 @@ function openLoginModal() {
     document.getElementById("loginPassword").focus();
 }
 
+
 function toggleEditButtons(enable) {
-    document.querySelectorAll(".btn-add, .btn-remove, select").forEach(el => {
+    // Adicionamos a classe .group-number-input à lista
+    document.querySelectorAll(".btn-add, .btn-remove, .group-number-input, select").forEach(el => {
         if (el.id === 'categoryFilter' || el.id === 'gradeWeekdayFilter') {
             return;
         }
@@ -1547,14 +1619,26 @@ function createGroupElement(day, groupId) {
     const div = document.createElement("div");
     div.className = "group";
     
-    // Verifica se o grupo existe no scheduleData
-    const groupData = scheduleData[day] && scheduleData[day][groupId] 
-        ? scheduleData[day][groupId] 
-        : { categoria: "", horario: "09:00" };
+    const groupData = scheduleData[day]?.[groupId] || { categoria: "", horario: "09:00" };
     
+    // Garante a existência do numeroGrupo para compatibilidade
+    if (!groupData.numeroGrupo) {
+        groupData.numeroGrupo = groupId.toString();
+    }
+
     div.innerHTML = `
         <div class="group-header">
-            <span id="group-header-${day}-${groupId}">👥 Grupo ${groupId} – ${dayNames[day]}</span>
+            <span id="group-header-${day}-${groupId}" class="group-title-span">
+                👥 Grupo 
+                <input type="text" 
+                       class="group-number-input" 
+                       id="gn-input-${day}-${groupId}"
+                       value="${groupData.numeroGrupo}"
+                       onchange="updateGroupNumber('${day}', ${groupId}, this.value)"
+                       size="2"
+                       ${!isAuthenticated ? 'disabled' : ''}>
+                 – ${dayNames[day]}
+            </span>
             <div class="group-controls">
                 <select onchange="if (updateGroupCategory('${day}', ${groupId}, this.value)) { this.blur(); }" class="category-select">
                     <option value="">Selecione categoria do grupo</option>
