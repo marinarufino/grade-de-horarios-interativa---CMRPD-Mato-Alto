@@ -76,25 +76,45 @@
             </div>
         </div>
 
-        <div id="segunda" class="day-content">
-            <div class="groups-grid" id="groups-segunda"></div>
-        </div>
+       <div id="segunda" class="day-content">
+    <div class="day-header">
+        <h2>📅 Segunda-feira</h2>
+        <button class="btn-add-group" onclick="openCreateGroupModal('segunda')">➕ Criar Novo Grupo</button>
+    </div>
+    <div class="groups-grid" id="groups-segunda"></div>
+</div>
 
-        <div id="terca" class="day-content">
-            <div class="groups-grid" id="groups-terca"></div>
-        </div>
+<div id="terca" class="day-content">
+    <div class="day-header">
+        <h2>📅 Terça-feira</h2>
+        <button class="btn-add-group" onclick="openCreateGroupModal('terca')">➕ Criar Novo Grupo</button>
+    </div>
+    <div class="groups-grid" id="groups-terca"></div>
+</div>
 
-        <div id="quarta" class="day-content">
-            <div class="groups-grid" id="groups-quarta"></div>
-        </div>
+<div id="quarta" class="day-content">
+    <div class="day-header">
+        <h2>📅 Quarta-feira</h2>
+        <button class="btn-add-group" onclick="openCreateGroupModal('quarta')">➕ Criar Novo Grupo</button>
+    </div>
+    <div class="groups-grid" id="groups-quarta"></div>
+</div>
 
-        <div id="quinta" class="day-content">
-            <div class="groups-grid" id="groups-quinta"></div>
-        </div>
+<div id="quinta" class="day-content">
+    <div class="day-header">
+        <h2>📅 Quinta-feira</h2>
+        <button class="btn-add-group" onclick="openCreateGroupModal('quinta')">➕ Criar Novo Grupo</button>
+    </div>
+    <div class="groups-grid" id="groups-quinta"></div>
+</div>
 
-        <div id="sexta" class="day-content">
-            <div class="groups-grid" id="groups-sexta"></div>
-        </div>
+<div id="sexta" class="day-content">
+    <div class="day-header">
+        <h2>📅 Sexta-feira</h2>
+        <button class="btn-add-group" onclick="openCreateGroupModal('sexta')">➕ Criar Novo Grupo</button>
+    </div>
+    <div class="groups-grid" id="groups-sexta"></div>
+</div>
 
         <div id="profissionais" class="day-content">
             <h2>Relação Geral de Profissionais</h2>
@@ -279,6 +299,51 @@
             <div class="modal-buttons">
                 <button type="button" class="btn-cancel" onclick="closeModal('manageDaysOffModal')">Cancelar</button>
                 <button type="submit" class="btn-confirm">Salvar Folgas</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Criar Novo Grupo -->
+<div id="createGroupModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">➕ Criar Novo Grupo</h2>
+        </div>
+        <form id="createGroupForm">
+            <div class="form-group">
+                <label>Número do Grupo:</label>
+                <input type="text" id="newGroupNumber" required>
+            </div>
+            <div class="form-group">
+                <label>Categoria:</label>
+                <select id="newGroupCategory" required>
+                    <option value="">Selecione uma categoria</option>
+                    <option value="CENTRO DE CONVIVENCIA">CENTRO DE CONVIVENCIA</option>
+                    <option value="GAIA">GAIA</option>
+                    <option value="EMPREGABILIDADE">EMPREGABILIDADE</option>
+                    <option value="ATENDIMENTO A FAMILIA">ATENDIMENTO A FAMILIA</option>
+                    <option value="EVOLUÇÃO">EVOLUÇÃO</option>
+                    <option value="REUNIÃO GAIA">REUNIÃO GAIA</option>
+                    <option value="INDIVIDUAL">INDIVIDUAL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Horário:</label>
+                <select id="newGroupTime" required>
+                    <option value="08:00">08:00</option>
+                    <option value="09:00">09:00</option>
+                    <option value="10:00">10:00</option>
+                    <option value="11:00">11:00</option>
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                    <option value="15:00">15:00</option>
+                    <option value="16:00">16:00</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('createGroupModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Criar Grupo</button>
             </div>
         </form>
     </div>

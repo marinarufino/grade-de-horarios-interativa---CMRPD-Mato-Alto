@@ -1,6 +1,75 @@
 
 // modais e ações
 
+// Modal para criar novo grupo
+function openCreateGroupModal(day) {
+    if (!checkAuth()) return;
+    
+    currentModalContext = { day, type: "create-group" };
+    document.getElementById('createGroupForm').reset();
+    document.getElementById('createGroupModal').style.display = 'block';
+    document.getElementById('newGroupNumber').focus();
+}
+
+// funçao criar novo grupo
+function createNewGroup() {
+    const { day } = currentModalContext;
+    
+    const numeroGrupo = document.getElementById('newGroupNumber').value.trim();
+    const categoria = document.getElementById('newGroupCategory').value;
+    const horario = document.getElementById('newGroupTime').value;
+    
+    if (!numeroGrupo) {
+        alert('Por favor, informe o número do grupo');
+        return;
+    }
+    
+    if (!categoria) {
+        alert('Por favor, selecione uma categoria');
+        return;
+    }
+    
+    // Verifica se já existe um grupo com esse número no mesmo dia
+    const existingGroup = Object.values(scheduleData[day] || {}).find(group => 
+        group.numeroGrupo === numeroGrupo
+    );
+    
+    if (existingGroup) {
+        alert(`Já existe um grupo com o número "${numeroGrupo}" na ${dayNames[day]}`);
+        return;
+    }
+    
+    // Cria novo ID único para o grupo
+    const newGroupId = Date.now();
+    
+    // Inicializa o dia se não existir
+    if (!scheduleData[day]) {
+        scheduleData[day] = {};
+    }
+    
+    // Cria o novo grupo
+    scheduleData[day][newGroupId] = {
+        numeroGrupo: numeroGrupo,
+        horario: horario,
+        categoria: categoria,
+        usuarios: [],
+        profissionais: []
+    };
+    
+    // Salva no Firebase
+    saveScheduleData().then(() => {
+        console.log('✅ Novo grupo criado e salvo no Firebase');
+        renderGroupsForDay(day);
+        updateDashboard();
+        closeModal('createGroupModal');
+        alert(`Grupo ${numeroGrupo} criado com sucesso!`);
+    }).catch(error => {
+        console.error('❌ Erro ao salvar novo grupo:', error);
+        alert('Erro ao criar grupo. Tente novamente.');
+        delete scheduleData[day][newGroupId];
+    });
+}
+
 function openUserModal(day, groupId) {
     if (!checkAuth()) return;
     
@@ -102,6 +171,33 @@ function closeModal(id) {
 
 
 // remoçao de dados
+
+function deleteGroup(day, groupId) {
+    if (!checkAuth()) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    const groupDisplayName = isSpecificActivity(group.categoria) 
+        ? group.categoria 
+        : `Grupo ${group.numeroGrupo}`;
+    
+    if (confirm(`Tem certeza que deseja excluir completamente o ${groupDisplayName}?\n\nEsta ação não pode ser desfeita.`)) {
+        delete scheduleData[day][groupId];
+        
+        saveScheduleData().then(() => {
+            console.log('✅ Grupo deletado e salvo no Firebase');
+            renderGroupsForDay(day);
+            updateDashboard();
+        }).catch(error => {
+            console.error('❌ Erro ao deletar grupo:', error);
+            alert('Erro ao deletar grupo. Tente novamente.');
+            // Restaura o grupo em caso de erro
+            scheduleData[day][groupId] = group;
+        });
+    }
+}
+
 
 function removeUser(day, groupId, idx) {
     if (!checkAuth()) return;
@@ -786,6 +882,7 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("loginModal")) closeModal("loginModal");
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
     if (e.target === document.getElementById("manageDaysOffModal")) closeModal("manageDaysOffModal");
+    if (e.target === document.getElementById("createGroupModal")) closeModal("createGroupModal");
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -973,7 +1070,14 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error('❌ Erro ao salvar folgas:', error);
             alert('Erro ao salvar folgas. Tente novamente.');
         });
+
+        
     });
+
+    document.getElementById("createGroupForm").addEventListener("submit", e => {
+    e.preventDefault();
+    createNewGroup();
+});
 });
 
 // variaveis globais
@@ -1040,21 +1144,10 @@ function isProfessionalOnDayOff(professionalId, day) {
 }
 
 function resetDataStructure() {
-    let tmpGroupId = 1;
-    scheduleData = {};
-    days.forEach(day => {
-        scheduleData[day] = {};
-        for (let i = 1; i <= 20; i++) {
-            scheduleData[day][tmpGroupId] = {
-                numeroGrupo: tmpGroupId.toString(), // <-- ADICIONADO AQUI
-                horario: "09:00",
-                categoria: "",
-                usuarios: [],
-                profissionais: [],
-            };
-            tmpGroupId++;
-        }
-    });
+    scheduleData = {};
+    days.forEach(day => {
+        scheduleData[day] = {};
+    });
 }
 
 
@@ -1644,6 +1737,39 @@ function updateTabsVisibility() {
 
 // visualizaçao dos grupos
 
+function renderGroupsForDay(day) {
+    const container = document.getElementById(`groups-${day}`);
+    if (!container) return;
+    
+    container.innerHTML = "";
+    
+    if (!scheduleData[day] || Object.keys(scheduleData[day]).length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>Nenhum grupo criado ainda para ${dayNames[day]}</p>
+                <p>Clique em "➕ Criar Novo Grupo" para começar</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Ordena os grupos por número
+    const sortedGroups = Object.entries(scheduleData[day])
+        .sort(([,a], [,b]) => {
+            const numA = parseInt(a.numeroGrupo) || 0;
+            const numB = parseInt(b.numeroGrupo) || 0;
+            return numA - numB;
+        });
+    
+    sortedGroups.forEach(([groupId, groupData]) => {
+        const groupElement = createGroupElement(day, groupId);
+        container.appendChild(groupElement);
+        
+        // Renderiza dados existentes
+        renderUsers(day, groupId);
+        renderProfessionals(day, groupId);
+    });
+}
 
 function createGroupElement(day, groupId) {
     const div = document.createElement("div");
@@ -1664,26 +1790,27 @@ function createGroupElement(day, groupId) {
                        class="group-number-input" 
                        id="gn-input-${day}-${groupId}"
                        value="${groupData.numeroGrupo}"
-                       onchange="updateGroupNumber('${day}', ${groupId}, this.value)"
+                       onchange="updateGroupNumber('${day}', '${groupId}', this.value)"
                        size="2"
                        ${!isAuthenticated ? 'disabled' : ''}>
                  – ${dayNames[day]}
             </span>
             <div class="group-controls">
-                <select onchange="if (updateGroupCategory('${day}', ${groupId}, this.value)) { this.blur(); }" class="category-select">
+                <select onchange="if (updateGroupCategory('${day}', '${groupId}', this.value)) { this.blur(); }" class="category-select">
                     <option value="">Selecione categoria do grupo</option>
                     ${groupCategories.map(cat => `<option value="${cat}" ${groupData.categoria === cat ? "selected" : ""}>${cat}</option>`).join("")}
                 </select>
-                <select onchange="if (updateGroupTime('${day}', ${groupId}, this.value)) { this.blur(); }" class="time-select">
+                <select onchange="if (updateGroupTime('${day}', '${groupId}', this.value)) { this.blur(); }" class="time-select">
                     ${timeSlots.map(t => `<option value="${t}" ${groupData.horario === t ? "selected" : ""}>${t}</option>`).join("")}
                 </select>
+                <button class="btn-delete-group" onclick="deleteGroup('${day}', '${groupId}')" title="Excluir grupo">🗑️</button>
             </div>
         </div>
         <div class="group-content">
             <div class="section usuarios">
                 <div class="section-title">
                     <span>👤 Usuários</span>
-                    <button class="btn-add" onclick="openUserModal('${day}', ${groupId})">+ Adicionar</button>
+                    <button class="btn-add" onclick="openUserModal('${day}', '${groupId}')">+ Adicionar</button>
                 </div>
                 <div class="person-list" id="usuarios-${day}-${groupId}">
                     <div class="empty-state">Nenhum usuário adicionado</div>
@@ -1692,7 +1819,7 @@ function createGroupElement(day, groupId) {
             <div class="section profissionais">
                 <div class="section-title">
                     <span>👨‍⚕️ Profissionais</span>
-                    <button class="btn-add" onclick="openProfessionalModal('${day}', ${groupId})">+ Adicionar</button>
+                    <button class="btn-add" onclick="openProfessionalModal('${day}', '${groupId}')">+ Adicionar</button>
                 </div>
                 <div class="person-list" id="profissionais-${day}-${groupId}">
                     <div class="empty-state">Nenhum profissional adicionado</div>
@@ -1704,31 +1831,14 @@ function createGroupElement(day, groupId) {
 }
 
 function initializeGroups() {
-    let gid = 1;
     days.forEach(day => {
-        const container = document.getElementById(`groups-${day}`);
-        if (!container) return;
-        
-        container.innerHTML = "";
-        for (let i = 1; i <= 20; i++) {
-            container.appendChild(createGroupElement(day, gid));
-            gid++;
-        }
-    });
-    
-    // Renderiza dados existentes
-    days.forEach(day => {
-        let gid = day === "segunda" ? 1 : day === "terca" ? 21 : day === "quarta" ? 41 : day === "quinta" ? 61 : 81;
-        for (let i = 1; i <= 20; i++) {
-            renderUsers(day, gid);
-            renderProfessionals(day, gid);
-            gid++;
-        }
+        renderGroupsForDay(day);
     });
 }
+    
 
 
-// renderiaçao de dados
+// renderizaçao de dados
 
 function renderUsers(day, groupId) {
     const el = document.getElementById(`usuarios-${day}-${groupId}`);

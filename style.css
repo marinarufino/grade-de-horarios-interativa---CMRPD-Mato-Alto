@@ -1656,4 +1656,167 @@ body {
     margin-top: 2px;
 }
 
+/* Estilos para cabeçalho dos dias */
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+}
+
+.day-header h2 {
+    color: #1e293b;
+    font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+    margin: 0;
+    font-weight: 600;
+}
+
+.btn-add-group {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add-group:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+.btn-add-group:active {
+    transform: translateY(0);
+}
+
+/* Botão de deletar grupo */
+.btn-delete-group {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    margin-left: 10px;
+}
+
+.btn-delete-group:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete-group:active {
+    transform: translateY(0);
+}
+
+/* Ajuste nos controles do grupo para incluir o botão de deletar */
+.group-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    align-items: stretch;
+}
+
+/* Estado vazio melhorado */
+.groups-grid .empty-state {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 12px;
+    margin: 20px 0;
+    border: 2px dashed #d1d5db;
+}
+
+.groups-grid .empty-state p {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+}
+
+.groups-grid .empty-state p:first-child {
+    font-weight: 600;
+    color: #374151;
+}
+
+.groups-grid .empty-state p:last-child {
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+    .day-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+        padding: 15px;
+    }
+    
+    .btn-add-group {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .group-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-delete-group {
+        margin-left: 0;
+        margin-top: 8px;
+        width: 100%;
+    }
+}
+
+/* Para tablets */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .day-header {
+        padding: 18px;
+    }
+    
+    .group-controls {
+        flex-direction: row;
+        align-items: center;
+        width: auto;
+    }
+    
+    .btn-delete-group {
+        margin-left: 10px;
+        width: auto;
+    }
+}
+
+/* Para desktop */
+@media (min-width: 1024px) {
+    .day-header {
+        padding: 20px;
+    }
+    
+    .group-controls {
+        flex-direction: row;
+        align-items: center;
+        width: auto;
+    }
+    
+    .btn-delete-group {
+        margin-left: 10px;
+        width: auto;
+    }
+}
+
 }
