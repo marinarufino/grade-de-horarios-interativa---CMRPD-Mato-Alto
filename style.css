@@ -1819,4 +1819,37 @@ body {
     }
 }
 
+/* Força layout específico para cabeçalhos de grupo */
+.group .group-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+}
+
+.group .group-header .group-title-span {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.group .group-header .group-controls {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Para mobile manter como estava */
+@media (max-width: 767px) {
+    .group .group-header {
+        flex-direction: column !important;
+    }
+    
+    .group .group-header .group-controls {
+        flex-direction: column !important;
+        width: 100%;
+    }
+}
+
 }
