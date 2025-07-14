@@ -1014,6 +1014,7 @@ document.addEventListener("DOMContentLoaded", () => {
             toggleEditButtons(true);
             updateTabsVisibility();
             updateUserStatus();
+            updateGradeView();
             alert("Acesso liberado! Agora você tem acesso a todas as funcionalidades.");
         } else {
             alert("Senha incorreta!");
@@ -1787,6 +1788,7 @@ function updateUserStatus() {
             toggleEditButtons(false);
             toggleExportButton(false);
             switchToTab('grade');
+            updateGradeView();
             alert('Logout realizado! Agora você está no modo visualização.');
         };
         toggleExportButton(true);
