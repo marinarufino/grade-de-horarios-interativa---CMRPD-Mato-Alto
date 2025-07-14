@@ -969,7 +969,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Inicializa Firebase primeiro
     initializeFirebase();
-    
+    loadOrientacaoData();
     // Inicia com Grade ativa
     switchToTab('grade');
     updateTabsVisibility();
@@ -1738,6 +1738,8 @@ function switchToTab(tabName) {
         if (categoryFilter) categoryFilter.value = '';
         if (weekdayFilter) weekdayFilter.value = '';
         updateGradeView();
+    }else if (tabName === 'orientacao-parental') {
+        renderOrientacaoGrid();
     }
 }
 
@@ -2080,5 +2082,110 @@ function getProfessionalsAvailableAtTime(day, timeSlot) {
         }
         return a.categoria.localeCompare(b.categoria);
     });
-
 }
+// ORIENTAÇÃO PARENTAL - Dados em memória
+let orientacaoData = {};
+
+// Inicializa estrutura de dados da orientação parental
+function initializeOrientacaoData() {
+    days.forEach(day => {
+        if (!orientacaoData[day]) {
+            orientacaoData[day] = {};
+        }
+        timeSlots.forEach(timeSlot => {
+            if (!orientacaoData[day][timeSlot]) {
+                orientacaoData[day][timeSlot] = '';
+            }
+        });
+    });
+}
+
+// Renderiza a grade de orientação parental
+function renderOrientacaoGrid() {
+    const container = document.getElementById('orientacao-grid');
+    if (!container) return;
+    
+    let html = `
+        <table class="orientacao-table">
+            <thead>
+                <tr>
+                    <th>Horário</th>
+                    <th>Segunda-feira</th>
+                    <th>Terça-feira</th>
+                    <th>Quarta-feira</th>
+                    <th>Quinta-feira</th>
+                    <th>Sexta-feira</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    timeSlots.forEach(timeSlot => {
+        html += `<tr>
+            <td class="time-column">${timeSlot}</td>`;
+        
+        days.forEach(day => {
+            const currentValue = orientacaoData[day]?.[timeSlot] || '';
+            const cellClass = currentValue ? 'orientacao-cell filled' : 'orientacao-cell';
+            const isDisabled = !isAuthenticated ? 'disabled' : '';
+            
+            html += `
+                <td>
+                    <input type="text" 
+                           class="${cellClass}" 
+                           value="${currentValue}"
+                           placeholder="${isAuthenticated ? 'Clique para editar' : 'Login necessário'}"
+                           onchange="updateOrientacao('${day}', '${timeSlot}', this.value)"
+                           onblur="saveOrientacaoData()"
+                           ${isDisabled}>
+                </td>`;
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+// Atualiza dados da orientação parental
+function updateOrientacao(day, timeSlot, value) {
+    if (!isAuthenticated) {
+        alert("⛔ Faça login como administrador para editar!");
+        return;
+    }
+    
+    if (!orientacaoData[day]) {
+        orientacaoData[day] = {};
+    }
+    
+    orientacaoData[day][timeSlot] = value.trim().toUpperCase();
+    
+    // Atualiza a classe da célula
+    const cell = event.target;
+    if (value.trim()) {
+        cell.classList.add('filled');
+        cell.classList.remove('orientacao-cell');
+        cell.classList.add('orientacao-cell', 'filled');
+    } else {
+        cell.classList.remove('filled');
+        cell.classList.add('orientacao-cell');
+    }
+}
+
+// Salva dados no Firebase (placeholder - você pode implementar depois)
+function saveOrientacaoData() {
+    if (!isAuthenticated || !isFirebaseConnected) return;
+    
+    // Aqui você pode implementar a salvamento no Firebase se quiser
+    console.log('💾 Dados de orientação salvos:', orientacaoData);
+}
+
+// Carrega dados do Firebase (placeholder)
+function loadOrientacaoData() {
+    // Aqui você pode implementar o carregamento do Firebase se quiser
+    console.log('📥 Carregando dados de orientação...');
+    initializeOrientacaoData();
+}
+
+
