@@ -1852,4 +1852,358 @@ body {
     }
 }
 
+/* ESTILOS COMPLEMENTARES PARA A VERSÃO APRIMORADA - Adicione ao style.css */
+
+/* Header da visão geral do dia */
+.day-overview-header {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+}
+
+.day-overview-title {
+    color: #1e293b;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Estatísticas do dia */
+.day-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #3b82f6;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #13335a;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Container da tabela */
+.table-container {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 25px;
+}
+
+/* Melhorias na categoria de profissionais livres */
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-name {
+    font-weight: 600;
+    color: #065f46;
+}
+
+.category-count {
+    background: #059669;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Efeito hover e click nos profissionais */
+.free-professional-name {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.free-professional-name:hover {
+    background: #059669;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.free-professional-name.highlighted {
+    background: #f59e0b;
+    animation: pulse 1.5s ease-in-out;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Resumo do dia */
+.day-summary {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-top: 20px;
+}
+
+.day-summary h4 {
+    color: #1e293b;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.summary-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.summary-content p {
+    margin: 0;
+    padding: 12px 15px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.summary-content strong {
+    color: #1e293b;
+}
+
+/* Indicador visual para contador de profissionais livres */
+.free-professionals-column[data-free-count]::before {
+    content: "👨‍⚕️ " attr(data-free-count) " disponível(is)";
+    display: block;
+    font-size: 0.7rem;
+    color: #059669;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: center;
+    padding: 4px 8px;
+    background: #d1fae5;
+    border-radius: 4px;
+}
+
+.free-professionals-column[data-free-count="0"]::before {
+    content: "❌ Nenhum disponível";
+    color: #dc2626;
+    background: #fee2e2;
+}
+
+/* Melhorias para atividades */
+.day-activity {
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.day-activity:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.day-activity:last-child {
+    margin-bottom: 0;
+}
+
+/* Estado vazio melhorado */
+.no-activities {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 15px;
+    background: #f9fafb;
+    border-radius: 6px;
+    border: 2px dashed #d1d5db;
+}
+
+.no-free-professionals {
+    color: #6b7280;
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 15px;
+    background: #f9fafb;
+    border-radius: 6px;
+    border: 2px dashed #d1d5db;
+}
+
+/* Responsividade para estatísticas */
+@media (max-width: 480px) {
+    .day-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .stat-item {
+        padding: 12px;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+    
+    .day-overview-header {
+        padding: 15px;
+    }
+    
+    .day-overview-title {
+        font-size: 1.2rem;
+    }
+    
+    .summary-content {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .day-summary {
+        padding: 15px;
+    }
+    
+    /* Adiciona labels para mobile na tabela */
+    .day-overview-table tbody tr {
+        display: block;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+        padding: 15px;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .day-overview-table thead {
+        display: none;
+    }
+    
+    .day-overview-table tbody td {
+        display: block;
+        border: none;
+        padding: 10px 0;
+        position: relative;
+        padding-left: 35%;
+    }
+    
+    .day-overview-table tbody td::before {
+        content: attr(data-label) ": ";
+        position: absolute;
+        left: 0;
+        top: 10px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.85rem;
+        width: 30%;
+    }
+    
+    .time-column::before {
+        content: "🕐 " attr(data-label) ": ";
+    }
+    
+    .activities-column::before {
+        content: "📋 " attr(data-label) ": ";
+    }
+    
+    .free-professionals-column::before {
+        content: "👨‍⚕️ " attr(data-label) ": ";
+    }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .day-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .stat-number {
+        font-size: 1.6rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .day-stats {
+        grid-template-columns: repeat(5, 1fr);
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+    }
+}
+
+/* Animações suaves */
+@media (prefers-reduced-motion: no-preference) {
+    .day-overview {
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .stat-item {
+        animation: slideInUp 0.4s ease-out;
+    }
+    
+    .stat-item:nth-child(2) { animation-delay: 0.1s; }
+    .stat-item:nth-child(3) { animation-delay: 0.2s; }
+    .stat-item:nth-child(4) { animation-delay: 0.3s; }
+    .stat-item:nth-child(5) { animation-delay: 0.4s; }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 }

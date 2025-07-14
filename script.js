@@ -429,39 +429,68 @@ function updateGradeView() {
 function showDayOverview(selectedDay) {
     const gradeContent = document.getElementById('grade-content');
     
+    // Calcula estatísticas do dia
+    const dayStats = calculateDayStatistics(selectedDay);
+    
     let html = `
         <div class="day-overview">
-            <h3 class="day-overview-title">📅 Visão Geral - ${dayNames[selectedDay]}</h3>
-            <table class="day-overview-table">
-                <thead>
-                    <tr>
-                        <th>Horário</th>
-                        <th>Atividades</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div class="day-overview-header">
+                <h3 class="day-overview-title">📅 Visão Geral - ${dayNames[selectedDay]}</h3>
+                <div class="day-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">${dayStats.totalActivities}</span>
+                        <span class="stat-label">Atividades</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${dayStats.totalUsers}</span>
+                        <span class="stat-label">Usuários</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${dayStats.occupiedProfessionals}</span>
+                        <span class="stat-label">Profissionais Ocupados</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${dayStats.availableProfessionals}</span>
+                        <span class="stat-label">Profissionais Disponíveis</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">${dayStats.professionalsOnDayOff}</span>
+                        <span class="stat-label">Em Folga</span>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="day-overview-table">
+                    <thead>
+                        <tr>
+                            <th>Horário</th>
+                            <th>Atividades Programadas</th>
+                            <th>Profissionais Livres</th>
+                        </tr>
+                    </thead>
+                    <tbody>
     `;
 
     let hasActivities = false;
 
     timeSlots.forEach(timeSlot => {
-        html += `<tr>
-            <td class="time-column">${timeSlot}</td>
-            <td>`;
-        
         const activities = getDayActivitiesAtTime(selectedDay, timeSlot);
+        const availableProfessionals = getProfessionalsAvailableAtTime(selectedDay, timeSlot);
+        
+        html += `<tr data-time="${timeSlot}">
+            <td class="time-column" data-label="Horário">${timeSlot}</td>
+            <td class="activities-column" data-label="Atividades">`;
         
         if (activities.length > 0) {
             hasActivities = true;
-            activities.forEach(activity => {
+            activities.forEach((activity, index) => {
                 let activityClass = 'day-activity';
                 if (activity.categoria === 'EVOLUÇÃO') {
                     activityClass += ' evolucao';
                 } else if (activity.categoria === 'REUNIÃO GAIA') {
                     activityClass += ' reuniao-gaia';
-                    } else if (activity.groupCategory === 'GAIA') {
-                activityClass += ' gaia';
-                    
+                } else if (activity.categoria === 'GAIA') {
+                    activityClass += ' gaia';
                 } else if (activity.categoria === 'INDIVIDUAL') {
                     activityClass += ' individual';
                 }
@@ -470,7 +499,7 @@ function showDayOverview(selectedDay) {
                     activityClass += ' specific';
                 }
                 
-                html += `<div class="${activityClass}">`;
+                html += `<div class="${activityClass}" data-activity-index="${index}">`;
                 
                 if (isSpecificActivity(activity.categoria)) {
                     if (activity.categoria === "INDIVIDUAL") {
@@ -482,37 +511,167 @@ function showDayOverview(selectedDay) {
                         html += `<div class="day-activity-name">${activity.categoria}</div>`;
                     }
                 } else {
-                     const groupDisplayText = activity.categoria && activity.categoria !== '' 
-    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.categoria.toUpperCase()}` // <-- MUDANÇA AQUI
-    : `Grupo ${activity.numeroGrupo || activity.groupId} - Sem categoria`; // <-- MUDANÇA AQUI
+                    const groupDisplayText = activity.categoria && activity.categoria !== '' 
+                        ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.categoria.toUpperCase()}`
+                        : `Grupo ${activity.numeroGrupo || activity.groupId} - Sem categoria`;
                     
                     html += `<div class="day-activity-name">${groupDisplayText}</div>`;
                     
                     if (activity.usuarios.length > 0) {
-                        html += `<div class="day-activity-details">👤 Usuários: ${activity.usuarios.join(' - ')}</div>`;
+                        html += `<div class="day-activity-details">👤 ${activity.usuarios.join(' - ')}</div>`;
                     }
                 }
                 
                 if (activity.profissionais.length > 0) {
-                    html += `<div class="day-activity-details">👨‍⚕️ Profissionais: ${activity.profissionais.join(', ')}</div>`;
+                    html += `<div class="day-activity-details">👨‍⚕️ ${activity.profissionais.join(', ')}</div>`;
                 }
                 
                 html += `</div>`;
             });
         } else {
-            html += '<span style="color: #9ca3af; font-style: italic;">Nenhuma atividade</span>';
+            html += '<div class="no-activities">Nenhuma atividade programada</div>';
+        }
+        
+        html += `</td>`;
+        
+        // Coluna de profissionais livres
+        html += `<td class="free-professionals-column" data-label="Profissionais Livres" data-free-count="${availableProfessionals.length}">`;
+        
+        if (availableProfessionals.length > 0) {
+            // Agrupa por categoria
+            const professionalsByCategory = {};
+            availableProfessionals.forEach(prof => {
+                if (!professionalsByCategory[prof.categoria]) {
+                    professionalsByCategory[prof.categoria] = [];
+                }
+                professionalsByCategory[prof.categoria].push(prof);
+            });
+            
+            // Exibe agrupado por categoria
+            Object.keys(professionalsByCategory).sort().forEach(categoria => {
+                html += `<div class="free-professionals-category">
+                    <div class="category-header">
+                        <span class="category-name">${categoria}</span>
+                        <span class="category-count">(${professionalsByCategory[categoria].length})</span>
+                    </div>
+                    <div class="professionals-list">`;
+                
+                professionalsByCategory[categoria].forEach(prof => {
+                    html += `<span class="free-professional-name" 
+                                   data-professional-id="${prof.id}" 
+                                   title="${prof.nome} - ${prof.categoria}"
+                                   onclick="highlightProfessional('${prof.id}')">${prof.nome}</span>`;
+                });
+                
+                html += `</div></div>`;
+            });
+        } else {
+            html += '<div class="no-free-professionals">Todos os profissionais estão ocupados ou de folga</div>';
         }
         
         html += `</td></tr>`;
     });
 
     html += `</tbody></table></div>`;
+    
+    // Adiciona resumo no final
+    html += `<div class="day-summary">
+        <h4>📊 Resumo do Dia</h4>
+        <div class="summary-content">
+            <p><strong>Horário com mais atividades:</strong> ${dayStats.peakHour || 'Nenhum'}</p>
+            <p><strong>Horário com mais profissionais livres:</strong> ${dayStats.quietestHour || 'Nenhum'}</p>
+            <p><strong>Taxa de ocupação:</strong> ${dayStats.occupationRate}%</p>
+        </div>
+    </div></div>`;
 
-    if (!hasActivities) {
-        html = `<div class="empty-state">Nenhuma atividade programada para ${dayNames[selectedDay]}</div>`;
+    if (!hasActivities && masterProfessionals.length === 0) {
+        html = `<div class="empty-state">
+            <h3>Nenhum dado disponível</h3>
+            <p>Não há atividades programadas nem profissionais cadastrados para ${dayNames[selectedDay]}</p>
+            <p>Cadastre profissionais na aba "👨‍⚕️ Profissionais" e crie grupos nos dias da semana.</p>
+        </div>`;
     }
 
     gradeContent.innerHTML = html;
+}
+
+// Função auxiliar para calcular estatísticas do dia
+function calculateDayStatistics(selectedDay) {
+    let totalActivities = 0;
+    let totalUsers = 0;
+    let occupiedProfessionalsSet = new Set();
+    let hourlyStats = {};
+    
+    // Estatísticas por horário
+    timeSlots.forEach(timeSlot => {
+        const activities = getDayActivitiesAtTime(selectedDay, timeSlot);
+        const availableProfessionals = getProfessionalsAvailableAtTime(selectedDay, timeSlot);
+        
+        hourlyStats[timeSlot] = {
+            activities: activities.length,
+            availableProfessionals: availableProfessionals.length
+        };
+        
+        activities.forEach(activity => {
+            totalActivities++;
+            totalUsers += activity.usuarios.length;
+            activity.profissionais.forEach(prof => occupiedProfessionalsSet.add(prof));
+        });
+    });
+    
+    // Profissionais de folga
+    const professionalsOnDayOff = masterProfessionals.filter(prof => 
+        isProfessionalOnDayOff(prof.id, selectedDay)
+    ).length;
+    
+    // Profissionais disponíveis (não de folga e não ocupados)
+    const totalProfessionals = masterProfessionals.length;
+    const availableProfessionals = totalProfessionals - occupiedProfessionalsSet.size - professionalsOnDayOff;
+    
+    // Horário pico (mais atividades)
+    const peakHour = Object.keys(hourlyStats).reduce((a, b) => 
+        hourlyStats[a].activities > hourlyStats[b].activities ? a : b
+    );
+    
+    // Horário mais tranquilo (mais profissionais livres)
+    const quietestHour = Object.keys(hourlyStats).reduce((a, b) => 
+        hourlyStats[a].availableProfessionals > hourlyStats[b].availableProfessionals ? a : b
+    );
+    
+    // Taxa de ocupação
+    const occupationRate = totalProfessionals > 0 ? 
+        Math.round((occupiedProfessionalsSet.size / (totalProfessionals - professionalsOnDayOff)) * 100) : 0;
+    
+    return {
+        totalActivities,
+        totalUsers,
+        occupiedProfessionals: occupiedProfessionalsSet.size,
+        availableProfessionals,
+        professionalsOnDayOff,
+        peakHour: hourlyStats[peakHour].activities > 0 ? peakHour : null,
+        quietestHour: hourlyStats[quietestHour].availableProfessionals > 0 ? quietestHour : null,
+        occupationRate: isNaN(occupationRate) ? 0 : occupationRate
+    };
+}
+
+// Função para destacar um profissional (opcional)
+function highlightProfessional(professionalId) {
+    // Remove destaque anterior
+    document.querySelectorAll('.free-professional-name.highlighted').forEach(el => {
+        el.classList.remove('highlighted');
+    });
+    
+    // Adiciona destaque ao profissional clicado
+    document.querySelectorAll(`[data-professional-id="${professionalId}"]`).forEach(el => {
+        el.classList.add('highlighted');
+    });
+    
+    // Remove destaque após 3 segundos
+    setTimeout(() => {
+        document.querySelectorAll('.free-professional-name.highlighted').forEach(el => {
+            el.classList.remove('highlighted');
+        });
+    }, 3000);
 }
 
 function getDayActivitiesAtTime(day, timeSlot) {
@@ -1960,4 +2119,44 @@ function renderMasterProfessionalsList() {
         listContainer.appendChild(item);
     });
 }
+// funçao que exibe os profissionais livres por horário
 
+function getProfessionalsAvailableAtTime(day, timeSlot) {
+    const availableProfessionals = [];
+    
+    masterProfessionals.forEach(prof => {
+        // Verifica se o profissional não está de folga neste dia
+        if (!isProfessionalOnDayOff(prof.id, day)) {
+            let isOccupied = false;
+            
+            // Verifica se o profissional está ocupado neste horário
+            if (scheduleData[day]) {
+                Object.keys(scheduleData[day]).forEach(groupId => {
+                    const group = scheduleData[day][groupId];
+                    if (group && group.horario === timeSlot && 
+                        group.profissionais && group.profissionais.includes(prof.id)) {
+                        isOccupied = true;
+                    }
+                });
+            }
+            
+            // Se não está ocupado, adiciona à lista de disponíveis
+            if (!isOccupied) {
+                availableProfessionals.push({
+                    id: prof.id,
+                    nome: prof.nome,
+                    categoria: prof.categoria
+                });
+            }
+        }
+    });
+    
+    // Ordena por categoria e depois por nome
+    return availableProfessionals.sort((a, b) => {
+        if (a.categoria === b.categoria) {
+            return a.nome.localeCompare(b.nome);
+        }
+        return a.categoria.localeCompare(b.categoria);
+    });
+
+}
