@@ -429,43 +429,15 @@ function updateGradeView() {
 function showDayOverview(selectedDay) {
     const gradeContent = document.getElementById('grade-content');
     
-    // Calcula estatísticas do dia
-    const dayStats = calculateDayStatistics(selectedDay);
-    
     let html = `
         <div class="day-overview">
-            <div class="day-overview-header">
-                <h3 class="day-overview-title">📅 Visão Geral - ${dayNames[selectedDay]}</h3>
-                <div class="day-stats">
-                    <div class="stat-item">
-                        <span class="stat-number">${dayStats.totalActivities}</span>
-                        <span class="stat-label">Atividades</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${dayStats.totalUsers}</span>
-                        <span class="stat-label">Usuários</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${dayStats.occupiedProfessionals}</span>
-                        <span class="stat-label">Profissionais Ocupados</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${dayStats.availableProfessionals}</span>
-                        <span class="stat-label">Profissionais Disponíveis</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">${dayStats.professionalsOnDayOff}</span>
-                        <span class="stat-label">Em Folga</span>
-                    </div>
-                </div>
-            </div>
             <div class="table-container">
                 <table class="day-overview-table">
                     <thead>
                         <tr>
                             <th>Horário</th>
                             <th>Atividades Programadas</th>
-                            <th>Profissionais Livres</th>
+                            <th>${isAuthenticated ? 'Profissionais Livres' : 'Acesso Restrito'}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -534,10 +506,15 @@ function showDayOverview(selectedDay) {
         
         html += `</td>`;
         
-        // Coluna de profissionais livres
-        html += `<td class="free-professionals-column" data-label="Profissionais Livres" data-free-count="${availableProfessionals.length}">`;
+        // Coluna de profissionais livres (só para admins)
+if (isAuthenticated === true) {
+    html += `<td class="free-professionals-column" data-label="Profissionais Livres" data-free-count="${availableProfessionals.length}">`;
+} else {
+    html += `<td class="restricted-column" data-label="Profissionais Livres">`;
+}
         
-        if (availableProfessionals.length > 0) {
+        if (isAuthenticated) {
+    if (availableProfessionals.length > 0) {
             // Agrupa por categoria
             const professionalsByCategory = {};
             availableProfessionals.forEach(prof => {
@@ -556,33 +533,33 @@ function showDayOverview(selectedDay) {
                     </div>
                     <div class="professionals-list">`;
                 
-                professionalsByCategory[categoria].forEach(prof => {
-                    html += `<span class="free-professional-name" 
-                                   data-professional-id="${prof.id}" 
-                                   title="${prof.nome} - ${prof.categoria}"
-                                   onclick="highlightProfessional('${prof.id}')">${prof.nome}</span>`;
-                });
+                professionalsByCategory[categoria].forEach((prof, index) => {
+    // Adiciona separador antes do nome (exceto para o primeiro)
+    if (index > 0) {
+        html += `<span class="name-separator"> | </span>`;
+    }
+    
+    html += `<span class="free-professional-name" 
+                   data-professional-id="${prof.id}" 
+                   title="${prof.nome} - ${prof.categoria}"
+                   onclick="highlightProfessional('${prof.id}')">${prof.nome}</span>`;
+});
                 
                 html += `</div></div>`;
             });
         } else {
-            html += '<div class="no-free-professionals">Todos os profissionais estão ocupados ou de folga</div>';
-        }
+        html += '<div class="no-free-professionals">Todos os profissionais estão ocupados ou de folga</div>';
+    }
+} else {
+    html += '<div class="access-restricted">🔒 Faça login como administrador para ver os profissionais disponíveis</div>';
+}
         
         html += `</td></tr>`;
     });
 
     html += `</tbody></table></div>`;
     
-    // Adiciona resumo no final
-    html += `<div class="day-summary">
-        <h4>📊 Resumo do Dia</h4>
-        <div class="summary-content">
-            <p><strong>Horário com mais atividades:</strong> ${dayStats.peakHour || 'Nenhum'}</p>
-            <p><strong>Horário com mais profissionais livres:</strong> ${dayStats.quietestHour || 'Nenhum'}</p>
-            <p><strong>Taxa de ocupação:</strong> ${dayStats.occupationRate}%</p>
-        </div>
-    </div></div>`;
+
 
     if (!hasActivities && masterProfessionals.length === 0) {
         html = `<div class="empty-state">
@@ -595,66 +572,9 @@ function showDayOverview(selectedDay) {
     gradeContent.innerHTML = html;
 }
 
-// Função auxiliar para calcular estatísticas do dia
-function calculateDayStatistics(selectedDay) {
-    let totalActivities = 0;
-    let totalUsers = 0;
-    let occupiedProfessionalsSet = new Set();
-    let hourlyStats = {};
-    
-    // Estatísticas por horário
-    timeSlots.forEach(timeSlot => {
-        const activities = getDayActivitiesAtTime(selectedDay, timeSlot);
-        const availableProfessionals = getProfessionalsAvailableAtTime(selectedDay, timeSlot);
-        
-        hourlyStats[timeSlot] = {
-            activities: activities.length,
-            availableProfessionals: availableProfessionals.length
-        };
-        
-        activities.forEach(activity => {
-            totalActivities++;
-            totalUsers += activity.usuarios.length;
-            activity.profissionais.forEach(prof => occupiedProfessionalsSet.add(prof));
-        });
-    });
-    
-    // Profissionais de folga
-    const professionalsOnDayOff = masterProfessionals.filter(prof => 
-        isProfessionalOnDayOff(prof.id, selectedDay)
-    ).length;
-    
-    // Profissionais disponíveis (não de folga e não ocupados)
-    const totalProfessionals = masterProfessionals.length;
-    const availableProfessionals = totalProfessionals - occupiedProfessionalsSet.size - professionalsOnDayOff;
-    
-    // Horário pico (mais atividades)
-    const peakHour = Object.keys(hourlyStats).reduce((a, b) => 
-        hourlyStats[a].activities > hourlyStats[b].activities ? a : b
-    );
-    
-    // Horário mais tranquilo (mais profissionais livres)
-    const quietestHour = Object.keys(hourlyStats).reduce((a, b) => 
-        hourlyStats[a].availableProfessionals > hourlyStats[b].availableProfessionals ? a : b
-    );
-    
-    // Taxa de ocupação
-    const occupationRate = totalProfessionals > 0 ? 
-        Math.round((occupiedProfessionalsSet.size / (totalProfessionals - professionalsOnDayOff)) * 100) : 0;
-    
-    return {
-        totalActivities,
-        totalUsers,
-        occupiedProfessionals: occupiedProfessionalsSet.size,
-        availableProfessionals,
-        professionalsOnDayOff,
-        peakHour: hourlyStats[peakHour].activities > 0 ? peakHour : null,
-        quietestHour: hourlyStats[quietestHour].availableProfessionals > 0 ? quietestHour : null,
-        occupationRate: isNaN(occupationRate) ? 0 : occupationRate
-    };
-}
 
-// Função para destacar um profissional (opcional)
+
+// Função para destacar um profissional 
 function highlightProfessional(professionalId) {
     // Remove destaque anterior
     document.querySelectorAll('.free-professional-name.highlighted').forEach(el => {
