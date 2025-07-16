@@ -19,28 +19,31 @@ function createNewGroup() {
     const categoria = document.getElementById('newGroupCategory').value;
     const horario = document.getElementById('newGroupTime').value;
     
-    if (!numeroGrupo) {
-        alert('Por favor, informe o número do grupo');
-        return;
-    }
+    // *** REMOVIDA A VALIDAÇÃO OBRIGATÓRIA DO NÚMERO ***
+    // Agora o número é opcional
     
     if (!categoria) {
         alert('Por favor, selecione uma categoria');
         return;
     }
     
-    // Verifica se já existe um grupo com esse número no mesmo dia
-    const existingGroup = Object.values(scheduleData[day] || {}).find(group => 
-        group.numeroGrupo === numeroGrupo
-    );
-    
-    if (existingGroup) {
-        alert(`Já existe um grupo com o número "${numeroGrupo}" na ${dayNames[day]}`);
-        return;
+    // Verifica se já existe um grupo com esse número no mesmo dia (apenas se número foi informado)
+    if (numeroGrupo) {
+        const existingGroup = Object.values(scheduleData[day] || {}).find(group => 
+            group.numeroGrupo === numeroGrupo
+        );
+        
+        if (existingGroup) {
+            alert(`Já existe um grupo com o número "${numeroGrupo}" na ${dayNames[day]}`);
+            return;
+        }
     }
     
     // Cria novo ID único para o grupo
     const newGroupId = Date.now();
+    
+    // Armazena o ID do grupo recém-criado
+    lastCreatedGroupId = newGroupId;
     
     // Inicializa o dia se não existir
     if (!scheduleData[day]) {
@@ -49,11 +52,12 @@ function createNewGroup() {
     
     // Cria o novo grupo
     scheduleData[day][newGroupId] = {
-        numeroGrupo: numeroGrupo,
+        numeroGrupo: numeroGrupo || "", // *** PERMITE NÚMERO VAZIO ***
         horario: horario,
         categoria: categoria,
         usuarios: [],
-        profissionais: []
+        profissionais: [],
+        createdAt: Date.now()
     };
     
     // Salva no Firebase
@@ -62,13 +66,20 @@ function createNewGroup() {
         renderGroupsForDay(day);
         updateDashboard();
         closeModal('createGroupModal');
-        alert(`Grupo ${numeroGrupo} criado com sucesso!`);
+        
+        // *** MENSAGEM ADAPTADA ***
+        const groupDisplayName = numeroGrupo ? `Grupo ${numeroGrupo}` : 'Grupo sem número';
+        alert(`${groupDisplayName} criado com sucesso!`);
+        
+        scrollToNewGroup(day, newGroupId);
     }).catch(error => {
         console.error('❌ Erro ao salvar novo grupo:', error);
         alert('Erro ao criar grupo. Tente novamente.');
         delete scheduleData[day][newGroupId];
+        lastCreatedGroupId = null;
     });
 }
+
 
 function openUserModal(day, groupId) {
     if (!checkAuth()) return;
@@ -178,9 +189,15 @@ function deleteGroup(day, groupId) {
     const group = scheduleData[day]?.[groupId];
     if (!group) return;
     
-    const groupDisplayName = isSpecificActivity(group.categoria) 
-        ? group.categoria 
-        : `Grupo ${group.numeroGrupo}`;
+    // *** NOVA LÓGICA PARA NOME DO GRUPO ***
+    let groupDisplayName;
+    if (isSpecificActivity(group.categoria)) {
+        groupDisplayName = group.categoria;
+    } else if (group.numeroGrupo) {
+        groupDisplayName = `Grupo ${group.numeroGrupo}`;
+    } else {
+        groupDisplayName = "Grupo sem número";
+    }
     
     if (confirm(`Tem certeza que deseja excluir completamente o ${groupDisplayName}?\n\nEsta ação não pode ser desfeita.`)) {
         delete scheduleData[day][groupId];
@@ -192,7 +209,6 @@ function deleteGroup(day, groupId) {
         }).catch(error => {
             console.error('❌ Erro ao deletar grupo:', error);
             alert('Erro ao deletar grupo. Tente novamente.');
-            // Restaura o grupo em caso de erro
             scheduleData[day][groupId] = group;
         });
     }
@@ -974,6 +990,8 @@ document.addEventListener("DOMContentLoaded", () => {
     switchToTab('grade');
     updateTabsVisibility();
     updateUserStatus();
+
+    addTimestampToExistingGroups();
     
     // Garante que os filtros funcionem
     const categoryFilter = document.getElementById('categoryFilter');
@@ -1185,6 +1203,7 @@ const timeSlots = [
 let scheduleData = {};
 let masterProfessionals = [];
 let currentModalContext = {};
+let lastCreatedGroupId = null;
 
 // categorias disponíveis para os grupos
 const groupCategories = [
@@ -1209,11 +1228,17 @@ function isSpecificActivity(category) {
 
 function getGroupHeaderText(day, groupId, category) {
     const groupData = scheduleData[day]?.[groupId];
-    const numero = groupData?.numeroGrupo || groupId; // Usa o novo número
+    const numero = groupData?.numeroGrupo;
 
     if (isSpecificActivity(category)) {
         return `📋 ${category} – ${dayNames[day]}`;
     }
+    
+    // *** NOVA LÓGICA: Se não tem número, mostra apenas "Grupo"
+    if (!numero) {
+        return `👥 Grupo – ${dayNames[day]}`;
+    }
+    
     return `👥 Grupo ${numero} – ${dayNames[day]}`;
 }
 
@@ -1461,25 +1486,37 @@ function updateGroupNumber(day, groupId, newNumber) {
         alert("⛔ Faça login para alterar o número do grupo!");
         const groupData = scheduleData[day]?.[groupId];
         if (groupData) {
-            document.getElementById(`gn-input-${day}-${groupId}`).value = groupData.numeroGrupo;
+            document.getElementById(`gn-input-${day}-${groupId}`).value = groupData.numeroGrupo || "";
         }
         return false;
     }
 
-    if (!newNumber || newNumber.trim() === '') {
-        alert('❌ O número do grupo não pode ser vazio.');
-        const groupData = scheduleData[day]?.[groupId];
-        if (groupData) {
-            document.getElementById(`gn-input-${day}-${groupId}`).value = groupData.numeroGrupo;
+    // *** PERMITE NÚMERO VAZIO ***
+    const trimmedNumber = newNumber.trim();
+    
+    // Verifica se já existe outro grupo com esse número (apenas se número foi informado)
+    if (trimmedNumber) {
+        const existingGroup = Object.values(scheduleData[day] || {}).find(group => 
+            group.numeroGrupo === trimmedNumber && group !== scheduleData[day][groupId]
+        );
+        
+        if (existingGroup) {
+            alert(`❌ Já existe outro grupo com o número "${trimmedNumber}" na ${dayNames[day]}`);
+            // Restaura o valor anterior
+            const groupData = scheduleData[day]?.[groupId];
+            if (groupData) {
+                document.getElementById(`gn-input-${day}-${groupId}`).value = groupData.numeroGrupo || "";
+            }
+            return false;
         }
-        return false;
     }
 
-    scheduleData[day][groupId].numeroGrupo = newNumber.trim();
+    // *** PERMITE SALVAR NÚMERO VAZIO ***
+    scheduleData[day][groupId].numeroGrupo = trimmedNumber;
 
     saveScheduleData().then(() => {
-        console.log(`✅ Número do Grupo ${groupId} atualizado para "${newNumber}"`);
-        // Atualiza o cabeçalho para refletir a mudança, se necessário
+        const displayText = trimmedNumber ? `"${trimmedNumber}"` : 'sem número';
+        console.log(`✅ Número do Grupo ${groupId} atualizado para ${displayText}`);
         updateGroupHeaderText(day, groupId, scheduleData[day][groupId].categoria);
     }).catch(error => {
         console.error('❌ Erro ao salvar o número do grupo:', error);
@@ -1512,21 +1549,22 @@ function updateGroupHeaderText(day, groupId, category) {
     const groupData = scheduleData[day]?.[groupId];
 
     if (headerElement && groupData) {
-        const numero = groupData.numeroGrupo || groupId; // Usa o novo número
+        const numero = groupData.numeroGrupo || ""; // *** PERMITE VAZIO ***
 
         if (isSpecificActivity(category)) {
             // Se for uma atividade específica, o input do número não deve aparecer
             headerElement.innerHTML = `📋 ${category} – ${dayNames[day]}`;
         } else {
-            // Remonta o HTML com o input
+            // Remonta o HTML com o input (agora opcional)
             headerElement.innerHTML = `
                 👥 Grupo 
                 <input type="text" 
                        class="group-number-input" 
                        id="gn-input-${day}-${groupId}"
                        value="${numero}"
+                       placeholder="Opcional"
                        onchange="updateGroupNumber('${day}', ${groupId}, this.value)"
-                       size="2"
+                       size="8"
                        ${!isAuthenticated ? 'disabled' : ''}>
                  – ${dayNames[day]}
             `;
@@ -1820,6 +1858,7 @@ function updateTabsVisibility() {
 
 // visualizaçao dos grupos
 
+// Substitua a função renderGroupsForDay existente por esta versão:
 function renderGroupsForDay(day) {
     const container = document.getElementById(`groups-${day}`);
     if (!container) return;
@@ -1836,21 +1875,82 @@ function renderGroupsForDay(day) {
         return;
     }
     
-    // Ordena os grupos por número
+    // *** LÓGICA DE ORDENAÇÃO ***
     const sortedGroups = Object.entries(scheduleData[day])
-        .sort(([,a], [,b]) => {
-            const numA = parseInt(a.numeroGrupo) || 0;
-            const numB = parseInt(b.numeroGrupo) || 0;
-            return numA - numB;
+        .sort(([idA, groupA], [idB, groupB]) => {
+            // Se há um grupo recém-criado, ele vai para o topo
+            if (lastCreatedGroupId) {
+                if (idA == lastCreatedGroupId) return -1;
+                if (idB == lastCreatedGroupId) return 1;
+            }
+            
+            // Para os demais, ordena por timestamp de criação (mais recente primeiro)
+            // Se não há createdAt, usa o ID como fallback
+            const timeA = groupA.createdAt || parseInt(idA);
+            const timeB = groupB.createdAt || parseInt(idB);
+            
+            return timeB - timeA; // Ordem decrescente (mais recente primeiro)
         });
     
     sortedGroups.forEach(([groupId, groupData]) => {
         const groupElement = createGroupElement(day, groupId);
+        
+        // *** DESTAQUE VISUAL PARA O GRUPO RECÉM-CRIADO ***
+        if (groupId == lastCreatedGroupId) {
+            groupElement.classList.add('newly-created');
+            
+            // Remove o destaque após 3 segundos
+            setTimeout(() => {
+                groupElement.classList.remove('newly-created');
+                lastCreatedGroupId = null; // Limpa após o destaque
+            }, 3000);
+        }
+        
         container.appendChild(groupElement);
         
         // Renderiza dados existentes
         renderUsers(day, groupId);
         renderProfessionals(day, groupId);
+    });
+}
+
+
+function scrollToNewGroup(day, groupId) {
+    // Aguarda um pouco para garantir que o DOM foi atualizado
+    setTimeout(() => {
+        const groupElement = document.querySelector(`#groups-${day} .group.newly-created`);
+        if (groupElement) {
+            groupElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }, 100);
+}
+
+// Adicione esta função para dar timestamp aos grupos existentes:
+function addTimestampToExistingGroups() {
+    const currentTime = Date.now();
+    let counter = 0;
+    
+    days.forEach(day => {
+        if (scheduleData[day]) {
+            Object.keys(scheduleData[day]).forEach(groupId => {
+                const group = scheduleData[day][groupId];
+                if (group && !group.createdAt) {
+                    // Adiciona timestamp baseado no ID (mais antigo = menor timestamp)
+                    group.createdAt = currentTime - (counter * 1000);
+                    counter++;
+                }
+            });
+        }
+    });
+    
+    // Salva as mudanças
+    saveScheduleData().then(() => {
+        console.log('✅ Timestamps adicionados aos grupos existentes');
+    }).catch(error => {
+        console.error('❌ Erro ao adicionar timestamps:', error);
     });
 }
 
@@ -1861,9 +1961,11 @@ function createGroupElement(day, groupId) {
     const groupData = scheduleData[day]?.[groupId] || { categoria: "", horario: "09:00" };
     
     // Garante a existência do numeroGrupo para compatibilidade
-    if (!groupData.numeroGrupo) {
-        groupData.numeroGrupo = groupId.toString();
+    if (groupData.numeroGrupo === undefined) {
+        groupData.numeroGrupo = "";
     }
+
+    const numero = groupData.numeroGrupo || ""; // *** PERMITE VAZIO ***
 
     div.innerHTML = `
         <div class="group-header">
@@ -1872,9 +1974,10 @@ function createGroupElement(day, groupId) {
                 <input type="text" 
                        class="group-number-input" 
                        id="gn-input-${day}-${groupId}"
-                       value="${groupData.numeroGrupo}"
+                       value="${numero}"
+                       placeholder="Opcional"
                        onchange="updateGroupNumber('${day}', '${groupId}', this.value)"
-                       size="2"
+                       size="8"
                        ${!isAuthenticated ? 'disabled' : ''}>
                  – ${dayNames[day]}
             </span>

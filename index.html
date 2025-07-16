@@ -326,9 +326,13 @@
         </div>
         <form id="createGroupForm">
             <div class="form-group">
-                <label>Número do Grupo:</label>
-                <input type="text" id="newGroupNumber" required>
-            </div>
+    <label>Número do Grupo (Opcional):</label>
+    <input type="text" 
+           id="newGroupNumber" 
+           placeholder=""
+           maxlength="10">
+    <small class="field-hint">💡 O número é opcional. Grupos sem número serão exibidos apenas como "Grupo"</small>
+</div>
             <div class="form-group">
                 <label>Categoria:</label>
                 <select id="newGroupCategory" required>

@@ -2206,4 +2206,165 @@ body {
     }
 }
 
+/* ============================================================================
+   ESTILOS PARA DESTAQUE DO GRUPO RECÉM-CRIADO
+   Adicione este CSS ao final do seu style.css
+   ============================================================================ */
+
+/* Destaque visual para o grupo recém-criado */
+.group.newly-created {
+    animation: newGroupHighlight 3s ease-in-out;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3) !important;
+    position: relative;
+    overflow: visible;
+}
+
+/* Animação de destaque */
+@keyframes newGroupHighlight {
+    0% {
+        background-color: #d1fae5;
+        transform: scale(1.02);
+    }
+    30% {
+        background-color: #a7f3d0;
+        transform: scale(1.01);
+    }
+    70% {
+        background-color: #d1fae5;
+        transform: scale(1.005);
+    }
+    100% {
+        background-color: white;
+        transform: scale(1);
+    }
+}
+
+/* Cabeçalho do grupo recém-criado */
+.group.newly-created .group-header {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    animation: pulseHeader 2s ease-in-out infinite;
+    position: relative;
+}
+
+/* Animação do cabeçalho */
+@keyframes pulseHeader {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    }
+}
+
+/* Badge "NOVO" no canto superior direito */
+.group.newly-created::before {
+    content: "NOVO";
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    z-index: 10;
+    animation: badgePulse 1s ease-in-out infinite alternate;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Animação do badge */
+@keyframes badgePulse {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+/* Transição suave quando o destaque é removido */
+.group {
+    transition: all 0.5s ease;
+}
+
+/* Ajuste para garantir que o badge funcione em mobile */
+@media (max-width: 768px) {
+    .group.newly-created::before {
+        top: -3px;
+        right: -3px;
+        font-size: 0.65rem;
+        padding: 3px 6px;
+    }
+}
+
+/* Efeito de brilho adicional */
+.group.newly-created::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(16, 185, 129, 0.1) 50%, transparent 70%);
+    pointer-events: none;
+    animation: shimmer 3s ease-in-out;
+    border-radius: 12px;
+}
+
+/* Animação de brilho */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Garantir que o scroll suave funcione */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Ajustar a visibilidade do container para o scroll */
+.content {
+    scroll-behavior: smooth;
+}
+
+/* Destaque adicional para os controles do grupo recém-criado */
+.group.newly-created .group-controls select {
+    border-color: #10b981 !important;
+    background-color: #f0fdf4 !important;
+}
+
+.group.newly-created .group-controls .btn-add {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Animação de entrada mais suave */
+.group.newly-created {
+    animation: newGroupHighlight 3s ease-in-out, slideInFromTop 0.5s ease-out;
+}
+
+@keyframes slideInFromTop {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Ajustes para temas escuros (se implementar no futuro) */
+@media (prefers-color-scheme: dark) {
+    .group.newly-created::before {
+        background: #10b981;
+    }
+}
+
 }
