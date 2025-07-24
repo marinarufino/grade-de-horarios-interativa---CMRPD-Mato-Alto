@@ -985,7 +985,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Inicializa Firebase primeiro
     initializeFirebase();
-    loadOrientacaoData();
+    
     // Inicia com Grade ativa
     switchToTab('grade');
     updateTabsVisibility();
@@ -1282,6 +1282,8 @@ function initializeFirebase() {
     
     // Carrega dados iniciais
     loadAllData();
+    loadOrientacaoData();
+    setupOrientacaoRealtimeSync();
 }
 
 function createConnectionIndicator() {
@@ -2255,6 +2257,8 @@ function renderOrientacaoGrid() {
 function updateOrientacao(day, timeSlot, value) {
     if (!isAuthenticated) {
         alert("⛔ Faça login como administrador para editar!");
+        // Restaura o valor anterior
+        renderOrientacaoGrid();
         return;
     }
     
@@ -2268,27 +2272,99 @@ function updateOrientacao(day, timeSlot, value) {
     const cell = event.target;
     if (value.trim()) {
         cell.classList.add('filled');
-        cell.classList.remove('orientacao-cell');
-        cell.classList.add('orientacao-cell', 'filled');
     } else {
         cell.classList.remove('filled');
-        cell.classList.add('orientacao-cell');
     }
+    
+    // Salva automaticamente no Firebase com debounce
+    clearTimeout(window.orientacaoSaveTimeout);
+    window.orientacaoSaveTimeout = setTimeout(() => {
+        saveOrientacaoData();
+    }, 1000); // Aguarda 1 segundo após parar de digitar
+}
+
+
+
+
+function showOrientacaoStatus(message, type = 'success') {
+    let status = document.getElementById('orientacao-status');
+    if (!status) {
+        status = document.createElement('div');
+        status.id = 'orientacao-status';
+        status.className = 'orientacao-status';
+        document.body.appendChild(status);
+    }
+    
+    status.textContent = message;
+    status.style.background = type === 'success' ? '#10b981' : '#ef4444';
+    status.classList.add('show');
+    
+    setTimeout(() => {
+        status.classList.remove('show');
+    }, 2000);
 }
 
 // Salva dados no Firebase (placeholder - você pode implementar depois)
 function saveOrientacaoData() {
     if (!isAuthenticated || !isFirebaseConnected) return;
     
-    // Aqui você pode implementar a salvamento no Firebase se quiser
-    console.log('💾 Dados de orientação salvos:', orientacaoData);
+    showOrientacaoStatus('Salvando...', 'info');
+    
+    return db().ref('orientacao-parental').set(orientacaoData)
+        .then(() => {
+            console.log('✅ Dados de orientação parental salvos no Firebase');
+            showOrientacaoStatus('✅ Salvo!', 'success');
+        })
+        .catch(error => {
+            console.error('❌ Erro ao salvar orientação parental:', error);
+            showOrientacaoStatus('❌ Erro ao salvar', 'error');
+        });
 }
+
+
 
 // Carrega dados do Firebase (placeholder)
 function loadOrientacaoData() {
-    // Aqui você pode implementar o carregamento do Firebase se quiser
-    console.log('📥 Carregando dados de orientação...');
-    initializeOrientacaoData();
+    console.log('📥 Carregando dados de orientação parental...');
+    
+    db().ref('orientacao-parental').once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            orientacaoData = data;
+            console.log('✅ Dados de orientação parental carregados');
+        } else {
+            console.log('📋 Nenhum dado de orientação encontrado - inicializando estrutura');
+            initializeOrientacaoData();
+            // Salva estrutura inicial se conectado
+            if (isFirebaseConnected && isAuthenticated) {
+                saveOrientacaoData();
+            }
+        }
+        
+        // Se a aba orientação estiver ativa, renderiza
+        const activeTab = document.querySelector('.tab.active');
+        if (activeTab && activeTab.dataset.day === 'orientacao-parental') {
+            renderOrientacaoGrid();
+        }
+    }).catch(error => {
+        console.error('❌ Erro ao carregar orientação parental:', error);
+        initializeOrientacaoData();
+    });
 }
-
+function setupOrientacaoRealtimeSync() {
+    // Configura sincronização em tempo real
+    db().ref('orientacao-parental').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && JSON.stringify(data) !== JSON.stringify(orientacaoData)) {
+            orientacaoData = data;
+            console.log('🔄 Orientação parental atualizada em tempo real');
+            
+            // Atualiza a grade se estiver na aba
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab && activeTab.dataset.day === 'orientacao-parental') {
+                renderOrientacaoGrid();
+            }
+        }
+    });
+}
 

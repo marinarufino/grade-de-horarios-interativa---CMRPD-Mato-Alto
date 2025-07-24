@@ -2366,5 +2366,30 @@ html {
         background: #10b981;
     }
 }
+/* Indicador de salvamento para orientação parental */
+.orientacao-cell.saving {
+    background-color: #fef3c7 !important;
+    border: 2px solid #f59e0b !important;
+}
+
+.orientacao-status {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.orientacao-status.show {
+    opacity: 1;
+}
 
 }
