@@ -13,14 +13,11 @@ function openCreateGroupModal(day) {
 
 // funçao criar novo grupo
 function createNewGroup() {
-    const { day } = currentModalContext;
+    const { day, groupId, type } = currentModalContext;
     
     const numeroGrupo = document.getElementById('newGroupNumber').value.trim();
     const categoria = document.getElementById('newGroupCategory').value;
     const horario = document.getElementById('newGroupTime').value;
-    
-    // *** REMOVIDA A VALIDAÇÃO OBRIGATÓRIA DO NÚMERO ***
-    // Agora o número é opcional
     
     if (!categoria) {
         alert('Por favor, selecione uma categoria');
@@ -29,8 +26,8 @@ function createNewGroup() {
     
     // Verifica se já existe um grupo com esse número no mesmo dia (apenas se número foi informado)
     if (numeroGrupo) {
-        const existingGroup = Object.values(scheduleData[day] || {}).find(group => 
-            group.numeroGrupo === numeroGrupo
+        const existingGroup = Object.entries(scheduleData[day] || {}).find(([id, group]) => 
+            group.numeroGrupo === numeroGrupo && (type !== "edit-group" || parseInt(id) !== groupId)
         );
         
         if (existingGroup) {
@@ -39,45 +36,66 @@ function createNewGroup() {
         }
     }
     
-    // Cria novo ID único para o grupo
-    const newGroupId = Date.now();
-    
-    // Armazena o ID do grupo recém-criado
-    lastCreatedGroupId = newGroupId;
-    
-    // Inicializa o dia se não existir
-    if (!scheduleData[day]) {
-        scheduleData[day] = {};
+    if (type === "edit-group") {
+        // Editando grupo existente
+        if (!scheduleData[day] || !scheduleData[day][groupId]) {
+            alert('Grupo não encontrado!');
+            return;
+        }
+        
+        scheduleData[day][groupId].numeroGrupo = numeroGrupo || "";
+        scheduleData[day][groupId].horario = horario;
+        scheduleData[day][groupId].categoria = categoria;
+        
+        saveScheduleData().then(() => {
+            console.log('✅ Grupo editado e salvo no Firebase');
+            renderGroupsForDay(day);
+            updateDashboard();
+            updateGradeView(); // Atualiza a grade também
+            closeModal('createGroupModal');
+            
+            const groupDisplayName = numeroGrupo ? `Grupo ${numeroGrupo}` : 'Grupo sem número';
+            alert(`${groupDisplayName} editado com sucesso!`);
+        }).catch(error => {
+            console.error('❌ Erro ao salvar grupo editado:', error);
+            alert('Erro ao editar grupo. Tente novamente.');
+        });
+    } else {
+        // Criando novo grupo
+        const newGroupId = Date.now();
+        lastCreatedGroupId = newGroupId;
+        
+        if (!scheduleData[day]) {
+            scheduleData[day] = {};
+        }
+        
+        scheduleData[day][newGroupId] = {
+            numeroGrupo: numeroGrupo || "",
+            horario: horario,
+            categoria: categoria,
+            usuarios: [],
+            profissionais: [],
+            createdAt: Date.now()
+        };
+        
+        saveScheduleData().then(() => {
+            console.log('✅ Novo grupo criado e salvo no Firebase');
+            renderGroupsForDay(day);
+            updateDashboard();
+            updateGradeView(); // Atualiza a grade também
+            closeModal('createGroupModal');
+            
+            const groupDisplayName = numeroGrupo ? `Grupo ${numeroGrupo}` : 'Grupo sem número';
+            alert(`${groupDisplayName} criado com sucesso!`);
+            
+            scrollToNewGroup(day, newGroupId);
+        }).catch(error => {
+            console.error('❌ Erro ao salvar novo grupo:', error);
+            alert('Erro ao criar grupo. Tente novamente.');
+            delete scheduleData[day][newGroupId];
+            lastCreatedGroupId = null;
+        });
     }
-    
-    // Cria o novo grupo
-    scheduleData[day][newGroupId] = {
-        numeroGrupo: numeroGrupo || "", // *** PERMITE NÚMERO VAZIO ***
-        horario: horario,
-        categoria: categoria,
-        usuarios: [],
-        profissionais: [],
-        createdAt: Date.now()
-    };
-    
-    // Salva no Firebase
-    saveScheduleData().then(() => {
-        console.log('✅ Novo grupo criado e salvo no Firebase');
-        renderGroupsForDay(day);
-        updateDashboard();
-        closeModal('createGroupModal');
-        
-        // *** MENSAGEM ADAPTADA ***
-        const groupDisplayName = numeroGrupo ? `Grupo ${numeroGrupo}` : 'Grupo sem número';
-        alert(`${groupDisplayName} criado com sucesso!`);
-        
-        scrollToNewGroup(day, newGroupId);
-    }).catch(error => {
-        console.error('❌ Erro ao salvar novo grupo:', error);
-        alert('Erro ao criar grupo. Tente novamente.');
-        delete scheduleData[day][newGroupId];
-        lastCreatedGroupId = null;
-    });
 }
 
 
@@ -177,6 +195,13 @@ function openManageDaysOffModal(professionalId) {
 
 function closeModal(id) {
     document.getElementById(id).style.display = "none";
+    
+    // Restaura o título original do modal de criar grupo
+    if (id === 'createGroupModal') {
+        document.querySelector('#createGroupModal .modal-title').textContent = '➕ Criar Novo Grupo';
+        document.querySelector('#createGroupModal .btn-confirm').textContent = 'Criar Grupo';
+    }
+    
     currentModalContext = {};
 }
 
@@ -206,6 +231,7 @@ function deleteGroup(day, groupId) {
             console.log('✅ Grupo deletado e salvo no Firebase');
             renderGroupsForDay(day);
             updateDashboard();
+            updateGradeView(); // Atualiza a grade também
         }).catch(error => {
             console.error('❌ Erro ao deletar grupo:', error);
             alert('Erro ao deletar grupo. Tente novamente.');
@@ -409,13 +435,200 @@ function showProfessionalDetails(profId) {
 
 // grade de horários
 
+let isGroupManagementMode = false;
+let currentGradeSelectedDay = '';
+let editableBlockCounter = 0;
+
+function openCreateGroupModalFromGrade() {
+    if (!checkAuth()) return;
+    
+    const selectedDay = document.getElementById('gradeWeekdayFilter').value;
+    if (!selectedDay) {
+        alert('Por favor, selecione um dia da semana primeiro para criar o grupo.');
+        return;
+    }
+    
+    currentModalContext = { day: selectedDay, type: "create-group" };
+    document.getElementById('createGroupForm').reset();
+    document.getElementById('createGroupModal').style.display = 'block';
+    document.getElementById('newGroupNumber').focus();
+}
+
+function openEditGroupModal(day, groupId) {
+    if (!checkAuth()) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) {
+        alert('Grupo não encontrado!');
+        return;
+    }
+    
+    // Popula o modal com os dados atuais do grupo
+    document.getElementById('newGroupNumber').value = group.numeroGrupo || '';
+    document.getElementById('newGroupCategory').value = group.categoria || '';
+    document.getElementById('newGroupTime').value = group.horario || '09:00';
+    
+    // Altera o contexto para edição
+    currentModalContext = { day, groupId: parseInt(groupId), type: "edit-group" };
+    
+    // Muda o título do modal
+    document.querySelector('#createGroupModal .modal-title').textContent = '✏️ Editar Grupo';
+    document.querySelector('#createGroupModal .btn-confirm').textContent = 'Salvar Alterações';
+    
+    document.getElementById('createGroupModal').style.display = 'block';
+    document.getElementById('newGroupNumber').focus();
+}
+
+function toggleGroupManagementMode() {
+    if (!checkAuth()) return;
+    
+    isGroupManagementMode = !isGroupManagementMode;
+    const btn = document.querySelector('.btn-manage-groups');
+    
+    if (isGroupManagementMode) {
+        btn.textContent = '✅ Sair do Modo Gerenciamento';
+        btn.style.background = '#ef4444';
+    } else {
+        btn.textContent = '⚙️ Gerenciar Grupos';
+        btn.style.background = '';
+    }
+    
+    updateGradeView();
+}
+
+function createEditableActivityBlock(activity, day, timeSlot, index) {
+    const blockId = `activity-${day}-${timeSlot}-${index}`;
+    let groupName = '';
+    let usersList = '';
+    let professionalsList = '';
+
+    // Monta o nome do grupo
+    if (isSpecificActivity(activity.categoria)) {
+        groupName = activity.categoria;
+    } else {
+        groupName = activity.numeroGrupo ? `Grupo ${activity.numeroGrupo}` : 'Grupo';
+        if (activity.categoria) {
+            groupName += ` - ${activity.categoria}`;
+        }
+    }
+
+    // Monta lista de usuários
+    usersList = activity.usuarios.join(', ');
+
+    // Monta lista de profissionais
+    professionalsList = activity.profissionais.join(', ');
+
+    return `
+        <div class="editable-activity-block" id="${blockId}" data-group-id="${activity.groupId}">
+            <div class="block-controls">
+                <button class="btn-remove-block" onclick="removeActivityBlock('${day}', '${activity.groupId}')" title="Remover bloco">❌</button>
+            </div>
+            <div class="editable-field">
+                <label>Grupo:</label>
+                <input type="text" class="group-name-input" value="${groupName}" 
+                       onblur="updateActivityData('${day}', '${activity.groupId}', 'groupName', this.value)"
+                       placeholder="Nome do grupo">
+            </div>
+            <div class="editable-field">
+                <label>Usuários:</label>
+                <textarea class="users-input" rows="2" 
+                          onblur="updateActivityData('${day}', '${activity.groupId}', 'users', this.value)"
+                          placeholder="Lista de usuários (separados por vírgula)">${usersList}</textarea>
+            </div>
+            <div class="editable-field">
+                <label>Profissionais:</label>
+                <div class="professionals-section">
+                    <div class="current-professionals">${professionalsList || 'Nenhum profissional'}</div>
+                    <button class="btn-manage-professionals" onclick="openProfessionalModal('${day}', '${activity.groupId}')">
+                        👨‍⚕️ Gerenciar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createEmptyEditableBlock(day, timeSlot) {
+    const blockId = `empty-${day}-${timeSlot}-${++editableBlockCounter}`;
+    
+    return `
+        <div class="editable-activity-block empty-block" id="${blockId}">
+            <div class="editable-field">
+                <label>Novo Grupo:</label>
+                <input type="text" class="group-name-input" 
+                       onblur="createNewActivityFromInput(this, '${day}', '${timeSlot}')"
+                       placeholder="Digite o nome do grupo para criar">
+            </div>
+        </div>
+    `;
+}
+
+function createReadOnlyActivityBlock(activity) {
+    let activityClass = 'day-activity readonly';
+    if (activity.categoria === 'EVOLUÇÃO') {
+        activityClass += ' evolucao';
+    } else if (activity.categoria === 'REUNIÃO GAIA') {
+        activityClass += ' reuniao-gaia';
+    } else if (activity.categoria === 'GAIA') {
+        activityClass += ' gaia';
+    } else if (activity.categoria === 'INDIVIDUAL') {
+        activityClass += ' individual';
+    }
+    
+    let html = `<div class="${activityClass}">`;
+    
+    if (isSpecificActivity(activity.categoria)) {
+        if (activity.categoria === "INDIVIDUAL") {
+            html += `<div class="day-activity-name">INDIVIDUAL</div>`;
+            if (activity.usuarios.length > 0) {
+                html += `<div class="day-activity-details">👤 ${activity.usuarios.join(' - ')}</div>`;
+            }
+        } else {
+            html += `<div class="day-activity-name">${activity.categoria}</div>`;
+        }
+    } else {
+        const groupDisplayText = activity.categoria && activity.categoria !== '' 
+            ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.categoria.toUpperCase()}`
+            : `Grupo ${activity.numeroGrupo || activity.groupId} - Sem categoria`;
+        
+        html += `<div class="day-activity-name">${groupDisplayText}</div>`;
+        
+        if (activity.usuarios.length > 0) {
+            html += `<div class="day-activity-details">👤 ${activity.usuarios.join(' - ')}</div>`;
+        }
+    }
+    
+    if (activity.profissionais.length > 0) {
+        html += `<div class="day-activity-details">👨‍⚕️ ${activity.profissionais.join(', ')}</div>`;
+    }
+    
+    html += `</div>`;
+    return html;
+}
 
 function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
     const selectedWeekday = document.getElementById('gradeWeekdayFilter').value;
     const gradeContent = document.getElementById('grade-content');
+    const gradeActions = document.getElementById('gradeActions');
 
     console.log('Filtros selecionados:', { selectedCategory, selectedWeekday });
+    
+    // Armazena o dia selecionado para uso em outras funções
+    currentGradeSelectedDay = selectedWeekday;
+
+    // Mostra/esconde botões de ação baseado na seleção de dia e autenticação
+    if (selectedWeekday && isAuthenticated) {
+        gradeActions.style.display = 'block';
+    } else {
+        gradeActions.style.display = 'none';
+        isGroupManagementMode = false;
+        const btn = document.querySelector('.btn-manage-groups');
+        if (btn) {
+            btn.textContent = '⚙️ Gerenciar Grupos';
+            btn.style.background = '';
+        }
+    }
 
     // Se nenhum filtro selecionado
     if (!selectedCategory && !selectedWeekday) {
@@ -466,7 +679,7 @@ function showDayOverview(selectedDay) {
         const availableProfessionals = getProfessionalsAvailableAtTime(selectedDay, timeSlot);
         
         html += `<tr data-time="${timeSlot}">
-            <td class="time-column" data-label="Horário">${timeSlot}</td>
+            <td class="time-column" data-label="Horário"><div class="time-content">${timeSlot}</div></td>
             <td class="activities-column" data-label="Atividades">`;
         
         if (activities.length > 0) {
@@ -487,7 +700,17 @@ function showDayOverview(selectedDay) {
                     activityClass += ' specific';
                 }
                 
-                html += `<div class="${activityClass}" data-activity-index="${index}">`;
+                html += `<div class="${activityClass}" data-activity-index="${index}" data-group-id="${activity.groupId}">`;
+                
+                // Adiciona botões de gerenciamento se estiver no modo gerenciamento
+                if (isGroupManagementMode && isAuthenticated) {
+                    html += `<div class="group-management-buttons">
+                        <button class="btn-edit-group" onclick="openEditGroupModal('${selectedDay}', '${activity.groupId}')" title="Editar grupo">✏️</button>
+                        <button class="btn-add-user" onclick="openUserModal('${selectedDay}', '${activity.groupId}')" title="Adicionar usuário">👤+</button>
+                        <button class="btn-add-professional" onclick="openProfessionalModal('${selectedDay}', '${activity.groupId}')" title="Adicionar profissional">👨‍⚕️+</button>
+                        <button class="btn-delete-group-mini" onclick="deleteGroup('${selectedDay}', '${activity.groupId}')" title="Excluir grupo">🗑️</button>
+                    </div>`;
+                }
                 
                 if (isSpecificActivity(activity.categoria)) {
                     if (activity.categoria === "INDIVIDUAL") {
@@ -707,55 +930,68 @@ function generateProfessionalGridForDay(professional, selectedDay) {
             const activities = getProfessionalActivitiesAtTime(professional.id, selectedDay, timeSlot);
             const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
 
-            gridHTML += `<td class="${cellClass}">`;
-            if (activities.length > 0) {
-                activities.forEach(activity => {
-                    let activityClass = 'activity-item';
-                    if (activity.groupCategory === 'EVOLUÇÃO') {
-                        activityClass += ' evolucao';
-                    } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+            gridHTML += `<td class="${cellClass}" data-day="${selectedDay}" data-time="${timeSlot}" data-prof-id="${professional.id}">`;
+            
+            if (isAuthenticated) {
+                // Versão editável para administradores
+                if (activities.length > 0) {
+                    activities.forEach(activity => {
+                        gridHTML += createEditableActivityBlockForProfessional(activity, selectedDay, timeSlot);
+                    });
+                }
+                // Botão para adicionar novo grupo para este profissional
+                gridHTML += `<button class="btn-add-activity-for-prof" 
+                           onclick="addActivityForProfessional('${selectedDay}', '${timeSlot}', ${professional.id})"
+                           title="Adicionar atividade">➕</button>`;
+            } else {
+                // Versão somente leitura
+                if (activities.length > 0) {
+                    activities.forEach(activity => {
+                        let activityClass = 'activity-item readonly';
+                        if (activity.groupCategory === 'EVOLUÇÃO') {
+                            activityClass += ' evolucao';
+                        } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                            activityClass += ' reuniao-gaia';
                         } else if (activity.groupCategory === 'GAIA') {
-                     activityClass += ' gaia';
-                        
-                        activityClass += ' reuniao-gaia';
-                    } else if (activity.groupCategory === 'INDIVIDUAL') {
-                        activityClass += ' individual';
-                    }
-
-                    if (isSpecificActivity(activity.groupCategory)) {
-                        if (activity.groupCategory === "INDIVIDUAL") {
-                            gridHTML += `<div class="${activityClass}">
-                                <div class="activity-group">INDIVIDUAL</div>`;
-                            if (activity.userNames !== 'Nenhum usuário') {
-                                gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
-                            }
-                            gridHTML += `</div>`;
-                        } else {
-    gridHTML += `<div class="${activityClass}">
-        <div class="activity-group">${activity.groupCategory}</div>`;
-    
-    if (activity.allProfessionals && activity.allProfessionals.length > 1) {
-        gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
-    }
-    
-    gridHTML += `</div>`;
-}
-                    } else {
-                        
-const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-    : `Grupo ${activity.numeroGrupo || activity.groupId}`;
-                        
-                        gridHTML += `<div class="${activityClass}">
-                            <div class="activity-group">${groupDisplayText}</div>`;
-                        
-                        if (activity.userNames !== 'Nenhum usuário') {
-                            gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                            activityClass += ' gaia';
+                        } else if (activity.groupCategory === 'INDIVIDUAL') {
+                            activityClass += ' individual';
                         }
-                        
-                        gridHTML += `</div>`;
-                    }
-                });
+
+                        if (isSpecificActivity(activity.groupCategory)) {
+                            if (activity.groupCategory === "INDIVIDUAL") {
+                                gridHTML += `<div class="${activityClass}">
+                                    <div class="activity-group">INDIVIDUAL</div>`;
+                                if (activity.userNames !== 'Nenhum usuário') {
+                                    gridHTML += `<div class="activity-users">👤 ${activity.userNames}</div>`;
+                                }
+                                gridHTML += `</div>`;
+                            } else {
+                                gridHTML += `<div class="${activityClass}">
+                                    <div class="activity-group">${activity.groupCategory}</div>`;
+                                
+                                if (activity.allProfessionals && activity.allProfessionals.length > 1) {
+                                    gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
+                                }
+                                
+                                gridHTML += `</div>`;
+                            }
+                        } else {
+                            const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                                ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                                : `Grupo ${activity.numeroGrupo || activity.groupId}`;
+                            
+                            gridHTML += `<div class="${activityClass}">
+                                <div class="activity-group">${groupDisplayText}</div>`;
+                            
+                            if (activity.userNames !== 'Nenhum usuário') {
+                                gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                            }
+                            
+                            gridHTML += `</div>`;
+                        }
+                    });
+                }
             }
             gridHTML += `</td>`;
             gridHTML += `</tr>`;
@@ -805,64 +1041,143 @@ function generateProfessionalGrid(professional) {
                 gridHTML += `<td class="day-off-cell">🏖️ FOLGA</td>`;
             } else {
                 const activities = getProfessionalActivitiesAtTime(professional.id, day, timeSlot);
-                const cellClass = activities.length > 0 ? 'occupied-cell' : 'empty-cell';
-                gridHTML += `<td class="${cellClass}">`;
-                if (activities.length > 0) {
-                    activities.forEach(activity => {
-                        let activityClass = 'activity-item';
-                        if (activity.groupCategory === 'EVOLUÇÃO') {
-                            activityClass += ' evolucao';
-                        } else if (activity.groupCategory === 'REUNIÃO GAIA') {
-                            activityClass += ' reuniao-gaia';
-                            } else if (activity.groupCategory === 'GAIA') {
-                        activityClass += ' gaia';
-                        } else if (activity.groupCategory === 'INDIVIDUAL') {
-                            activityClass += ' individual';
+                const cellClass = activities.length > 0 ? 'occupied-cell editable-professional-cell' : 'empty-cell editable-professional-cell';
+                
+                gridHTML += `<td class="${cellClass}" 
+                           data-prof-id="${professional.id}" 
+                           data-day="${day}" 
+                           data-time="${timeSlot}"
+                           onclick="makeSpreadsheetCellEditable(this)">`;
+                
+                if (isAuthenticated) {
+                    // Conteúdo editável para administradores
+                    let editableContent = '';
+                    let professionalContent = '';
+                    let groupIds = [];
+                    
+                    if (activities.length > 0) {
+                        activities.forEach(activity => {
+                            groupIds.push(activity.groupId);
+                            if (editableContent) editableContent += '\n';
+                            
+                            let groupLine = '';
+                            if (isSpecificActivity(activity.groupCategory)) {
+                                groupLine = activity.groupCategory;
+                            } else {
+                                groupLine = activity.numeroGrupo ? 
+                                    `Grupo ${activity.numeroGrupo}` : 
+                                    `Grupo ${activity.groupId}`;
+                                if (activity.groupCategory && activity.groupCategory !== 'Sem categoria') {
+                                    groupLine += ` - ${activity.groupCategory}`;
+                                }
+                            }
+                            
+                            editableContent += groupLine;
+                            
+                            if (activity.userNames && activity.userNames !== 'Nenhum usuário') {
+                                const users = activity.userNames.replace('👤 Usuários: ', '');
+                                editableContent += `\n👤 ${users}`;
+                            }
+                        });
+                        
+                        // Gera lista de profissionais do grupo (separada do conteúdo editável)
+                        const group = scheduleData[day]?.[activities[0].groupId];
+                        if (group && group.profissionais && group.profissionais.length > 0) {
+                            professionalContent = group.profissionais.map(profId => {
+                                const prof = masterProfessionals.find(p => p.id === profId);
+                                return prof ? prof.nome : 'Profissional não encontrado';
+                            }).join(', ');
                         }
+                    }
+                    
+                    // Conteúdo editável (grupo e usuários)
+                    gridHTML += `<div class="spreadsheet-cell-content" contenteditable="false">${editableContent.replace(/\n/g, '<br>')}</div>`;
+                    
+                    // Lista de profissionais (protegida, não editável)
+                    if (professionalContent) {
+                        gridHTML += `<div class="cell-professionals-list">`;
+                        
+                        const group = scheduleData[day]?.[activities[0].groupId];
+                        if (group && group.profissionais) {
+                            group.profissionais.forEach(profId => {
+                                const prof = masterProfessionals.find(p => p.id === profId);
+                                if (prof) {
+                                    gridHTML += `<div class="professional-item-inline">
+                                        <span class="prof-name">👨‍⚕️ ${prof.nome}</span>
+                                        <button class="btn-remove-prof-inline" 
+                                                onclick="removeProfessionalFromGroupInline('${day}', '${activities[0].groupId}', ${profId}, event)" 
+                                                title="Remover profissional">❌</button>
+                                    </div>`;
+                                }
+                            });
+                        }
+                        
+                        // Botão para adicionar profissional
+                        gridHTML += `<button class="btn-add-prof-inline" 
+                                   onclick="openAddProfessionalInline('${day}', '${activities[0].groupId}', event)" 
+                                   title="Adicionar profissional">➕</button>`;
+                        
+                        gridHTML += `</div>`;
+                    }
+                    
+                    gridHTML += `<div class="cell-controls">`;
+                    gridHTML += `<div class="cell-edit-indicator">📝</div>`;
+                    
+                    // Botão para gerenciar profissionais (só aparece se há atividade)
+                    if (activities.length > 0) {
+                        const primaryGroupId = activities[0].groupId;
+                        gridHTML += `<button class="btn-manage-cell-professionals" 
+                                   onclick="openProfessionalManagementForCell('${day}', '${primaryGroupId}', event)" 
+                                   title="Gerenciar profissionais deste grupo">👥</button>`;
+                    }
+                    
+                    gridHTML += `</div>`;
+                } else {
+                    // Versão somente leitura para visitantes
+                    if (activities.length > 0) {
+                        activities.forEach(activity => {
+                            let activityClass = 'activity-item readonly';
+                            if (activity.groupCategory === 'EVOLUÇÃO') {
+                                activityClass += ' evolucao';
+                            } else if (activity.groupCategory === 'REUNIÃO GAIA') {
+                                activityClass += ' reuniao-gaia';
+                            } else if (activity.groupCategory === 'GAIA') {
+                                activityClass += ' gaia';
+                            } else if (activity.groupCategory === 'INDIVIDUAL') {
+                                activityClass += ' individual';
+                            }
 
-                        if (isSpecificActivity(activity.groupCategory)) {
-                            if (activity.groupCategory === "INDIVIDUAL") {
+                            if (isSpecificActivity(activity.groupCategory)) {
+                                if (activity.groupCategory === "INDIVIDUAL") {
+                                    gridHTML += `<div class="${activityClass}">
+                                        <div class="activity-group">INDIVIDUAL</div>`;
+                                    if (activity.userNames !== 'Nenhum usuário') {
+                                        gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
+                                    }
+                                    gridHTML += `</div>`;
+                                } else {
+                                    gridHTML += `<div class="${activityClass}">
+                                        <div class="activity-group">${activity.groupCategory}</div>`;
+                                    gridHTML += `</div>`;
+                                }
+                            } else {
+                                const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
+                                    ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
+                                    : `Grupo ${activity.numeroGrupo || activity.groupId}`;
+                                
                                 gridHTML += `<div class="${activityClass}">
-                                    <div class="activity-group">INDIVIDUAL</div>`;
+                                    <div class="activity-group">${groupDisplayText}</div>`;
+                                
                                 if (activity.userNames !== 'Nenhum usuário') {
                                     gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
                                 }
-
-                                if (activity.allProfessionals && activity.allProfessionals.length > 1) {
-                                    gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
-                                }
-
-                                gridHTML += `</div>`;
-                            } else {
-                                gridHTML += `<div class="${activityClass}">
-                                    <div class="activity-group">${activity.groupCategory}</div>`;
-                                
-                                if (activity.allProfessionals && activity.allProfessionals.length > 1) {
-                                    gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
-                                }
                                 
                                 gridHTML += `</div>`;
                             }
-                        } else {
-                            const groupDisplayText = activity.groupCategory && activity.groupCategory !== 'Sem categoria' 
-                                ? `Grupo ${activity.numeroGrupo || activity.groupId} - ${activity.groupCategory.toUpperCase()}`
-                                : `Grupo ${activity.numeroGrupo || activity.groupId}`;
-                            
-                            gridHTML += `<div class="${activityClass}">
-                                <div class="activity-group">${groupDisplayText}</div>`;
-                            
-                            if (activity.userNames !== 'Nenhum usuário') {
-                                gridHTML += `<div class="activity-users">👤 Usuários: ${activity.userNames}</div>`;
-                            }
-                            
-                            if (activity.allProfessionals && activity.allProfessionals.length > 1) {
-                                gridHTML += `<div class="activity-professionals">👨‍⚕️ Profissionais: ${activity.allProfessionals.join(' - ')}</div>`;
-                            }
-                            
-                            gridHTML += `</div>`;
-                        }
-                    });
+                        });
+                    }
                 }
+                
                 gridHTML += `</td>`;
             }
         });
@@ -978,6 +1293,7 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
     if (e.target === document.getElementById("manageDaysOffModal")) closeModal("manageDaysOffModal");
     if (e.target === document.getElementById("createGroupModal")) closeModal("createGroupModal");
+    if (e.target === document.getElementById("manageCellProfessionalsModal")) closeModal("manageCellProfessionalsModal");
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1011,7 +1327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".tab").forEach(tab => {
         tab.addEventListener("click", e => {
             const clickedDay = e.currentTarget.dataset.day;
-            if (!isAuthenticated && ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'].includes(clickedDay)) {
+            if (!isAuthenticated && ['dashboards-relatorios', 'profissionais'].includes(clickedDay)) {
                 alert("⛔ Esta aba requer permissões de administrador!");
                 openLoginModal();
                 return;
@@ -1845,7 +2161,7 @@ function updateUserStatus() {
 
 function updateTabsVisibility() {
     const tabs = document.querySelectorAll('.tab');
-    const restrictedTabs = ['dashboards-relatorios', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'profissionais'];
+    const restrictedTabs = ['dashboards-relatorios', 'profissionais'];
     
     tabs.forEach(tab => {
         const day = tab.dataset.day;
@@ -1855,6 +2171,12 @@ function updateTabsVisibility() {
             tab.style.display = 'none';
         }
     });
+    
+    // Mostra/oculta controles da grade
+    const gradeActions = document.getElementById('gradeActions');
+    if (gradeActions) {
+        gradeActions.style.display = isAuthenticated ? 'flex' : 'none';
+    }
 }
 
 
@@ -2188,6 +2510,642 @@ function getProfessionalsAvailableAtTime(day, timeSlot) {
         return a.categoria.localeCompare(b.categoria);
     });
 }
+
+// Funções para manipulação de blocos editáveis
+
+function updateActivityData(day, groupId, fieldType, value) {
+    if (!isAuthenticated) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    switch (fieldType) {
+        case 'groupName':
+            updateGroupNameFromInput(day, groupId, value);
+            break;
+        case 'users':
+            updateUsersFromInput(day, groupId, value);
+            break;
+    }
+}
+
+function updateGroupNameFromInput(day, groupId, input) {
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    // Parse do input: "Grupo 5 - CENTRO DE CONVIVENCIA" ou "EVOLUÇÃO"
+    let numeroGrupo = '';
+    let categoria = '';
+    
+    if (isSpecificActivity(input.trim().toUpperCase())) {
+        categoria = input.trim().toUpperCase();
+    } else {
+        const match = input.match(/^Grupo\s*(\w+)?\s*(?:-\s*(.+))?$/i);
+        if (match) {
+            numeroGrupo = match[1] || '';
+            categoria = match[2]?.trim().toUpperCase() || '';
+        } else {
+            // Se não segue o padrão, trata como categoria livre
+            categoria = input.trim().toUpperCase();
+        }
+    }
+    
+    group.numeroGrupo = numeroGrupo;
+    group.categoria = categoria;
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Dados do grupo atualizados');
+        updateDashboard();
+    }).catch(error => {
+        console.error('❌ Erro ao salvar:', error);
+    });
+}
+
+function updateUsersFromInput(day, groupId, input) {
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    // Converte o texto em array de objetos usuario
+    const userNames = input.split(',').map(name => name.trim()).filter(name => name);
+    group.usuarios = userNames.map(name => ({
+        nome: name.toUpperCase(),
+        idade: '',
+        deficiencia: '',
+        programa: ''
+    }));
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Lista de usuários atualizada');
+        updateDashboard();
+    }).catch(error => {
+        console.error('❌ Erro ao salvar:', error);
+    });
+}
+
+function createNewActivityFromInput(inputElement, day, timeSlot) {
+    const value = inputElement.value.trim();
+    if (!value) return;
+    
+    const newGroupId = Date.now();
+    
+    if (!scheduleData[day]) {
+        scheduleData[day] = {};
+    }
+    
+    let numeroGrupo = '';
+    let categoria = '';
+    
+    if (isSpecificActivity(value.toUpperCase())) {
+        categoria = value.toUpperCase();
+    } else {
+        const match = value.match(/^Grupo\s*(\w+)?\s*(?:-\s*(.+))?$/i);
+        if (match) {
+            numeroGrupo = match[1] || '';
+            categoria = match[2]?.trim().toUpperCase() || '';
+        } else {
+            categoria = value.toUpperCase();
+        }
+    }
+    
+    scheduleData[day][newGroupId] = {
+        numeroGrupo: numeroGrupo,
+        horario: timeSlot,
+        categoria: categoria,
+        usuarios: [],
+        profissionais: [],
+        createdAt: Date.now()
+    };
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Novo grupo criado na grade');
+        updateDashboard();
+        updateGradeView();
+        
+        // Limpa o input
+        inputElement.value = '';
+    }).catch(error => {
+        console.error('❌ Erro ao criar grupo:', error);
+        alert('Erro ao criar grupo. Tente novamente.');
+        delete scheduleData[day][newGroupId];
+    });
+}
+
+function removeActivityBlock(day, groupId) {
+    if (!isAuthenticated) return;
+    if (!confirm('Tem certeza que deseja remover este grupo?')) return;
+    
+    delete scheduleData[day][groupId];
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Grupo removido');
+        updateDashboard();
+        updateGradeView();
+    }).catch(error => {
+        console.error('❌ Erro ao remover grupo:', error);
+        alert('Erro ao remover grupo. Tente novamente.');
+    });
+}
+
+function createEditableActivityBlockForProfessional(activity, day, timeSlot) {
+    const blockId = `prof-activity-${day}-${timeSlot}-${activity.groupId}`;
+    let groupName = '';
+    let usersList = '';
+
+    // Monta o nome do grupo
+    if (isSpecificActivity(activity.groupCategory)) {
+        groupName = activity.groupCategory;
+    } else {
+        groupName = activity.numeroGrupo ? `Grupo ${activity.numeroGrupo}` : 'Grupo';
+        if (activity.groupCategory && activity.groupCategory !== 'Sem categoria') {
+            groupName += ` - ${activity.groupCategory}`;
+        }
+    }
+
+    // Monta lista de usuários
+    usersList = activity.userNames !== 'Nenhum usuário' ? activity.userNames.replace('👤 Usuários: ', '') : '';
+
+    return `
+        <div class="editable-activity-block-mini" id="${blockId}" data-group-id="${activity.groupId}">
+            <div class="mini-block-controls">
+                <button class="btn-remove-block-mini" onclick="removeActivityBlock('${day}', '${activity.groupId}')" title="Remover">❌</button>
+            </div>
+            <div class="mini-editable-field">
+                <input type="text" class="mini-group-name-input" value="${groupName}" 
+                       onblur="updateActivityData('${day}', '${activity.groupId}', 'groupName', this.value)"
+                       placeholder="Nome do grupo">
+            </div>
+            <div class="mini-editable-field">
+                <textarea class="mini-users-input" rows="1" 
+                          onblur="updateActivityData('${day}', '${activity.groupId}', 'users', this.value)"
+                          placeholder="Usuários (sep. por vírgula)">${usersList}</textarea>
+            </div>
+        </div>
+    `;
+}
+
+function addActivityForProfessional(day, timeSlot, professionalId) {
+    if (!isAuthenticated) return;
+    
+    const newGroupId = Date.now();
+    
+    if (!scheduleData[day]) {
+        scheduleData[day] = {};
+    }
+    
+    scheduleData[day][newGroupId] = {
+        numeroGrupo: '',
+        horario: timeSlot,
+        categoria: '',
+        usuarios: [],
+        profissionais: [professionalId],
+        createdAt: Date.now()
+    };
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Nova atividade criada para o profissional');
+        updateDashboard();
+        updateGradeView();
+    }).catch(error => {
+        console.error('❌ Erro ao criar atividade:', error);
+        alert('Erro ao criar atividade. Tente novamente.');
+        delete scheduleData[day][newGroupId];
+    });
+}
+
+// Funções para edição estilo planilha na grade por profissional
+
+function makeSpreadsheetCellEditable(cell) {
+    if (!isAuthenticated) return;
+    
+    const contentDiv = cell.querySelector('.spreadsheet-cell-content');
+    if (!contentDiv || contentDiv.contentEditable === 'true') return;
+    
+    // Torna editável
+    contentDiv.contentEditable = 'true';
+    contentDiv.focus();
+    
+    // Adiciona bordas para indicar edição
+    cell.classList.add('editing');
+    
+    // Posiciona cursor no final
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(contentDiv);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    
+    // Event listeners para salvar
+    contentDiv.addEventListener('blur', function() {
+        saveSpreadsheetCellContent(cell, contentDiv);
+    });
+    
+    contentDiv.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            contentDiv.blur();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            // Cancela edição - recarrega conteúdo original
+            updateGradeView();
+        }
+    });
+}
+
+function saveSpreadsheetCellContent(cell, contentDiv) {
+    if (!isAuthenticated) return;
+    
+    const profId = parseInt(cell.dataset.profId);
+    const day = cell.dataset.day;
+    const timeSlot = cell.dataset.time;
+    
+    // Remove modo de edição
+    contentDiv.contentEditable = 'false';
+    cell.classList.remove('editing');
+    
+    // Processa o conteúdo
+    const content = contentDiv.innerText || contentDiv.textContent;
+    processCellContent(profId, day, timeSlot, content);
+}
+
+function processCellContent(profId, day, timeSlot, content) {
+    // Remove todas as atividades existentes deste profissional neste horário
+    removeExistingActivitiesForProfessional(profId, day, timeSlot);
+    
+    if (!content.trim()) {
+        // Célula vazia - apenas salva as mudanças
+        saveScheduleData().then(() => {
+            console.log('✅ Atividades removidas');
+            updateDashboard();
+            updateGradeView();
+        });
+        return;
+    }
+    
+    // Processa linhas do conteúdo
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    
+    lines.forEach(line => {
+        if (line.startsWith('👤')) {
+            // Ignora linhas de usuários - serão processadas junto com o grupo
+            return;
+        }
+        
+        // Processa linha de grupo
+        let numeroGrupo = '';
+        let categoria = '';
+        let usuarios = [];
+        
+        // Encontra a próxima linha de usuários se existir
+        const currentIndex = lines.indexOf(line);
+        const nextLine = lines[currentIndex + 1];
+        if (nextLine && nextLine.startsWith('👤')) {
+            const usersText = nextLine.replace('👤', '').trim();
+            usuarios = usersText.split(',').map(name => ({
+                nome: name.trim().toUpperCase(),
+                idade: '',
+                deficiencia: '',
+                programa: ''
+            })).filter(user => user.nome);
+        }
+        
+        // Parse do nome do grupo
+        if (isSpecificActivity(line.toUpperCase())) {
+            categoria = line.toUpperCase();
+        } else {
+            const match = line.match(/^Grupo\s*(\w+)?\s*(?:-\s*(.+))?$/i);
+            if (match) {
+                numeroGrupo = match[1] || '';
+                categoria = match[2]?.trim().toUpperCase() || '';
+            } else {
+                // Trata como categoria livre
+                categoria = line.toUpperCase();
+            }
+        }
+        
+        // Cria novo grupo
+        createGroupFromCellContent(day, timeSlot, numeroGrupo, categoria, usuarios, profId);
+    });
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Conteúdo da célula processado e salvo');
+        updateDashboard();
+        updateGradeView();
+    }).catch(error => {
+        console.error('❌ Erro ao salvar:', error);
+        alert('Erro ao salvar. Tente novamente.');
+    });
+}
+
+function removeExistingActivitiesForProfessional(profId, day, timeSlot) {
+    if (!scheduleData[day]) return;
+    
+    const groupsToRemove = [];
+    
+    Object.keys(scheduleData[day]).forEach(groupId => {
+        const group = scheduleData[day][groupId];
+        if (group && group.horario === timeSlot && group.profissionais && group.profissionais.includes(profId)) {
+            groupsToRemove.push(groupId);
+        }
+    });
+    
+    groupsToRemove.forEach(groupId => {
+        delete scheduleData[day][groupId];
+    });
+}
+
+function createGroupFromCellContent(day, timeSlot, numeroGrupo, categoria, usuarios, profId) {
+    const newGroupId = Date.now() + Math.random(); // Evita IDs duplicados
+    
+    if (!scheduleData[day]) {
+        scheduleData[day] = {};
+    }
+    
+    scheduleData[day][newGroupId] = {
+        numeroGrupo: numeroGrupo,
+        horario: timeSlot,
+        categoria: categoria,
+        usuarios: usuarios,
+        profissionais: [profId],
+        createdAt: Date.now()
+    };
+}
+
+// Gerenciamento de profissionais na célula da grade
+
+let currentCellManagementContext = {};
+
+function openProfessionalManagementForCell(day, groupId, event) {
+    event.stopPropagation(); // Evita que o clique abra a edição da célula
+    
+    if (!isAuthenticated) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) {
+        alert('Grupo não encontrado!');
+        return;
+    }
+    
+    currentCellManagementContext = { day, groupId };
+    
+    // Preenche informações do grupo
+    const groupInfo = document.getElementById('groupInfoDisplay');
+    let groupDisplayName = '';
+    if (isSpecificActivity(group.categoria)) {
+        groupDisplayName = group.categoria;
+    } else {
+        groupDisplayName = group.numeroGrupo ? 
+            `Grupo ${group.numeroGrupo}` : 
+            `Grupo ${groupId}`;
+        if (group.categoria) {
+            groupDisplayName += ` - ${group.categoria}`;
+        }
+    }
+    
+    groupInfo.innerHTML = `
+        <div class="group-info-card">
+            <h4>${groupDisplayName}</h4>
+            <p><strong>Dia:</strong> ${dayNames[day]}</p>
+            <p><strong>Horário:</strong> ${group.horario}</p>
+        </div>
+    `;
+    
+    // Lista profissionais atuais
+    updateCurrentProfessionalsList();
+    
+    // Popula dropdown de profissionais disponíveis
+    updateAvailableProfessionalsList(day, group.horario);
+    
+    // Mostra o modal
+    document.getElementById('manageCellProfessionalsModal').style.display = 'block';
+}
+
+function updateCurrentProfessionalsList() {
+    const { day, groupId } = currentCellManagementContext;
+    const group = scheduleData[day]?.[groupId];
+    
+    if (!group) return;
+    
+    const container = document.getElementById('currentProfessionalsList');
+    
+    if (!group.profissionais || group.profissionais.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhum profissional neste grupo</div>';
+        return;
+    }
+    
+    let html = '';
+    group.profissionais.forEach(profId => {
+        const prof = masterProfessionals.find(p => p.id === profId);
+        if (prof) {
+            html += `
+                <div class="professional-item">
+                    <div class="prof-info">
+                        <strong>${prof.nome}</strong><br>
+                        <span class="prof-category">${prof.categoria}</span>
+                    </div>
+                    <button class="btn-remove-prof" onclick="removeProfessionalFromGroup(${profId})" title="Remover profissional">❌</button>
+                </div>
+            `;
+        }
+    });
+    
+    container.innerHTML = html;
+}
+
+function updateAvailableProfessionalsList(day, timeSlot) {
+    const select = document.getElementById('addProfessionalSelect');
+    const { groupId } = currentCellManagementContext;
+    const group = scheduleData[day]?.[groupId];
+    
+    select.innerHTML = '<option value="">Selecione um profissional para adicionar</option>';
+    
+    masterProfessionals.forEach(prof => {
+        // Não mostra profissionais que já estão no grupo
+        if (group.profissionais && group.profissionais.includes(prof.id)) {
+            return;
+        }
+        
+        // Não mostra profissionais de folga
+        if (isProfessionalOnDayOff(prof.id, day)) {
+            return;
+        }
+        
+        const option = document.createElement('option');
+        option.value = prof.id;
+        option.textContent = `${prof.nome} (${prof.categoria})`;
+        
+        // Verifica se tem conflito de horário
+        if (checkProfessionalTimeConflict(prof.id, day, timeSlot)) {
+            option.textContent += ' - OCUPADO';
+            option.style.color = '#ef4444';
+            option.style.fontStyle = 'italic';
+        }
+        
+        select.appendChild(option);
+    });
+}
+
+function checkProfessionalTimeConflict(profId, day, timeSlot) {
+    if (!scheduleData[day]) return false;
+    
+    return Object.keys(scheduleData[day]).some(groupId => {
+        const group = scheduleData[day][groupId];
+        return group && 
+               group.horario === timeSlot && 
+               group.profissionais && 
+               group.profissionais.includes(profId);
+    });
+}
+
+function addProfessionalToGroup() {
+    const select = document.getElementById('addProfessionalSelect');
+    const profId = parseInt(select.value);
+    
+    if (!profId) {
+        alert('Por favor, selecione um profissional.');
+        return;
+    }
+    
+    const { day, groupId } = currentCellManagementContext;
+    const group = scheduleData[day]?.[groupId];
+    
+    if (!group) {
+        alert('Grupo não encontrado!');
+        return;
+    }
+    
+    const prof = masterProfessionals.find(p => p.id === profId);
+    if (!prof) {
+        alert('Profissional não encontrado!');
+        return;
+    }
+    
+    // Verifica conflito de horário
+    if (checkProfessionalTimeConflict(profId, day, group.horario)) {
+        showConflictWarning(prof.nome, day, group.horario);
+        return;
+    }
+    
+    // Adiciona o profissional ao grupo
+    if (!group.profissionais) {
+        group.profissionais = [];
+    }
+    
+    group.profissionais.push(profId);
+    
+    // Salva no Firebase
+    saveScheduleData().then(() => {
+        console.log('✅ Profissional adicionado ao grupo');
+        updateCurrentProfessionalsList();
+        updateAvailableProfessionalsList(day, group.horario);
+        updateGradeView(); // Atualiza a grade para mostrar a mudança
+        hideConflictWarning();
+        
+        // Limpa a seleção
+        select.value = '';
+    }).catch(error => {
+        console.error('❌ Erro ao adicionar profissional:', error);
+        alert('Erro ao adicionar profissional. Tente novamente.');
+        // Remove o profissional que foi adicionado
+        const index = group.profissionais.indexOf(profId);
+        if (index !== -1) {
+            group.profissionais.splice(index, 1);
+        }
+    });
+}
+
+function removeProfessionalFromGroup(profId) {
+    if (!confirm('Tem certeza que deseja remover este profissional do grupo?')) {
+        return;
+    }
+    
+    const { day, groupId } = currentCellManagementContext;
+    const group = scheduleData[day]?.[groupId];
+    
+    if (!group || !group.profissionais) return;
+    
+    const index = group.profissionais.indexOf(profId);
+    if (index === -1) return;
+    
+    group.profissionais.splice(index, 1);
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Profissional removido do grupo');
+        updateCurrentProfessionalsList();
+        updateAvailableProfessionalsList(day, group.horario);
+        updateGradeView(); // Atualiza a grade para mostrar a mudança
+    }).catch(error => {
+        console.error('❌ Erro ao remover profissional:', error);
+        alert('Erro ao remover profissional. Tente novamente.');
+        // Restaura o profissional
+        group.profissionais.splice(index, 0, profId);
+        updateCurrentProfessionalsList();
+    });
+}
+
+function showConflictWarning(profName, day, timeSlot) {
+    const warning = document.getElementById('conflictWarning');
+    const warningText = warning.querySelector('.warning-text');
+    
+    warningText.textContent = `${profName} já está ocupado(a) na ${dayNames[day]} às ${timeSlot}. Deseja adicionar mesmo assim?`;
+    warning.style.display = 'block';
+    
+    // Adiciona botão para forçar a adição
+    if (!warning.querySelector('.btn-force-add')) {
+        const btnForceAdd = document.createElement('button');
+        btnForceAdd.className = 'btn-force-add';
+        btnForceAdd.textContent = 'Adicionar Mesmo Assim';
+        btnForceAdd.onclick = forceAddProfessional;
+        warning.querySelector('.warning-content').appendChild(btnForceAdd);
+    }
+}
+
+function hideConflictWarning() {
+    const warning = document.getElementById('conflictWarning');
+    warning.style.display = 'none';
+    
+    // Remove botão de forçar se existir
+    const btnForceAdd = warning.querySelector('.btn-force-add');
+    if (btnForceAdd) {
+        btnForceAdd.remove();
+    }
+}
+
+function forceAddProfessional() {
+    const select = document.getElementById('addProfessionalSelect');
+    const profId = parseInt(select.value);
+    
+    if (!profId) return;
+    
+    const { day, groupId } = currentCellManagementContext;
+    const group = scheduleData[day]?.[groupId];
+    
+    if (!group) return;
+    
+    // Adiciona mesmo com conflito
+    if (!group.profissionais) {
+        group.profissionais = [];
+    }
+    
+    group.profissionais.push(profId);
+    
+    saveScheduleData().then(() => {
+        console.log('✅ Profissional adicionado (com conflito) ao grupo');
+        updateCurrentProfessionalsList();
+        updateAvailableProfessionalsList(day, group.horario);
+        updateGradeView();
+        hideConflictWarning();
+        select.value = '';
+    }).catch(error => {
+        console.error('❌ Erro ao adicionar profissional:', error);
+        alert('Erro ao adicionar profissional. Tente novamente.');
+        const index = group.profissionais.indexOf(profId);
+        if (index !== -1) {
+            group.profissionais.splice(index, 1);
+        }
+    });
+}
 // ORIENTAÇÃO PARENTAL - Dados em memória
 let orientacaoData = {};
 
@@ -2368,3 +3326,729 @@ function setupOrientacaoRealtimeSync() {
     });
 }
 
+// Função principal para atualizar a visualização da grade
+function updateGradeView() {
+    const container = document.getElementById('grade-content');
+    if (!container) return;
+    
+    const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+    const weekdayFilter = document.getElementById('gradeWeekdayFilter')?.value || '';
+    
+    // Se nenhum filtro aplicado, mostra estado vazio
+    if (!categoryFilter && !weekdayFilter) {
+        container.innerHTML = '<div class="empty-state">Selecione uma categoria ou um dia da semana para visualizar a grade</div>';
+        return;
+    }
+    
+    // Se filtro de categoria aplicado, renderiza grade de categoria
+    if (categoryFilter) {
+        renderGradeByCategory(categoryFilter);
+        return;
+    }
+    
+    // Se filtro de dia aplicado, renderiza grade do dia
+    if (weekdayFilter) {
+        renderGradeByDay(weekdayFilter);
+        return;
+    }
+}
+
+// Renderiza grade filtrada por categoria (vista estilo planilha)
+function renderGradeByCategory(category) {
+    const container = document.getElementById('grade-content');
+    if (!container) return;
+    
+    // Filtra profissionais por categoria
+    const categoryProfessionals = masterProfessionals.filter(prof => 
+        prof.categoria === category
+    );
+    
+    if (categoryProfessionals.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum profissional encontrado na categoria "${category}"</div>`;
+        return;
+    }
+    
+    let html = '<div class="category-grade-container">';
+    
+    categoryProfessionals.forEach(professional => {
+        html += generateProfessionalGridWithEditSystem(professional);
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Renderiza grade filtrada por dia da semana (vista original)
+function renderGradeByDay(day) {
+    const container = document.getElementById('grade-content');
+    if (!container) return;
+    
+    const dayGroups = scheduleData[day] || {};
+    const groupIds = Object.keys(dayGroups);
+    
+    if (groupIds.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum grupo encontrado para ${dayNames[day]}</div>`;
+        return;
+    }
+    
+    // Gera tabela original por horários
+    let html = `
+        <div class="day-schedule-container">
+            <h2>📅 Grade de Horários - ${dayNames[day]}</h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>Horário</th>
+                        <th>Atividades</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    // Agrupa por horário e ordena
+    const groupsByTime = {};
+    Object.keys(dayGroups).forEach(groupId => {
+        const group = dayGroups[groupId];
+        const time = group.horario;
+        if (!groupsByTime[time]) {
+            groupsByTime[time] = [];
+        }
+        groupsByTime[time].push({ id: groupId, ...group });
+    });
+
+    const sortedTimes = Object.keys(groupsByTime).sort();
+    
+    sortedTimes.forEach(timeSlot => {
+        const groups = groupsByTime[timeSlot];
+        html += `
+            <tr>
+                <td class="time-column"><div class="time-content">${timeSlot}</div></td>
+                <td class="activities-column">
+        `;
+        
+        groups.forEach(group => {
+            html += generateOriginalGroupBlock(day, group.id, group);
+        });
+        
+        html += `</td></tr>`;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Gera bloco de grupo para visualização por dia
+function generateGroupBlock(day, groupId, group) {
+    // Se existe texto livre, usa ele diretamente
+    let displayContent = '';
+    if (group.freeTextContent) {
+        // Converte quebras de linha em <br> para exibição HTML
+        displayContent = group.freeTextContent.replace(/\n/g, '<br>');
+    } else {
+        // Usa a lógica anterior para compatibilidade
+        let groupName = '';
+        if (isSpecificActivity(group.categoria)) {
+            groupName = group.categoria;
+        } else {
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            if (group.categoria) {
+                groupName += ` - ${group.categoria}`;
+            }
+        }
+        
+        let usersHTML = '';
+        if (group.usuarios && group.usuarios.length > 0) {
+            group.usuarios.forEach(user => {
+                usersHTML += `<br>👤 ${user.nome} (${user.idade} anos)`;
+            });
+        }
+        
+        displayContent = `<strong>${groupName}</strong>${usersHTML}`;
+    }
+    
+    let professionalsHTML = '';
+    if (group.profissionais && group.profissionais.length > 0) {
+        professionalsHTML = '<div class="professionals-list">';
+        group.profissionais.forEach(profId => {
+            const prof = masterProfessionals.find(p => p.id === profId);
+            if (prof) {
+                professionalsHTML += `<div class="professional-item">👨‍⚕️ ${prof.nome} (${prof.categoria})</div>`;
+            }
+        });
+        professionalsHTML += '</div>';
+    }
+    
+    return `
+        <div class="group-block" data-group-id="${groupId}">
+            <div class="group-header">
+                <div class="group-title-display">${displayContent}</div>
+                <span class="group-time">⏰ ${group.horario}</span>
+            </div>
+            <div class="group-content">
+                ${professionalsHTML}
+            </div>
+        </div>
+    `;
+}
+
+// Gera bloco de grupo para visualização original por dia (formato tabela)
+function generateOriginalGroupBlock(day, groupId, group) {
+    // Se existe texto livre, usa ele diretamente
+    let displayContent = '';
+    if (group.freeTextContent) {
+        // Converte quebras de linha em <br> para exibição HTML
+        displayContent = group.freeTextContent.replace(/\n/g, '<br>');
+    } else {
+        // Usa a lógica anterior para compatibilidade
+        let groupName = '';
+        if (isSpecificActivity(group.categoria)) {
+            groupName = group.categoria;
+        } else {
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            if (group.categoria) {
+                groupName += ` - ${group.categoria}`;
+            }
+        }
+        
+        let usersHTML = '';
+        if (group.usuarios && group.usuarios.length > 0) {
+            group.usuarios.forEach(user => {
+                usersHTML += `👤 ${user.nome} (${user.idade} anos) `;
+            });
+        }
+        
+        displayContent = `<strong>${groupName}</strong>${usersHTML ? `<br>${usersHTML}` : ''}`;
+    }
+    
+    let professionalsHTML = '';
+    if (group.profissionais && group.profissionais.length > 0) {
+        const profNames = group.profissionais.map(profId => {
+            const prof = masterProfessionals.find(p => p.id === profId);
+            return prof ? prof.nome : 'Profissional não encontrado';
+        });
+        professionalsHTML = profNames.join(', ');
+    }
+    
+    return `
+        <div class="original-group-block" data-group-id="${groupId}">
+            <div class="group-header">
+                <div class="group-time-badge">⏰ ${group.horario}</div>
+                <div class="group-text-content">${displayContent}</div>
+                ${isAuthenticated ? `
+                    <div class="group-buttons">
+                        <button class="btn-edit-group" onclick="editGroup('${day}', '${groupId}')" title="Editar">✏️</button>
+                        <button class="btn-delete-group" onclick="deleteGroup('${day}', '${groupId}')" title="Excluir">🗑️</button>
+                    </div>
+                ` : ''}
+            </div>
+            ${professionalsHTML ? `<div class="group-content">
+                <div class="professionals-line"><strong>Profissionais:</strong> ${professionalsHTML}</div>
+            </div>` : ''}
+        </div>
+    `;
+}
+
+// Gera grade de profissional com sistema de edição por grupo
+function generateProfessionalGridWithEditSystem(professional) {
+    let gridHTML = `
+        <div class="professional-schedule-grid">
+            <h3>👨‍⚕️ ${professional.nome} - ${professional.categoria}</h3>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>Horário</th>
+    `;
+    
+    days.forEach(day => {
+        gridHTML += `<th>${dayNames[day]}</th>`;
+    });
+    
+    gridHTML += `
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    timeSlots.forEach(timeSlot => {
+        gridHTML += `<tr><td class="time-column"><div class="time-content">${timeSlot}</div></td>`;
+        
+        days.forEach(day => {
+            const activities = getProfessionalActivitiesAtTime(professional.id, day, timeSlot);
+            const isOnDayOff = isProfessionalOnDayOff(professional.id, day);
+            
+            // Classe CSS para células de folga
+            const dayOffClass = isOnDayOff ? ' day-off-cell' : '';
+            
+            gridHTML += `<td class="group-cell${dayOffClass}" data-prof-id="${professional.id}" 
+                           data-day="${day}" 
+                           data-time="${timeSlot}">`;
+                
+            if (isOnDayOff) {
+                // Mostra indicação de folga
+                gridHTML += `<div class="day-off-indicator">Folga</div>`;
+            } else if (activities.length > 0) {
+                // Mostra atividades normais
+                activities.forEach(activity => {
+                    gridHTML += generateGroupCellWithEditSystem(day, activity.groupId, activity);
+                });
+            } else {
+                // Célula vazia - mostra botão de adicionar para admins
+                if (isAuthenticated) {
+                    gridHTML += `<div class="empty-cell-container">
+                        <button class="btn-add-group-to-cell" 
+                                onclick="createNewGroupInCell('${day}', '${timeSlot}', ${professional.id})"
+                                title="Criar novo grupo neste horário">
+                            ➕
+                        </button>
+                    </div>`;
+                }
+            }
+            
+            gridHTML += `</td>`;
+        });
+        gridHTML += `</tr>`;
+    });
+    
+    gridHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    return gridHTML;
+}
+
+// Gera célula de grupo com sistema de edição
+function generateGroupCellWithEditSystem(day, groupId, activity) {
+    const isEditing = window.editingGroups && window.editingGroups[`${day}-${groupId}`];
+    
+    if (isEditing) {
+        return generateEditableGroupCell(day, groupId, activity);
+    } else {
+        return generateStaticGroupCell(day, groupId, activity);
+    }
+}
+
+// Gera célula estática (visualização normal)
+function generateStaticGroupCell(day, groupId, activity) {
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return '';
+    
+    // Se existe texto livre, usa ele diretamente
+    let displayContent = '';
+    if (group.freeTextContent) {
+        // Converte quebras de linha em <br> para exibição HTML
+        displayContent = group.freeTextContent.replace(/\n/g, '<br>');
+    } else {
+        // Usa a lógica anterior para compatibilidade
+        let groupName = '';
+        if (isSpecificActivity(group.categoria)) {
+            groupName = group.categoria;
+        } else {
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            if (group.categoria && group.categoria !== 'Sem categoria') {
+                groupName += ` - ${group.categoria}`;
+            }
+        }
+        
+        // Gera texto dos usuários a partir dos dados reais do grupo
+        let usersText = '';
+        if (group.usuarios && group.usuarios.length > 0) {
+            usersText = group.usuarios.map(user => `${user.nome} (${user.idade} anos)`).join(', ');
+        }
+        
+        displayContent = `<strong>${groupName}</strong>${usersText ? `<br>👤 ${usersText}` : ''}`;
+    }
+    
+    // Lista de profissionais
+    let professionalsText = '';
+    if (group && group.profissionais && group.profissionais.length > 0) {
+        const profNames = group.profissionais.map(profId => {
+            const prof = masterProfessionals.find(p => p.id === profId);
+            return prof ? prof.nome : 'N/A';
+        });
+        professionalsText = profNames.join(', ');
+    }
+    
+    return `
+        <div class="static-group-cell" data-group-id="${groupId}">
+            <div class="group-content-block">
+                <div class="editable-content">
+                    ${displayContent}
+                </div>
+                ${professionalsText ? `<div class="professionals-content"><strong>Profissionais:</strong> ${professionalsText}</div>` : ''}
+            </div>
+            ${isAuthenticated ? `
+                <div class="cell-buttons">
+                    <button class="btn-edit-cell" onclick="toggleGroupEdit('${day}', '${groupId}')" title="Editar">✏️</button>
+                    <button class="btn-delete-cell" onclick="deleteGroup('${day}', '${groupId}')" title="Excluir">🗑️</button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Gera célula editável
+function generateEditableGroupCell(day, groupId, activity) {
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return '';
+    
+    // Se existe texto livre, usa ele diretamente
+    let currentContent = '';
+    if (group.freeTextContent) {
+        currentContent = group.freeTextContent;
+    } else {
+        // Usa a lógica anterior para compatibilidade
+        let groupName = '';
+        if (isSpecificActivity(group.categoria)) {
+            groupName = group.categoria;
+        } else {
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            if (group.categoria && group.categoria !== 'Sem categoria') {
+                groupName += ` - ${group.categoria}`;
+            }
+        }
+        
+        // Gera texto dos usuários a partir dos dados reais do grupo
+        let usersText = '';
+        if (group.usuarios && group.usuarios.length > 0) {
+            usersText = group.usuarios.map(user => `${user.nome} (${user.idade} anos)`).join(', ');
+        }
+        
+        currentContent = `${groupName}${usersText ? '\n👤 ' + usersText : ''}`;
+    }
+    
+    return `
+        <div class="editable-group-cell" data-group-id="${groupId}">
+            <div class="edit-content">
+                <textarea class="edit-group-content" placeholder="Digite qualquer texto aqui...">${currentContent}</textarea>
+                
+                <div class="professionals-management">
+                    <label><strong>Profissionais:</strong></label>
+                    <div class="current-professionals">
+                        ${group && group.profissionais ? group.profissionais.map(profId => {
+                            const prof = masterProfessionals.find(p => p.id === profId);
+                            return prof ? `
+                                <div class="prof-tag">
+                                    ${prof.nome} 
+                                    <button class="btn-remove-prof-tag" onclick="removeProfFromGroup('${day}', '${groupId}', ${profId})">×</button>
+                                </div>
+                            ` : '';
+                        }).join('') : ''}
+                    </div>
+                    <select class="add-prof-select" onchange="addProfToGroup('${day}', '${groupId}', this.value); this.value=''">
+                        <option value="">+ Adicionar profissional</option>
+                        ${masterProfessionals.filter(prof => !group?.profissionais?.includes(prof.id) && !isProfessionalOnDayOff(prof.id, day)).map(prof => 
+                            `<option value="${prof.id}">${prof.nome} (${prof.categoria})</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                
+                <div class="edit-buttons">
+                    <button class="btn-save-group" onclick="saveGroupEdit('${day}', '${groupId}')">💾 Salvar</button>
+                    <button class="btn-cancel-group" onclick="cancelGroupEdit('${day}', '${groupId}')">❌ Cancelar</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Função para compatibilidade - redirecionada para o novo sistema
+function makeSpreadsheetCellEditable(cell) {
+    // Esta função foi substituída pelo novo sistema de edição por grupo
+    // Agora cada grupo tem seu próprio botão "Editar"
+    console.log('Função makeSpreadsheetCellEditable foi substituída pelo novo sistema de edição por grupo');
+}
+
+// Função legada removida - substituída pelo novo sistema de edição
+
+// Sistema de controle de edição de grupos
+window.editingGroups = window.editingGroups || {};
+
+// Alterna entre modo de edição e visualização
+function toggleGroupEdit(day, groupId) {
+    if (!isAuthenticated) {
+        alert("⛔ Faça login como administrador para editar!");
+        return;
+    }
+    
+    const key = `${day}-${groupId}`;
+    window.editingGroups[key] = !window.editingGroups[key];
+    updateGradeView(); // Recarrega a visualização
+}
+
+// Salva as edições do grupo
+function saveGroupEdit(day, groupId) {
+    if (!isAuthenticated) return;
+    
+    const cell = document.querySelector(`[data-group-id="${groupId}"] .edit-group-content`);
+    if (!cell) return;
+    
+    const content = cell.value;
+    const key = `${day}-${groupId}`;
+    
+    // Processa o conteúdo editado
+    processFreeTextGroupContent(day, groupId, content);
+    
+    // Sai do modo de edição
+    delete window.editingGroups[key];
+    
+    // Salva no Firebase
+    saveScheduleData().then(() => {
+        console.log('✅ Grupo editado e salvo');
+        updateGradeView();
+    }).catch(error => {
+        console.error('❌ Erro ao salvar grupo:', error);
+        alert('Erro ao salvar. Tente novamente.');
+    });
+}
+
+// Cancela a edição do grupo
+function cancelGroupEdit(day, groupId) {
+    const key = `${day}-${groupId}`;
+    delete window.editingGroups[key];
+    updateGradeView(); // Recarrega sem salvar
+}
+
+// Edita grupo na visualização por dia
+function editGroup(day, groupId) {
+    if (!isAuthenticated) {
+        alert("⛔ Faça login como administrador para editar!");
+        return;
+    }
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) {
+        alert('Grupo não encontrado!');
+        return;
+    }
+    
+    // Cria um modal de edição simplificado
+    const groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+    const usersText = group.usuarios?.map(u => `👤 ${u.nome} (${u.idade} anos)`).join('\n') || '';
+    const currentContent = `${groupName}${group.categoria ? ' - ' + group.categoria : ''}${usersText ? '\n' + usersText : ''}`;
+    
+    const newContent = prompt('Edite o conteúdo do grupo:', currentContent);
+    if (newContent === null) return; // Cancelou
+    
+    // Processa o novo conteúdo
+    processFreeTextGroupContent(day, groupId, newContent);
+    
+    // Salva no Firebase
+    saveScheduleData().then(() => {
+        console.log('✅ Grupo editado e salvo');
+        updateGradeView();
+    }).catch(error => {
+        console.error('❌ Erro ao salvar grupo:', error);
+        alert('Erro ao salvar. Tente novamente.');
+    });
+}
+
+// Processa conteúdo livre digitado pelo usuário
+function processFreeTextGroupContent(day, groupId, content) {
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    // Armazena o conteúdo exatamente como foi digitado
+    group.freeTextContent = content;
+    
+    // Ainda processa usuários que começam com 👤 para manter compatibilidade
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    group.usuarios = [];
+    
+    lines.forEach(line => {
+        if (line.startsWith('👤')) {
+            // Linha de usuário
+            const userInfo = line.replace('👤', '').trim();
+            const match = userInfo.match(/^(.+?)\s*\((\d+)\s*anos?\)/);
+            if (match) {
+                group.usuarios.push({
+                    nome: match[1].trim().toUpperCase(),
+                    idade: match[2],
+                    deficiencia: '',
+                    programa: ''
+                });
+            } else {
+                // Usuário sem idade especificada
+                group.usuarios.push({
+                    nome: userInfo.toUpperCase(),
+                    idade: '',
+                    deficiencia: '',
+                    programa: ''
+                });
+            }
+        }
+    });
+}
+
+// Adiciona profissional ao grupo (usado no select)
+function addProfToGroup(day, groupId, profId) {
+    if (!profId || !isAuthenticated) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    const prof = masterProfessionals.find(p => p.id == profId);
+    if (!prof) return;
+    
+    // Verifica conflito
+    if (checkProfessionalTimeConflict(profId, day, group.horario)) {
+        if (!confirm(`${prof.nome} já está ocupado(a) na ${dayNames[day]} às ${group.horario}. Deseja adicionar mesmo assim?`)) {
+            return;
+        }
+    }
+    
+    if (!group.profissionais) group.profissionais = [];
+    if (!group.profissionais.includes(parseInt(profId))) {
+        group.profissionais.push(parseInt(profId));
+        updateGradeView(); // Recarrega para mostrar a mudança
+    }
+}
+
+// Remove profissional do grupo
+function removeProfFromGroup(day, groupId, profId) {
+    if (!isAuthenticated) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group || !group.profissionais) return;
+    
+    const index = group.profissionais.indexOf(parseInt(profId));
+    if (index !== -1) {
+        group.profissionais.splice(index, 1);
+        updateGradeView(); // Recarrega para mostrar a mudança
+    }
+}
+
+// Exclui um grupo completo (atividade inteira de um horário)
+function deleteGroup(day, groupId) {
+    if (!isAuthenticated) {
+        alert("⛔ Faça login como administrador para excluir!");
+        return;
+    }
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) {
+        alert('Grupo não encontrado!');
+        return;
+    }
+    
+    // Mostra informações do grupo na confirmação
+    let groupName = '';
+    if (isSpecificActivity(group.categoria)) {
+        groupName = group.categoria;
+    } else {
+        groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+        if (group.categoria) {
+            groupName += ` - ${group.categoria}`;
+        }
+    }
+    
+    const timeSlot = group.horario;
+    const dayName = dayNames[day];
+    
+    // Lista profissionais envolvidos
+    let professionalsInfo = '';
+    if (group.profissionais && group.profissionais.length > 0) {
+        const profNames = group.profissionais.map(profId => {
+            const prof = masterProfessionals.find(p => p.id === profId);
+            return prof ? prof.nome : 'N/A';
+        });
+        professionalsInfo = `\n\n👥 Profissionais que serão liberados: ${profNames.join(', ')}`;
+    }
+    
+    // Lista usuários envolvidos
+    let usersInfo = '';
+    if (group.usuarios && group.usuarios.length > 0) {
+        const userNames = group.usuarios.map(u => u.nome);
+        usersInfo = `\n👤 Usuários: ${userNames.join(', ')}`;
+    }
+    
+    const confirmMessage = `🗑️ EXCLUIR GRUPO COMPLETO\n\n` +
+        `📋 Grupo: ${groupName}\n` +
+        `📅 Dia: ${dayName}\n` +
+        `⏰ Horário: ${timeSlot}` +
+        usersInfo +
+        professionalsInfo +
+        `\n\n⚠️ Esta ação não pode ser desfeita!\n` +
+        `O horário ficará vago e todos os profissionais serão liberados.\n\n` +
+        `Tem certeza que deseja excluir este grupo?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Remove o grupo dos dados de agendamento
+    delete scheduleData[day][groupId];
+    
+    // Remove do modo de edição se estiver ativo
+    const editKey = `${day}-${groupId}`;
+    if (window.editingGroups && window.editingGroups[editKey]) {
+        delete window.editingGroups[editKey];
+    }
+    
+    // Salva no Firebase
+    saveScheduleData().then(() => {
+        console.log(`✅ Grupo ${groupName} excluído do ${dayName} às ${timeSlot}`);
+        updateGradeView();
+        updateDashboard(); // Atualiza estatísticas
+        
+        alert(`✅ Grupo excluído com sucesso!\n\n` +
+              `📋 ${groupName} foi removido de ${dayName} às ${timeSlot}\n` +
+              (professionalsInfo ? `👥 Profissionais liberados para outros horários` : ''));
+        
+    }).catch(error => {
+        console.error('❌ Erro ao excluir grupo:', error);
+        alert('❌ Erro ao excluir grupo. Tente novamente.');
+        
+        // Restaura o grupo em caso de erro
+        scheduleData[day][groupId] = group;
+    });
+}
+
+// Cria novo grupo em célula vazia da grade por categoria
+function createNewGroupInCell(day, timeSlot, professionalId) {
+    if (!isAuthenticated) {
+        alert("⛔ Faça login como administrador para criar grupos!");
+        return;
+    }
+    
+    // Gera ID único para o novo grupo
+    const newGroupId = Date.now();
+    
+    // Cria estrutura inicial do grupo
+    if (!scheduleData[day]) {
+        scheduleData[day] = {};
+    }
+    
+    // Cria grupo básico com o profissional já atribuído
+    scheduleData[day][newGroupId] = {
+        numeroGrupo: '',
+        horario: timeSlot,
+        categoria: '',
+        usuarios: [],
+        profissionais: [professionalId],
+        createdAt: Date.now()
+    };
+    
+    // Coloca imediatamente em modo de edição
+    const editKey = `${day}-${newGroupId}`;
+    window.editingGroups[editKey] = true;
+    
+    // Atualiza a visualização para mostrar o modo de edição
+    updateGradeView();
+    
+    // Foca no campo de texto após um pequeno delay para garantir que o elemento foi criado
+    setTimeout(() => {
+        const textarea = document.querySelector(`[data-group-id="${newGroupId}"] .edit-group-content`);
+        if (textarea) {
+            textarea.focus();
+            textarea.placeholder = 'Digite o nome do grupo e usuários...';
+        }
+    }, 100);
+    
+    console.log(`📝 Novo grupo criado em ${dayNames[day]} às ${timeSlot} para profissional ${professionalId}`);
+}

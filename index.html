@@ -18,11 +18,6 @@
 
     <div class="tabs">
         <button class="tab" data-day="dashboards-relatorios">📊 Dashboards e Relatórios</button>
-        <button class="tab" data-day="segunda">Segunda-feira</button>
-        <button class="tab" data-day="terca">Terça-feira</button>
-        <button class="tab" data-day="quarta">Quarta-feira</button>
-        <button class="tab" data-day="quinta">Quinta-feira</button>
-        <button class="tab" data-day="sexta">Sexta-feira</button>
         <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
         <button class="tab active" data-day="grade">📊 Grade</button>
         <button class="tab" data-day="orientacao-parental">👨‍👩‍👧‍👦 Orientação Parental</button>
@@ -78,45 +73,6 @@
             </div>
         </div>
 
-       <div id="segunda" class="day-content">
-    <div class="day-header">
-        <h2>📅 Segunda-feira</h2>
-        <button class="btn-add-group" onclick="openCreateGroupModal('segunda')">➕ Criar Novo Grupo</button>
-    </div>
-    <div class="groups-grid" id="groups-segunda"></div>
-</div>
-
-<div id="terca" class="day-content">
-    <div class="day-header">
-        <h2>📅 Terça-feira</h2>
-        <button class="btn-add-group" onclick="openCreateGroupModal('terca')">➕ Criar Novo Grupo</button>
-    </div>
-    <div class="groups-grid" id="groups-terca"></div>
-</div>
-
-<div id="quarta" class="day-content">
-    <div class="day-header">
-        <h2>📅 Quarta-feira</h2>
-        <button class="btn-add-group" onclick="openCreateGroupModal('quarta')">➕ Criar Novo Grupo</button>
-    </div>
-    <div class="groups-grid" id="groups-quarta"></div>
-</div>
-
-<div id="quinta" class="day-content">
-    <div class="day-header">
-        <h2>📅 Quinta-feira</h2>
-        <button class="btn-add-group" onclick="openCreateGroupModal('quinta')">➕ Criar Novo Grupo</button>
-    </div>
-    <div class="groups-grid" id="groups-quinta"></div>
-</div>
-
-<div id="sexta" class="day-content">
-    <div class="day-header">
-        <h2>📅 Sexta-feira</h2>
-        <button class="btn-add-group" onclick="openCreateGroupModal('sexta')">➕ Criar Novo Grupo</button>
-    </div>
-    <div class="groups-grid" id="groups-sexta"></div>
-</div>
 
         <div id="profissionais" class="day-content">
             <h2>Relação Geral de Profissionais</h2>
@@ -161,6 +117,10 @@
                             <option value="quinta">Quinta-feira</option>
                             <option value="sexta">Sexta-feira</option>
                         </select>
+                    </div>
+                    <div class="form-group grade-actions" id="gradeActions" style="display: none;">
+                        <button class="btn-add-group" onclick="openCreateGroupModalFromGrade()">➕ Criar Novo Grupo</button>
+                        <button class="btn-manage-groups" onclick="toggleGroupManagementMode()">⚙️ Gerenciar Grupos</button>
                     </div>
                 </div>
             </div>
@@ -315,6 +275,44 @@
                 <button type="submit" class="btn-confirm">Salvar Folgas</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Modal: Gerenciar Profissionais do Grupo -->
+<div id="manageCellProfessionalsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">👥 Gerenciar Profissionais do Grupo</h2>
+        </div>
+        <div class="modal-body">
+            <div id="groupInfoDisplay" class="group-info-display"></div>
+            
+            <div class="current-professionals-section">
+                <h3>Profissionais Atuais:</h3>
+                <div id="currentProfessionalsList" class="professionals-list"></div>
+            </div>
+            
+            <div class="add-professional-section">
+                <h3>Adicionar Profissional:</h3>
+                <div class="form-group">
+                    <select id="addProfessionalSelect">
+                        <option value="">Selecione um profissional para adicionar</option>
+                    </select>
+                    <button type="button" class="btn-add-prof" onclick="addProfessionalToGroup()">Adicionar</button>
+                </div>
+            </div>
+            
+            <div class="conflict-warning" id="conflictWarning" style="display: none;">
+                <div class="warning-content">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text"></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-buttons">
+            <button type="button" class="btn-cancel" onclick="closeModal('manageCellProfessionalsModal')">Fechar</button>
+        </div>
     </div>
 </div>
 

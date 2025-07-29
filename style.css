@@ -2392,4 +2392,1276 @@ html {
     opacity: 1;
 }
 
+/* ESTILOS PARA A INTEGRAÇÃO DA GRADE COM MANIPULAÇÃO */
+
+.grade-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.btn-add-group, .btn-manage-groups {
+    background: #13335a;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-add-group:hover {
+    background: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-manage-groups:hover {
+    background: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.group-management-buttons {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 6px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.group-management-buttons button {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-edit-group:hover {
+    background: #fbbf24;
+    color: white;
+    border-color: #f59e0b;
+    transform: scale(1.1);
+}
+
+.btn-add-user:hover {
+    background: #3b82f6;
+    color: white;
+    border-color: #2563eb;
+    transform: scale(1.1);
+}
+
+.btn-add-professional:hover {
+    background: #10b981;
+    color: white;
+    border-color: #059669;
+    transform: scale(1.1);
+}
+
+.btn-delete-group-mini:hover {
+    background: #ef4444;
+    color: white;
+    border-color: #dc2626;
+    transform: scale(1.1);
+}
+
+.day-activity {
+    position: relative;
+}
+
+.day-activity.management-mode {
+    padding-top: 35px;
+}
+
+/* Responsividade para botões de gerenciamento */
+@media (max-width: 768px) {
+    .grade-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-add-group, .btn-manage-groups {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .group-management-buttons {
+        flex-wrap: wrap;
+        gap: 2px;
+    }
+    
+    .group-management-buttons button {
+        min-width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ESTILOS PARA BLOCOS EDITÁVEIS */
+
+.editable-cell {
+    position: relative;
+    min-height: 80px;
+    padding: 8px;
+}
+
+.editable-activity-block {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.editable-activity-block:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.editable-activity-block.empty-block {
+    background: #f0f9ff;
+    border: 2px dashed #bae6fd;
+}
+
+.block-controls {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 2px;
+}
+
+.btn-remove-block {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    padding: 2px 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-block:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+}
+
+.editable-field {
+    margin-bottom: 8px;
+}
+
+.editable-field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 2px;
+}
+
+.group-name-input, .users-input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.group-name-input:focus, .users-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.users-input {
+    resize: vertical;
+    min-height: 32px;
+    font-family: inherit;
+}
+
+.professionals-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.current-professionals {
+    flex: 1;
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+.btn-manage-professionals {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-manage-professionals:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+/* BLOCOS MINI PARA VISUALIZAÇÃO POR PROFISSIONAL */
+
+.editable-activity-block-mini {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 6px;
+    padding: 6px;
+    margin-bottom: 4px;
+    position: relative;
+    font-size: 0.75rem;
+}
+
+.mini-block-controls {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+}
+
+.btn-remove-block-mini {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 3px;
+    padding: 1px 3px;
+    cursor: pointer;
+    font-size: 0.6rem;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-block-mini:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.mini-editable-field {
+    margin-bottom: 4px;
+}
+
+.mini-group-name-input, .mini-users-input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: 0.7rem;
+    background: white;
+}
+
+.mini-users-input {
+    resize: none;
+    font-family: inherit;
+}
+
+.btn-add-activity-for-prof {
+    background: #dbeafe;
+    border: 2px dashed #3b82f6;
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #3b82f6;
+    font-weight: 600;
+    width: 100%;
+    transition: all 0.2s ease;
+    margin-top: 4px;
+}
+
+.btn-add-activity-for-prof:hover {
+    background: #3b82f6;
+    color: white;
+    transform: scale(1.02);
+}
+
+/* RESPONSIVIDADE PARA BLOCOS EDITÁVEIS */
+@media (max-width: 768px) {
+    .editable-activity-block {
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+    
+    .editable-field {
+        margin-bottom: 6px;
+    }
+    
+    .professionals-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+    
+    .editable-activity-block-mini {
+        padding: 4px;
+        font-size: 0.7rem;
+    }
+    
+    .mini-editable-field {
+        margin-bottom: 3px;
+    }
+}
+
+/* ESTILOS PARA CÉLULAS EDITÁVEIS ESTILO PLANILHA */
+
+.editable-professional-cell {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 60px;
+    padding: 8px;
+    vertical-align: top;
+}
+
+.editable-professional-cell:hover {
+    background: #f0f9ff;
+    border: 2px solid #3b82f6;
+}
+
+.editable-professional-cell.editing {
+    background: #fefefe;
+    border: 2px solid #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.spreadsheet-cell-content {
+    min-height: 40px;
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.spreadsheet-cell-content:focus {
+    background: white;
+    border: 1px solid #e5e7eb;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.cell-edit-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.7rem;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.editable-professional-cell:hover .cell-edit-indicator {
+    opacity: 1;
+}
+
+.editable-professional-cell.editing .cell-edit-indicator {
+    display: none;
+}
+
+/* Indicação visual para células editáveis vazias */
+.empty-cell.editable-professional-cell::after {
+    content: "Clique para editar";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #9ca3af;
+    font-size: 0.7rem;
+    font-style: italic;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.empty-cell.editable-professional-cell:hover::after {
+    opacity: 1;
+}
+
+/* Estilo diferenciado para células ocupadas */
+.occupied-cell.editable-professional-cell {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.occupied-cell.editable-professional-cell:hover {
+    background: #f0f9ff;
+    border: 2px solid #3b82f6;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .editable-professional-cell {
+        min-height: 50px;
+        padding: 6px;
+    }
+    
+    .spreadsheet-cell-content {
+        font-size: 0.75rem;
+        min-height: 35px;
+        padding: 3px;
+    }
+    
+    .cell-edit-indicator {
+        font-size: 0.6rem;
+    }
+    
+    .empty-cell.editable-professional-cell::after {
+        font-size: 0.65rem;
+    }
+}
+
+/* ESTILOS PARA CONTROLES DAS CÉLULAS E MODAL DE PROFISSIONAIS */
+
+.cell-controls {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.btn-manage-cell-professionals {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 4px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.btn-manage-cell-professionals:hover {
+    opacity: 1;
+    background: #059669;
+    transform: scale(1.1);
+}
+
+.editable-professional-cell:hover .btn-manage-cell-professionals {
+    opacity: 1;
+}
+
+/* Modal de gerenciamento de profissionais */
+.group-info-display {
+    margin-bottom: 20px;
+}
+
+.group-info-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.group-info-card h4 {
+    margin: 0 0 10px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+.group-info-card p {
+    margin: 5px 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.current-professionals-section,
+.add-professional-section {
+    margin-bottom: 20px;
+}
+
+.current-professionals-section h3,
+.add-professional-section h3 {
+    color: #374151;
+    font-size: 1rem;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 5px;
+}
+
+.professionals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.professional-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 10px;
+    transition: all 0.2s ease;
+}
+
+.professional-item:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.prof-info strong {
+    color: #1f2937;
+    font-size: 0.9rem;
+}
+
+.prof-category {
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.btn-remove-prof {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-prof:hover {
+    background: #ef4444;
+    color: white;
+    transform: scale(1.1);
+}
+
+.add-professional-section .form-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.add-professional-section select {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.btn-add-prof {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-add-prof:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* Aviso de conflito */
+.conflict-warning {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.warning-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.warning-icon {
+    font-size: 1.2rem;
+}
+
+.warning-text {
+    flex: 1;
+    color: #92400e;
+    font-weight: 500;
+}
+
+.btn-force-add {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-force-add:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .cell-controls {
+        position: static;
+        justify-content: center;
+        margin-top: 5px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        padding: 2px;
+    }
+    
+    .professional-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .add-professional-section .form-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .warning-content {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+}
+
+/* Estilos legados removidos - substituídos pelo novo sistema */
+
+/* Estilos para visualização por dia */
+.day-grade-container {
+    padding: 20px;
+}
+
+.groups-container {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.group-block {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.group-header h4 {
+    color: #374151;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.group-time {
+    color: #6b7280;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.users-list, .professionals-list {
+    margin: 8px 0;
+}
+
+.user-item, .professional-item {
+    padding: 4px 0;
+    color: #4b5563;
+    font-size: 0.9rem;
+}
+
+/* Estilos para o novo sistema de edição de grupos */
+
+/* Visualização por dia - formato original */
+.day-schedule-container {
+    padding: 20px;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 2px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.schedule-table th {
+    background: linear-gradient(135deg, #13335a, #1e4a73);
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.schedule-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+.schedule-table td:not(.time-column) {
+    vertical-align: top;
+}
+
+.time-column {
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    color: white;
+    font-weight: 700;
+    width: 120px;
+    text-align: center;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    padding: 0;
+    vertical-align: middle;
+    position: relative;
+}
+
+.time-column .time-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    padding: 12px 8px;
+}
+
+.activities-column {
+    min-width: 400px;
+}
+
+.original-group-block {
+    background: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.original-group-block .group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* Container para botões dos grupos */
+.group-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.btn-edit-group {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-edit-group:hover {
+    background: #059669;
+}
+
+.btn-delete-group {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-delete-group:hover {
+    background: #dc2626;
+}
+
+.users-line, .professionals-line {
+    margin: 4px 0;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+/* Badge de horário na visualização por dia */
+.group-time-badge {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-right: 8px;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+    white-space: nowrap;
+}
+
+.group-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.group-text-content {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Grade por categoria - sistema de edição */
+.professional-schedule-grid {
+    margin-bottom: 30px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.professional-schedule-grid h3 {
+    background: linear-gradient(135deg, #13335a, #1e4a73);
+    color: white;
+    margin: 0;
+    padding: 15px;
+    font-size: 1.1rem;
+}
+
+.professional-schedule-grid .schedule-table {
+    border: 2px solid #d1d5db;
+}
+
+.professional-schedule-grid .schedule-table th {
+    border-right: 1px solid rgba(255,255,255,0.2);
+    border-bottom: 2px solid #d1d5db;
+}
+
+.professional-schedule-grid .schedule-table th:last-child {
+    border-right: none;
+}
+
+.professional-schedule-grid .time-column {
+    border-right: 2px solid #d1d5db;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    color: white;
+    text-align: center;
+    font-size: 1.1rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    margin: 2px;
+    vertical-align: middle;
+    display: table-cell;
+    height: auto;
+}
+
+.group-cell {
+    min-height: 80px;
+    padding: 8px;
+    position: relative;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    vertical-align: top;
+}
+
+/* Estilo alternado para células (efeito zebra sutil) */
+.professional-schedule-grid tr:nth-child(even) .group-cell {
+    background: #f9fafb;
+}
+
+/* Células de folga */
+.day-off-cell {
+    background: #f3f4f6 !important;
+    position: relative;
+}
+
+.day-off-indicator {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 0.8rem;
+    text-align: center;
+    padding: 20px 4px;
+    user-select: none;
+}
+
+/* Container e botão para células vazias */
+.empty-cell-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 60px;
+}
+
+.btn-add-group-to-cell {
+    background: rgba(34, 197, 94, 0.1);
+    border: 2px dashed #22c55e;
+    color: #22c55e;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.btn-add-group-to-cell:hover {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #16a34a;
+    color: #16a34a;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+/* Célula estática */
+.static-group-cell {
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+    margin: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.group-content-block {
+    margin-bottom: 8px;
+}
+
+.editable-content {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 6px;
+}
+
+.professionals-content {
+    color: #6b7280;
+    font-size: 0.85rem;
+    padding-top: 6px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Container para botões das células */
+.cell-buttons {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: flex;
+    gap: 2px;
+}
+
+.btn-edit-cell {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-edit-cell:hover {
+    background: #059669;
+}
+
+.btn-delete-cell {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-delete-cell:hover {
+    background: #dc2626;
+}
+
+/* Célula editável */
+.editable-group-cell {
+    background: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 2px;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+.edit-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.edit-group-content {
+    width: 100%;
+    min-height: 60px;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.professionals-management {
+    background: rgba(255,255,255,0.8);
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+}
+
+.professionals-management label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.current-professionals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.prof-tag {
+    background: #3b82f6;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-remove-prof-tag {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0;
+    font-size: 0.9rem;
+}
+
+.btn-remove-prof-tag:hover {
+    color: #fecaca;
+}
+
+.add-prof-select {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.edit-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-save-group {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.btn-save-group:hover {
+    background: #059669;
+}
+
+.btn-cancel-group {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s;
+}
+
+.btn-cancel-group:hover {
+    background: #dc2626;
+}
+
+/* Responsividade para o novo sistema */
+@media (max-width: 768px) {
+    .schedule-table {
+        font-size: 0.8rem;
+    }
+    
+    .schedule-table th,
+    .schedule-table td {
+        padding: 8px;
+    }
+    
+    .time-column {
+        width: 80px;
+        font-size: 0.9rem;
+        padding: 0;
+    }
+    
+    .time-column .time-content {
+        min-height: 60px;
+        padding: 8px 4px;
+        font-size: 0.9rem;
+    }
+    
+    .group-time-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        margin-right: 4px;
+    }
+    
+    .professional-schedule-grid {
+        overflow-x: auto;
+    }
+    
+    .group-cell {
+        min-height: 60px;
+        padding: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .day-off-indicator {
+        font-size: 0.7rem;
+        padding: 15px 2px;
+    }
+    
+    .static-group-cell {
+        padding: 6px;
+        margin: 1px;
+    }
+    
+    .editable-group-cell {
+        padding: 8px;
+        margin: 1px;
+    }
+    
+    .empty-cell-container {
+        min-height: 50px;
+    }
+    
+    .btn-add-group-to-cell {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .edit-buttons {
+        flex-direction: column;
+    }
+    
+    .current-professionals {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    /* Ajustes para botões em mobile */
+    .cell-buttons {
+        position: static;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+    
+    .group-buttons {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .btn-edit-cell,
+    .btn-delete-cell,
+    .btn-edit-group,
+    .btn-delete-group {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+    }
+}
+
 }
