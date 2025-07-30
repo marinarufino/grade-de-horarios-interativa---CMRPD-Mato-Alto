@@ -1,12 +1,12 @@
-##📅 Grade de Horários - CMRPD Mato Alto
+## 📅 Grade de Horários - CMRPD Mato Alto
 Sistema de gestão de horários semanais voltado ao atendimento de pessoas com deficiência, com foco na praticidade, visualização rápida e gestão de profissionais.
 
-🎯 Sobre o Projeto
+### 🎯 Sobre o Projeto
 Essa ferramenta foi desenvolvida para o Centro Municipal de Referência da Pessoa com Deficiência (CMRPD) – Unidade Mato Alto, com o objetivo de simplificar o planejamento e a visualização das atividades semanais da equipe multidisciplinar.
 
 O sistema adota um modelo estilo planilha, em que tudo é feito diretamente na grade — sem necessidade de múltiplos cadastros e etapas complexas.
 
-✨ Funcionalidades
+### ✨ Funcionalidades
 🧾 Grade Interativa (modo planilha)
 Preenchimento direto: os campos de nome do grupo e lista de usuários são preenchidos por texto livre
 
@@ -18,7 +18,7 @@ Edição inline: clique no bloco para editar grupo, horário, usuários ou profi
 
 Visualização clara e organizada por filtros
 
-👨‍⚕️ Cadastro e Gestão de Profissionais
+#### 👨‍⚕️ Cadastro e Gestão de Profissionais
 Cadastro de profissionais com nome e categoria
 
 Definição dos dias de folga
@@ -29,7 +29,7 @@ Profissionais aparecem como selecionáveis apenas nos dias disponíveis
 
 Visualização dos grupos em que cada profissional está alocado
 
-🔍 Filtros e Visualizações
+#### 🔍 Filtros e Visualizações
 Filtro por categoria profissional
 
 Filtro por dia da semana
@@ -38,7 +38,7 @@ Visualização de profissionais livres por horário
 
 Destaque de profissionais em folga ou indisponíveis
 
-🔒 Acesso Administrativo
+#### 🔒 Acesso Administrativo
 Login via botão “🔓 Fazer Login Admin”
 
 Permite gerenciar blocos, horários e profissionais
@@ -47,7 +47,7 @@ Acesso à visualização completa da ocupação e disponibilidade
 
 Exportação de dados e visualização avançada
 
-📦 Tecnologias Utilizadas
+### 📦 Tecnologias Utilizadas
 Frontend: HTML5, CSS3, JavaScript (ES6+)
 
 Banco de Dados: Firebase Realtime Database (atualizações em tempo real)
@@ -56,7 +56,7 @@ Interface Responsiva: Desktop e mobile
 
 Estilo Moderno: Layout limpo, baseado em abas e modais
 
-🧠 Equipe Multidisciplinar
+#### 🧠 Equipe Multidisciplinar
 Categorias disponíveis para cadastro de profissionais:
 
 Educador Físico
@@ -81,7 +81,7 @@ Educadores Sociais (artesanato, cultura, informática, jardinagem)
 
 Outros
 
-📱 Como Usar
+### 📱 Como Usar
 Visualização Pública
 Acesse a aba 📊 Grade
 
@@ -98,7 +98,7 @@ Selecione profissionais para cada grupo (a partir dos cadastrados)
 
 Gerencie folgas e ocupações com rapidez
 
-🚀 Destaques Técnicos
+### 🚀 Destaques Técnicos
 Estilo planilha: cadastro e gestão rápida
 
 Profissionais com controle de disponibilidade (dias de folga)
