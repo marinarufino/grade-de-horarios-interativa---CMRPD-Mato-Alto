@@ -18,6 +18,7 @@ Edição inline: clique no bloco para editar grupo, horário, usuários ou profi
 
 Visualização clara e organizada por filtros
 
+
 #### 👨‍⚕️ Cadastro e Gestão de Profissionais
 Cadastro de profissionais com nome e categoria
 
@@ -29,31 +30,6 @@ Profissionais aparecem como selecionáveis apenas nos dias disponíveis
 
 Visualização dos grupos em que cada profissional está alocado
 
-#### 🧠 Equipe Multidisciplinar
-Categorias disponíveis para cadastro de profissionais:
-
-Educador Físico
-
-Fisioterapeuta
-
-Fonoaudióloga
-
-Neuropsicopedagoga
-
-Nutricionista
-
-Pedagoga
-
-Psicólogo
-
-Psicomotricista
-
-Terapeuta Ocupacional
-
-Educadores Sociais (artesanato, cultura, informática, jardinagem)
-
-Outros
-
 
 #### 🔍 Filtros e Visualizações
 Filtro por categoria profissional
@@ -64,6 +40,7 @@ Visualização de profissionais livres por horário
 
 Destaque de profissionais em folga ou indisponíveis
 
+
 #### 🔒 Acesso Administrativo
 Login via botão “🔓 Fazer Login Admin”
 
@@ -72,6 +49,7 @@ Permite gerenciar blocos, horários e profissionais
 Acesso à visualização completa da ocupação e disponibilidade
 
 Exportação de dados e visualização avançada
+
 
 ### 📦 Tecnologias Utilizadas
 Frontend: HTML5, CSS3, JavaScript (ES6+)
@@ -99,6 +77,7 @@ Crie e edite blocos diretamente na grade
 Selecione profissionais para cada grupo (a partir dos cadastrados)
 
 Gerencie folgas e ocupações com rapidez
+
 
 ### 🚀 Destaques Técnicos
 Estilo planilha: cadastro e gestão rápida
