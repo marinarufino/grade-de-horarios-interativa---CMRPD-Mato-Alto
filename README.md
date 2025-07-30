@@ -29,6 +29,32 @@ Profissionais aparecem como selecionáveis apenas nos dias disponíveis
 
 Visualização dos grupos em que cada profissional está alocado
 
+#### 🧠 Equipe Multidisciplinar
+Categorias disponíveis para cadastro de profissionais:
+
+Educador Físico
+
+Fisioterapeuta
+
+Fonoaudióloga
+
+Neuropsicopedagoga
+
+Nutricionista
+
+Pedagoga
+
+Psicólogo
+
+Psicomotricista
+
+Terapeuta Ocupacional
+
+Educadores Sociais (artesanato, cultura, informática, jardinagem)
+
+Outros
+
+
 #### 🔍 Filtros e Visualizações
 Filtro por categoria profissional
 
@@ -56,30 +82,6 @@ Interface Responsiva: Desktop e mobile
 
 Estilo Moderno: Layout limpo, baseado em abas e modais
 
-#### 🧠 Equipe Multidisciplinar
-Categorias disponíveis para cadastro de profissionais:
-
-Educador Físico
-
-Fisioterapeuta
-
-Fonoaudióloga
-
-Neuropsicopedagoga
-
-Nutricionista
-
-Pedagoga
-
-Psicólogo
-
-Psicomotricista
-
-Terapeuta Ocupacional
-
-Educadores Sociais (artesanato, cultura, informática, jardinagem)
-
-Outros
 
 ### 📱 Como Usar
 Visualização Pública
