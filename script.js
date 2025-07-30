@@ -1315,6 +1315,13 @@ document.addEventListener("DOMContentLoaded", () => {
             updateTabsVisibility();
             updateUserStatus();
             updateGradeView();
+            
+            // Re-renderiza a orientação parental se estiver na aba ativa
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab && activeTab.dataset.day === 'orientacao-parental') {
+                renderOrientacaoGrid();
+            }
+            
             alert("Acesso liberado! Agora você tem acesso a todas as funcionalidades.");
         } else {
             alert("Senha incorreta!");
@@ -1475,6 +1482,11 @@ const timeSlots = [
     "08:00", "09:00", "10:00",
     "11:00", "13:00",
     "14:00", "15:00", "16:00",
+];
+
+// Horários específicos para orientação parental (excluindo 8h, 11h, 13h, 16h)
+const orientacaoTimeSlots = [
+    "09:00", "10:00", "14:00", "15:00"
 ];
 
 // aados em memoria
@@ -1934,6 +1946,13 @@ function updateUserStatus() {
             updateUserStatus();
             toggleEditButtons(false);
             toggleExportButton(false);
+            
+            // Re-renderiza a orientação parental se estiver na aba ativa antes de sair
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab && activeTab.dataset.day === 'orientacao-parental') {
+                renderOrientacaoGrid();
+            }
+            
             switchToTab('grade');
             updateGradeView();
             alert('Logout realizado! Agora você está no modo visualização.');
@@ -2933,7 +2952,7 @@ function initializeOrientacaoData() {
         if (!orientacaoData[day]) {
             orientacaoData[day] = {};
         }
-        timeSlots.forEach(timeSlot => {
+        orientacaoTimeSlots.forEach(timeSlot => {
             if (!orientacaoData[day][timeSlot]) {
                 orientacaoData[day][timeSlot] = '';
             }
@@ -2961,7 +2980,7 @@ function renderOrientacaoGrid() {
             <tbody>
     `;
     
-    timeSlots.forEach(timeSlot => {
+    orientacaoTimeSlots.forEach(timeSlot => {
         html += `<tr>
             <td class="time-column">${timeSlot}</td>`;
         
@@ -2976,7 +2995,7 @@ function renderOrientacaoGrid() {
                            class="${cellClass}" 
                            value="${currentValue}"
                            placeholder="${isAuthenticated ? 'Clique para editar' : 'Login necessário'}"
-                           onchange="updateOrientacao('${day}', '${timeSlot}', this.value)"
+                           onchange="updateOrientacao('${day}', '${timeSlot}', this.value, this)"
                            onblur="saveOrientacaoData()"
                            ${isDisabled}>
                 </td>`;
@@ -2990,7 +3009,7 @@ function renderOrientacaoGrid() {
 }
 
 // Atualiza dados da orientação parental
-function updateOrientacao(day, timeSlot, value) {
+function updateOrientacao(day, timeSlot, value, element) {
     if (!isAuthenticated) {
         alert("⛔ Faça login como administrador para editar!");
         // Restaura o valor anterior
@@ -3005,11 +3024,12 @@ function updateOrientacao(day, timeSlot, value) {
     orientacaoData[day][timeSlot] = value.trim().toUpperCase();
     
     // Atualiza a classe da célula
-    const cell = event.target;
-    if (value.trim()) {
-        cell.classList.add('filled');
-    } else {
-        cell.classList.remove('filled');
+    if (element) {
+        if (value.trim()) {
+            element.classList.add('filled');
+        } else {
+            element.classList.remove('filled');
+        }
     }
     
     // Salva automaticamente no Firebase com debounce

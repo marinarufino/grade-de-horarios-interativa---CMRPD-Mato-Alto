@@ -2392,6 +2392,92 @@ html {
     opacity: 1;
 }
 
+/* Estilos específicos para tabela de orientação parental */
+.orientacao-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.orientacao-table th {
+    background: linear-gradient(135deg, #13335a, #1e4a73);
+    color: white;
+    padding: 15px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+    border: 1px solid #0f2644;
+}
+
+.orientacao-table td {
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    background: white;
+    vertical-align: middle;
+}
+
+.orientacao-table .time-column {
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    color: white;
+    font-weight: 700;
+    text-align: center;
+    font-size: 1.1rem;
+    min-width: 100px;
+}
+
+.orientacao-cell {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    font-weight: 500;
+    padding: 12px;
+    text-align: center;
+    color: #1f2937;
+    transition: all 0.2s ease;
+}
+
+.orientacao-cell:focus {
+    outline: 2px solid #3b82f6;
+    background: #f0f9ff;
+}
+
+.orientacao-cell.filled {
+    background: #e0f2fe;
+    border: 1px solid #0ea5e9;
+    font-weight: 600;
+    color: #0c4a6e;
+}
+
+.orientacao-cell:disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Responsividade para orientação parental */
+@media (max-width: 768px) {
+    .orientacao-table {
+        font-size: 0.9rem;
+    }
+    
+    .orientacao-table th,
+    .orientacao-table td {
+        padding: 10px 8px;
+    }
+    
+    .orientacao-cell {
+        font-size: 1rem;
+        padding: 10px;
+    }
+    
+    .orientacao-table .time-column {
+        font-size: 1rem;
+        min-width: 80px;
+    }
+}
+
 /* ESTILOS PARA A INTEGRAÇÃO DA GRADE COM MANIPULAÇÃO */
 
 .grade-actions {
