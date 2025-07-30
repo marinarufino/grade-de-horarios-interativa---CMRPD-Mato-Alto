@@ -439,20 +439,7 @@ let isGroupManagementMode = false;
 let currentGradeSelectedDay = '';
 let editableBlockCounter = 0;
 
-function openCreateGroupModalFromGrade() {
-    if (!checkAuth()) return;
-    
-    const selectedDay = document.getElementById('gradeWeekdayFilter').value;
-    if (!selectedDay) {
-        alert('Por favor, selecione um dia da semana primeiro para criar o grupo.');
-        return;
-    }
-    
-    currentModalContext = { day: selectedDay, type: "create-group" };
-    document.getElementById('createGroupForm').reset();
-    document.getElementById('createGroupModal').style.display = 'block';
-    document.getElementById('newGroupNumber').focus();
-}
+// Função removida - criação de grupos agora é feita diretamente na grade
 
 function openEditGroupModal(day, groupId) {
     if (!checkAuth()) return;
@@ -506,7 +493,7 @@ function createEditableActivityBlock(activity, day, timeSlot, index) {
     if (isSpecificActivity(activity.categoria)) {
         groupName = activity.categoria;
     } else {
-        groupName = activity.numeroGrupo ? `Grupo ${activity.numeroGrupo}` : 'Grupo';
+        groupName = activity.numeroGrupo ? `Grupo ${activity.numeroGrupo}` : '';
         if (activity.categoria) {
             groupName += ` - ${activity.categoria}`;
         }
@@ -610,25 +597,10 @@ function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
     const selectedWeekday = document.getElementById('gradeWeekdayFilter').value;
     const gradeContent = document.getElementById('grade-content');
-    const gradeActions = document.getElementById('gradeActions');
-
     console.log('Filtros selecionados:', { selectedCategory, selectedWeekday });
     
     // Armazena o dia selecionado para uso em outras funções
     currentGradeSelectedDay = selectedWeekday;
-
-    // Mostra/esconde botões de ação baseado na seleção de dia e autenticação
-    if (selectedWeekday && isAuthenticated) {
-        gradeActions.style.display = 'block';
-    } else {
-        gradeActions.style.display = 'none';
-        isGroupManagementMode = false;
-        const btn = document.querySelector('.btn-manage-groups');
-        if (btn) {
-            btn.textContent = '⚙️ Gerenciar Grupos';
-            btn.style.background = '';
-        }
-    }
 
     // Se nenhum filtro selecionado
     if (!selectedCategory && !selectedWeekday) {
@@ -2172,11 +2144,7 @@ function updateTabsVisibility() {
         }
     });
     
-    // Mostra/oculta controles da grade
-    const gradeActions = document.getElementById('gradeActions');
-    if (gradeActions) {
-        gradeActions.style.display = isAuthenticated ? 'flex' : 'none';
-    }
+    // Controles de grade removidos - gerenciamento é feito diretamente na grade
 }
 
 
@@ -2655,7 +2623,7 @@ function createEditableActivityBlockForProfessional(activity, day, timeSlot) {
     if (isSpecificActivity(activity.groupCategory)) {
         groupName = activity.groupCategory;
     } else {
-        groupName = activity.numeroGrupo ? `Grupo ${activity.numeroGrupo}` : 'Grupo';
+        groupName = activity.numeroGrupo ? `Grupo ${activity.numeroGrupo}` : '';
         if (activity.groupCategory && activity.groupCategory !== 'Sem categoria') {
             groupName += ` - ${activity.groupCategory}`;
         }
@@ -3455,7 +3423,7 @@ function generateGroupBlock(day, groupId, group) {
         if (isSpecificActivity(group.categoria)) {
             groupName = group.categoria;
         } else {
-            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : '';
             if (group.categoria) {
                 groupName += ` - ${group.categoria}`;
             }
@@ -3509,7 +3477,7 @@ function generateOriginalGroupBlock(day, groupId, group) {
         if (isSpecificActivity(group.categoria)) {
             groupName = group.categoria;
         } else {
-            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : '';
             if (group.categoria) {
                 groupName += ` - ${group.categoria}`;
             }
@@ -3649,9 +3617,9 @@ function generateStaticGroupCell(day, groupId, activity) {
         if (isSpecificActivity(group.categoria)) {
             groupName = group.categoria;
         } else {
-            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : '';
             if (group.categoria && group.categoria !== 'Sem categoria') {
-                groupName += ` - ${group.categoria}`;
+                groupName += (groupName ? ' - ' : '') + group.categoria;
             }
         }
         
@@ -3661,7 +3629,7 @@ function generateStaticGroupCell(day, groupId, activity) {
             usersText = group.usuarios.map(user => `${user.nome} (${user.idade} anos)`).join(', ');
         }
         
-        displayContent = `<strong>${groupName}</strong>${usersText ? `<br>👤 ${usersText}` : ''}`;
+        displayContent = `${groupName ? `<strong>${groupName}</strong>` : ''}${usersText ? `${groupName ? '<br>' : ''}👤 ${usersText}` : ''}`;
     }
     
     // Lista de profissionais
@@ -3707,9 +3675,9 @@ function generateEditableGroupCell(day, groupId, activity) {
         if (isSpecificActivity(group.categoria)) {
             groupName = group.categoria;
         } else {
-            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+            groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : '';
             if (group.categoria && group.categoria !== 'Sem categoria') {
-                groupName += ` - ${group.categoria}`;
+                groupName += (groupName ? ' - ' : '') + group.categoria;
             }
         }
         
@@ -3719,7 +3687,7 @@ function generateEditableGroupCell(day, groupId, activity) {
             usersText = group.usuarios.map(user => `${user.nome} (${user.idade} anos)`).join(', ');
         }
         
-        currentContent = `${groupName}${usersText ? '\n👤 ' + usersText : ''}`;
+        currentContent = `${groupName}${usersText ? (groupName ? '\n' : '') + '👤 ' + usersText : ''}`;
     }
     
     return `
@@ -3828,9 +3796,9 @@ function editGroup(day, groupId) {
     }
     
     // Cria um modal de edição simplificado
-    const groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : 'Grupo';
+    const groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : '';
     const usersText = group.usuarios?.map(u => `👤 ${u.nome} (${u.idade} anos)`).join('\n') || '';
-    const currentContent = `${groupName}${group.categoria ? ' - ' + group.categoria : ''}${usersText ? '\n' + usersText : ''}`;
+    const currentContent = group.freeTextContent || `${groupName}${group.categoria && groupName ? ' - ' + group.categoria : (group.categoria || '')}${usersText ? '\n' + usersText : ''}`;
     
     const newContent = prompt('Edite o conteúdo do grupo:', currentContent);
     if (newContent === null) return; // Cancelou
