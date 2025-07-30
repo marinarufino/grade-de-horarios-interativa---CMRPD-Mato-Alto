@@ -3269,37 +3269,22 @@ html {
     min-width: 200px;
 }
 
-/* Grade por categoria - sistema de edição */
-.professional-schedule-grid {
-    margin-bottom: 30px;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+/* Grade por categoria - sistema de edição - propriedades movidas para sticky section */
 
-.professional-schedule-grid h3 {
-    background: linear-gradient(135deg, #13335a, #1e4a73);
-    color: white;
-    margin: 0;
-    padding: 15px;
-    font-size: 1.1rem;
-}
+/* h3 styling moved to .sticky-professional-header */
 
-.professional-schedule-grid .schedule-table {
-    border: 2px solid #d1d5db;
-}
+/* Moved to sticky section */
 
-.professional-schedule-grid .schedule-table th {
+/* .professional-schedule-grid .schedule-table th {
     border-right: 1px solid rgba(255,255,255,0.2);
     border-bottom: 2px solid #d1d5db;
-}
+} */ /* Comentado - conflita com sticky */
 
-.professional-schedule-grid .schedule-table th:last-child {
+/* .professional-schedule-grid .schedule-table th:last-child {
     border-right: none;
-}
+} */ /* Comentado - conflita com sticky */
 
-.professional-schedule-grid .time-column {
+/* .professional-schedule-grid .time-column {
     border-right: 2px solid #d1d5db;
     font-weight: 700;
     background: linear-gradient(135deg, #4f46e5, #3b82f6);
@@ -3312,7 +3297,7 @@ html {
     vertical-align: middle;
     display: table-cell;
     height: auto;
-}
+} */ /* Comentado - conflita com sticky */
 
 .group-cell {
     min-height: 80px;
@@ -3599,9 +3584,7 @@ html {
         margin-right: 4px;
     }
     
-    .professional-schedule-grid {
-        overflow-x: auto;
-    }
+    /* professional-schedule-grid mobile styles moved to sticky section */
     
     .group-cell {
         min-height: 60px;
@@ -3664,4 +3647,111 @@ html {
     }
 }
 
+}
+
+/* ==============================================
+   STICKY HEADER PARA VISUALIZAÇÃO POR CATEGORIA - VERSÃO SIMPLIFICADA
+   ============================================== */
+
+/* Container principal com altura limitada e scroll */
+.professional-schedule-grid {
+    margin-bottom: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Nome do profissional sempre fixo no topo */
+.sticky-professional-header {
+    position: sticky;
+    top: 0;
+    z-index: 102;
+    background: linear-gradient(135deg, #13335a, #1e4a73);
+    color: white;
+    margin: 0;
+    padding: 15px;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Tabela com header fixo */
+.professional-schedule-grid table {
+    width: 100%;
+    border-collapse: collapse;
+    position: relative;
+}
+
+/* Header da tabela fixo logo abaixo do nome */
+.professional-schedule-grid thead {
+    position: sticky;
+    top: 60px; /* altura do header do profissional */
+    z-index: 101;
+}
+
+/* Todas as células do header fixas */
+.professional-schedule-grid thead th {
+    position: sticky;
+    top: 60px;
+    background: linear-gradient(135deg, #13335a, #1e4a73);
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+    z-index: 101;
+}
+
+/* Coluna de horário com cor diferente */
+.professional-schedule-grid thead th:first-child {
+    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    font-weight: 700;
+}
+
+/* Espaçamento no corpo da tabela */
+.professional-schedule-grid tbody tr:first-child td {
+    padding-top: 20px;
+}
+
+.professional-schedule-grid tbody td {
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+    min-height: 60px;
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+    .professional-schedule-grid {
+        max-height: calc(100vh - 150px);
+        overflow-x: auto;
+    }
+    
+    .sticky-professional-header {
+        font-size: 1rem;
+        padding: 12px;
+    }
+    
+    /* Header da tabela em mobile */
+    .professional-schedule-grid thead {
+        top: 50px; /* altura reduzida do header em mobile */
+    }
+    
+    .professional-schedule-grid thead th {
+        top: 50px;
+        padding: 8px;
+        font-size: 0.8rem;
+    }
+    
+    /* Espaçamento menor em mobile */
+    .professional-schedule-grid tbody tr:first-child td {
+        padding-top: 15px;
+    }
+    
+    .professional-schedule-grid tbody td {
+        padding: 8px;
+        min-height: 50px;
+    }
 }

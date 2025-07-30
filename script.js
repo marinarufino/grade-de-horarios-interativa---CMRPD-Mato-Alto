@@ -3557,8 +3557,8 @@ function generateOriginalGroupBlock(day, groupId, group) {
 function generateProfessionalGridWithEditSystem(professional) {
     let gridHTML = `
         <div class="professional-schedule-grid">
-            <h3>👨‍⚕️ ${professional.nome} - ${professional.categoria}</h3>
-            <table class="schedule-table">
+            <h3 class="sticky-professional-header">👨‍⚕️ ${professional.nome} - ${professional.categoria}</h3>
+            <table>
                 <thead>
                     <tr>
                         <th>Horário</th>
@@ -3575,7 +3575,7 @@ function generateProfessionalGridWithEditSystem(professional) {
     `;
     
     timeSlots.forEach(timeSlot => {
-        gridHTML += `<tr><td class="time-column"><div class="time-content">${timeSlot}</div></td>`;
+        gridHTML += `<tr><td>${timeSlot}</td>`;
         
         days.forEach(day => {
             const activities = getProfessionalActivitiesAtTime(professional.id, day, timeSlot);
