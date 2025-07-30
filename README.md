@@ -1,72 +1,112 @@
 📅 Grade de Horários - CMRPD Mato Alto
-Sistema interativo de gestão de horários para o Centro Municipal de Referência da Pessoa com Deficiência de Mato Alto.
+Sistema de gestão de horários semanais voltado ao atendimento de pessoas com deficiência, com foco na praticidade, visualização rápida e gestão de profissionais.
 
 🎯 Sobre o Projeto
-O Centro Municipal de Referência da Pessoa com Deficiência (CMRPD) - Unidade Mato Alto trabalha com uma equipe multidisciplinar de profissionais das áreas de saúde, pedagogia, psicologia e outras especialidades. Os usuários com deficiência são atendidos em grupos interdisciplinares para desenvolver habilidades sociais e superar dificuldades específicas relacionadas à sua condição.
+Essa ferramenta foi desenvolvida para o Centro Municipal de Referência da Pessoa com Deficiência (CMRPD) – Unidade Mato Alto, com o objetivo de simplificar o planejamento e a visualização das atividades semanais da equipe multidisciplinar.
 
-Esta Grade de Horários foi criada para que cada profissional possa se situar melhor quanto aos horários e dias em que atenderá os grupos que precisam de sua especialidade, podendo acessar facilmente pelo *celular ou computador, onde estiverem. Além disso, facilita para os *supervisores adicionarem profissionais ou usuários nas grades dos técnicos profissionais.
+O sistema adota um modelo estilo planilha, em que tudo é feito diretamente na grade — sem necessidade de múltiplos cadastros e etapas complexas.
 
-✨ Funcionalidades Principais
-🔐 Área Administrativa
-👥 Gestão de Grupos: Cadastro de usuários e alocação de profissionais
-👨‍⚕️ Cadastro de Profissionais: Gerenciamento completo da equipe multidisciplinar
-📊 Dashboard: Métricas de atendimentos e ocupação em tempo real
-📈 Relatórios: Estatísticas por dia da semana e informações gerais
-📋 Exportação: Relatórios em CSV para análise externa
+✨ Funcionalidades
+🧾 Grade Interativa (modo planilha)
+Preenchimento direto: os campos de nome do grupo e lista de usuários são preenchidos por texto livre
 
-👁️ Visualização Pública
-📅 Grade Interativa: Consulta de horários por categoria ou dia da semana
-🔍 Filtros Avançados: Busca por profissional, atividade ou período
-📱 Acesso Livre: Interface responsiva para toda a equipe
+Profissionais são selecionados a partir dos cadastrados previamente (não digitados)
 
-☁️ Integração com Firebase
-📡 Banco de Dados em Tempo Real: A Grade de Horários agora utiliza o Firebase Realtime Database, permitindo sincronização instantânea de dados entre usuários, com atualizações em tempo real sem necessidade de recarregar a página. Essa integração garante uma experiência mais fluida e confiável para todos os profissionais e administradores do sistema.
+Criação e edição de blocos por dia e horário
 
-🏥 Profissionais Especializados
-Equipe Multidisciplinar:
+Edição inline: clique no bloco para editar grupo, horário, usuários ou profissionais
 
-Educador Físico, Fisioterapeuta, Fonoaudióloga
+Visualização clara e organizada por filtros
 
-Neuropsicopedagoga, Nutricionista, Pedagoga
+👨‍⚕️ Cadastro e Gestão de Profissionais
+Cadastro de profissionais com nome e categoria
 
-Psicólogo, Psicomotricista, Terapeuta Ocupacional
+Definição dos dias de folga
+
+O sistema impede alocação de profissionais em dias de folga
+
+Profissionais aparecem como selecionáveis apenas nos dias disponíveis
+
+Visualização dos grupos em que cada profissional está alocado
+
+🔍 Filtros e Visualizações
+Filtro por categoria profissional
+
+Filtro por dia da semana
+
+Visualização de profissionais livres por horário
+
+Destaque de profissionais em folga ou indisponíveis
+
+🔒 Acesso Administrativo
+Login via botão “🔓 Fazer Login Admin”
+
+Permite gerenciar blocos, horários e profissionais
+
+Acesso à visualização completa da ocupação e disponibilidade
+
+Exportação de dados e visualização avançada
+
+📦 Tecnologias Utilizadas
+Frontend: HTML5, CSS3, JavaScript (ES6+)
+
+Banco de Dados: Firebase Realtime Database (atualizações em tempo real)
+
+Interface Responsiva: Desktop e mobile
+
+Estilo Moderno: Layout limpo, baseado em abas e modais
+
+🧠 Equipe Multidisciplinar
+Categorias disponíveis para cadastro de profissionais:
+
+Educador Físico
+
+Fisioterapeuta
+
+Fonoaudióloga
+
+Neuropsicopedagoga
+
+Nutricionista
+
+Pedagoga
+
+Psicólogo
+
+Psicomotricista
+
+Terapeuta Ocupacional
 
 Educadores Sociais (artesanato, cultura, informática, jardinagem)
 
-Modalidades de Atendimento:
-
-Centro de Convivência, GAIA, Empregabilidade
-
-Atendimento à Família, Evolução
-
-Atendimentos Individuais especializados
-
-🚀 Tecnologias
-Frontend: HTML5, CSS3, JavaScript ES6+
-
-Backend / Dados: Firebase Realtime Database (novo)
+Outros
 
 📱 Como Usar
-1. Acesso Público
-🌐 Abra o sistema → Aba "Grade"
-🔍 Filtre por categoria ou dia da semana
-📋 Visualize os horários organizados
+Visualização Pública
+Acesse a aba 📊 Grade
 
-2. Acesso Administrativo
-🔐 Login com senha → Acesso total
-👥 Gerencie grupos e profissionais
-📊 Consulte dashboards e relatórios
-📋 Exporte dados em CSV
+Use os filtros para visualizar por categoria ou dia
 
-🎨 Interface
-Design Profissional: Cores institucionais e navegação intuitiva
+Consulte horários e ocupação de profissionais
 
-Responsivo: Adaptado para desktop, tablet e mobile
+Modo Administrador
+Clique em 🔓 Fazer Login Admin
 
-Acessível: Contrastes adequados e navegação por teclado
+Crie e edite blocos diretamente na grade
 
+Selecione profissionais para cada grupo (a partir dos cadastrados)
 
+Gerencie folgas e ocupações com rapidez
 
-<div align="center">
-  <strong>Desenvolvido para otimizar o atendimento à pessoa com deficiência ♿</strong>
-</div>
+🚀 Destaques Técnicos
+Estilo planilha: cadastro e gestão rápida
+
+Profissionais com controle de disponibilidade (dias de folga)
+
+Visualização de profissionais livres por horário
+
+Sincronização em tempo real via Firebase
+
+Interface moderna, leve e responsiva
+
+<div align="center"> <strong>🧩 Feito para facilitar o trabalho em equipe e promover inclusão com organização e eficiência ♿</strong> </div>
