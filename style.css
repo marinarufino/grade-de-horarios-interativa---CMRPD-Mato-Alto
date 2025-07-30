@@ -2436,6 +2436,38 @@ html {
     text-align: center;
     color: #1f2937;
     transition: all 0.2s ease;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+    min-width: 120px;
+    resize: none;
+    height: auto;
+    min-height: 44px;
+}
+
+/* Sistema de fonte responsiva mais agressivo */
+.orientacao-cell[data-length-range="short"] {
+    font-size: 1.2rem;
+}
+
+.orientacao-cell[data-length-range="medium"] {
+    font-size: 1rem;
+}
+
+.orientacao-cell[data-length-range="long"] {
+    font-size: 0.85rem;
+}
+
+.orientacao-cell[data-length-range="very-long"] {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.orientacao-cell[data-length-range="extra-long"] {
+    font-size: 0.65rem;
+    line-height: 1.1;
+    min-height: 50px;
 }
 
 .orientacao-cell:focus {
@@ -2470,6 +2502,31 @@ html {
     .orientacao-cell {
         font-size: 1rem;
         padding: 10px;
+        min-height: 40px;
+    }
+    
+    /* Ajustes responsivos para mobile - fontes ainda menores */
+    .orientacao-cell[data-length-range="short"] {
+        font-size: 1rem;
+    }
+    
+    .orientacao-cell[data-length-range="medium"] {
+        font-size: 0.85rem;
+    }
+    
+    .orientacao-cell[data-length-range="long"] {
+        font-size: 0.75rem;
+    }
+    
+    .orientacao-cell[data-length-range="very-long"] {
+        font-size: 0.65rem;
+        line-height: 1.1;
+    }
+    
+    .orientacao-cell[data-length-range="extra-long"] {
+        font-size: 0.55rem;
+        line-height: 1;
+        min-height: 45px;
     }
     
     .orientacao-table .time-column {

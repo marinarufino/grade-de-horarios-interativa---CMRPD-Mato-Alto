@@ -2996,6 +2996,7 @@ function renderOrientacaoGrid() {
                            value="${currentValue}"
                            placeholder="${isAuthenticated ? 'Clique para editar' : 'Login necessário'}"
                            onchange="updateOrientacao('${day}', '${timeSlot}', this.value, this)"
+                           oninput="updateFontSizeForLength(this, this.value.trim())"
                            onblur="saveOrientacaoData()"
                            ${isDisabled}>
                 </td>`;
@@ -3006,6 +3007,16 @@ function renderOrientacaoGrid() {
     
     html += `</tbody></table>`;
     container.innerHTML = html;
+    
+    // Aplica o tamanho correto da fonte para campos já preenchidos
+    setTimeout(() => {
+        const cells = container.querySelectorAll('.orientacao-cell');
+        cells.forEach(cell => {
+            if (cell.value && cell.value.trim()) {
+                updateFontSizeForLength(cell, cell.value.trim());
+            }
+        });
+    }, 10);
 }
 
 // Atualiza dados da orientação parental
@@ -3023,13 +3034,16 @@ function updateOrientacao(day, timeSlot, value, element) {
     
     orientacaoData[day][timeSlot] = value.trim().toUpperCase();
     
-    // Atualiza a classe da célula
+    // Atualiza a classe da célula e o tamanho da fonte
     if (element) {
         if (value.trim()) {
             element.classList.add('filled');
         } else {
             element.classList.remove('filled');
         }
+        
+        // Atualiza o tamanho da fonte baseado no comprimento do texto
+        updateFontSizeForLength(element, value.trim());
     }
     
     // Salva automaticamente no Firebase com debounce
@@ -3037,6 +3051,31 @@ function updateOrientacao(day, timeSlot, value, element) {
     window.orientacaoSaveTimeout = setTimeout(() => {
         saveOrientacaoData();
     }, 1000); // Aguarda 1 segundo após parar de digitar
+}
+
+// Função para atualizar o tamanho da fonte baseado no comprimento do texto
+function updateFontSizeForLength(element, text) {
+    const length = text.length;
+    
+    // Remove atributo anterior
+    element.removeAttribute('data-length-range');
+    
+    if (length <= 15) {
+        // Textos curtos (até 15 caracteres)
+        element.setAttribute('data-length-range', 'short');
+    } else if (length <= 25) {
+        // Textos médios (16-25 caracteres)
+        element.setAttribute('data-length-range', 'medium');
+    } else if (length <= 35) {
+        // Textos longos (26-35 caracteres)
+        element.setAttribute('data-length-range', 'long');
+    } else if (length <= 50) {
+        // Textos muito longos (36-50 caracteres)
+        element.setAttribute('data-length-range', 'very-long');
+    } else {
+        // Textos extremamente longos (51+ caracteres)
+        element.setAttribute('data-length-range', 'extra-long');
+    }
 }
 
 
