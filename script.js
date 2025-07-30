@@ -50,7 +50,6 @@ function createNewGroup() {
         saveScheduleData().then(() => {
             console.log('✅ Grupo editado e salvo no Firebase');
             renderGroupsForDay(day);
-            updateDashboard();
             updateGradeView(); // Atualiza a grade também
             closeModal('createGroupModal');
             
@@ -81,7 +80,6 @@ function createNewGroup() {
         saveScheduleData().then(() => {
             console.log('✅ Novo grupo criado e salvo no Firebase');
             renderGroupsForDay(day);
-            updateDashboard();
             updateGradeView(); // Atualiza a grade também
             closeModal('createGroupModal');
             
@@ -230,7 +228,6 @@ function deleteGroup(day, groupId) {
         saveScheduleData().then(() => {
             console.log('✅ Grupo deletado e salvo no Firebase');
             renderGroupsForDay(day);
-            updateDashboard();
             updateGradeView(); // Atualiza a grade também
         }).catch(error => {
             console.error('❌ Erro ao deletar grupo:', error);
@@ -255,7 +252,6 @@ function removeUser(day, groupId, idx) {
             });
             
             renderUsers(day, groupId);
-            updateDashboard();
         }
     }
 }
@@ -274,7 +270,6 @@ function removeProfessional(day, groupId, idx) {
             });
             
             renderProfessionals(day, groupId);
-            updateDashboard();
         }
     }
 }
@@ -311,7 +306,6 @@ function removeMasterProfessional(profId) {
         deleteProfessional(profId).then(() => {
             console.log('✅ Profissional removido do Firebase');
             renderMasterProfessionalsList();
-            updateDashboard();
             
             const detailsView = document.getElementById('professional-details-view');
             if (detailsView) {
@@ -1299,7 +1293,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".tab").forEach(tab => {
         tab.addEventListener("click", e => {
             const clickedDay = e.currentTarget.dataset.day;
-            if (!isAuthenticated && ['dashboards-relatorios', 'profissionais'].includes(clickedDay)) {
+            if (!isAuthenticated && ['profissionais'].includes(clickedDay)) {
                 alert("⛔ Esta aba requer permissões de administrador!");
                 openLoginModal();
                 return;
@@ -1356,7 +1350,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         renderUsers(day, groupId);
-        updateDashboard();
         closeModal("userModal");
     });
 
@@ -1393,7 +1386,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         renderProfessionals(day, groupId);
-        updateDashboard();
         closeModal("professionalModal");
     });
 
@@ -1412,7 +1404,6 @@ document.addEventListener("DOMContentLoaded", () => {
         saveProfessional(newProf).then(() => {
             console.log('✅ Profissional cadastrado e salvo no Firebase');
             renderMasterProfessionalsList();
-            updateDashboard();
             closeModal('registerProfessionalModal');
         }).catch(error => {
             console.error('❌ Erro ao salvar profissional:', error);
@@ -1448,7 +1439,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 showProfessionalDetails(professionalId);
             }
             
-            updateDashboard();
             closeModal('manageDaysOffModal');
             alert(`Folgas atualizadas para ${prof.nome}!`);
             
@@ -1631,7 +1621,6 @@ async function loadAllData() {
         // Atualiza interface
         renderMasterProfessionalsList();
         initializeGroups();
-        updateDashboard();
         
     } catch (error) {
         console.error('❌ Erro ao carregar dados:', error);
@@ -1767,7 +1756,6 @@ function updateGroupCategory(day, groupId, category) {
         alert('Erro ao salvar categoria. Tente novamente.');
     });
     
-    updateDashboard();
     return true;
 }
 
@@ -1830,7 +1818,6 @@ function updateGroupTime(day, groupId, time) {
         alert('Erro ao salvar horário. Tente novamente.');
     });
     
-    updateDashboard();
     return true;
 }
 
@@ -1863,174 +1850,7 @@ function updateGroupHeaderText(day, groupId, category) {
 }
 
 
-// dashboards e relatorios
 
-function updateDashboard() {
-    if (!scheduleData || typeof scheduleData !== 'object') {
-        console.warn('⚠️ scheduleData não está definido');
-        return;
-    }
-    
-    let totalUsuarios = 0;
-    let totalProfissionaisUnicos = new Set();
-    let gruposComAtividade = 0;
-    let totalCapacidade = 0;
-    let ocupacaoTotal = 0;
-    
-    days.forEach(day => {
-        if (!scheduleData[day]) return;
-        
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            if (!group) return;
-            
-            // Conta usuários
-            if (group.usuarios && Array.isArray(group.usuarios)) {
-                totalUsuarios += group.usuarios.length;
-            }
-            
-            // Conta profissionais
-            if (group.profissionais && Array.isArray(group.profissionais)) {
-                group.profissionais.forEach(id => {
-                    if (id !== null && id !== undefined) {
-                        totalProfissionaisUnicos.add(id);
-                    }
-                });
-            }
-            
-            // Conta grupos com atividade
-            const hasUsers = group.usuarios && group.usuarios.length > 0;
-            const hasProfs = group.profissionais && group.profissionais.length > 0;
-            
-            if (hasUsers || hasProfs) {
-                gruposComAtividade++;
-            }
-            
-            // Calcula ocupação
-            totalCapacidade += 10;
-            const userCount = group.usuarios ? group.usuarios.length : 0;
-            const profCount = group.profissionais ? group.profissionais.length : 0;
-            ocupacaoTotal += userCount + profCount;
-        });
-    });
-    
-    const ocupacaoMedia = totalCapacidade > 0 ? Math.round((ocupacaoTotal / totalCapacidade) * 100) : 0;
-    
-    // Atualiza elementos da interface
-    const elements = {
-        totalUsuarios: document.getElementById('totalUsuarios'),
-        totalProfissionais: document.getElementById('totalProfissionais'),
-        gruposAtivos: document.getElementById('gruposAtivos'),
-        ocupacaoMedia: document.getElementById('ocupacaoMedia')
-    };
-    
-    if (elements.totalUsuarios) elements.totalUsuarios.textContent = totalUsuarios;
-    if (elements.totalProfissionais) elements.totalProfissionais.textContent = totalProfissionaisUnicos.size;
-    if (elements.gruposAtivos) elements.gruposAtivos.textContent = gruposComAtividade;
-    if (elements.ocupacaoMedia) elements.ocupacaoMedia.textContent = ocupacaoMedia + '%';
-    
-    updateAlertas();
-}
-
-function updateAlertas() {
-    const container = document.getElementById('alertas');
-    if (!container) return;
-    
-    let alertas = [];
-    
-    days.forEach(day => {
-        if (!scheduleData[day]) return;
-        
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            if (!group) return;
-            
-            const userCount = group.usuarios ? group.usuarios.length : 0;
-            const profCount = group.profissionais ? group.profissionais.length : 0;
-            const ocupacao = userCount + profCount;
-            
-            if (ocupacao >= 10) {
-                const displayName = isSpecificActivity(group.categoria) 
-                    ? group.categoria 
-                    : `Grupo ${groupId}`;
-                alertas.push(`⚠️ ${displayName} (${dayNames[day]}) está com capacidade máxima`);
-            }
-        });
-    });
-    
-    // Verifica profissionais sem grupos
-    const profissionaisAtivos = new Set();
-    days.forEach(day => {
-        if (!scheduleData[day]) return;
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            if (group && group.profissionais) {
-                group.profissionais.forEach(id => profissionaisAtivos.add(id));
-            }
-        });
-    });
-    
-    masterProfessionals.forEach(prof => {
-        if (!profissionaisAtivos.has(prof.id)) {
-            alertas.push(`ℹ️ ${prof.nome} não está alocado em nenhum grupo`);
-        }
-    });
-    
-    container.innerHTML = alertas.length > 0 
-        ? alertas.slice(0, 5).map(a => `<p>${a}</p>`).join('') 
-        : '<p>✅ Nenhum alerta no momento</p>';
-}
-
-function updateReports() {
-    updateAtendimentosPorDia();
-    updateHorariosMaisUtilizados();
-}
-
-function updateAtendimentosPorDia() {
-    const container = document.getElementById('atendimentosPorDia');
-    if (!container) return;
-    
-    let html = '';
-    days.forEach(day => {
-        let totalUsuarios = 0;
-        if (scheduleData[day]) {
-            Object.keys(scheduleData[day]).forEach(groupId => {
-                const group = scheduleData[day][groupId];
-                if (group && group.usuarios) {
-                    totalUsuarios += group.usuarios.length;
-                }
-            });
-        }
-        html += `<p><strong>${dayNames[day]}:</strong> ${totalUsuarios} atendimentos</p>`;
-    });
-    container.innerHTML = html;
-}
-
-function updateHorariosMaisUtilizados() {
-    const container = document.getElementById('horariosMaisUtilizados');
-    if (!container) return;
-    
-    const horarioStats = {};
-    days.forEach(day => {
-        if (!scheduleData[day]) return;
-        Object.keys(scheduleData[day]).forEach(groupId => {
-            const group = scheduleData[day][groupId];
-            if (group && group.usuarios && group.usuarios.length > 0) {
-                horarioStats[group.horario] = (horarioStats[group.horario] || 0) + 1;
-            }
-        });
-    });
-    
-    const sortedHorarios = Object.entries(horarioStats)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5);
-    
-    let html = '';
-    sortedHorarios.forEach(([horario, count]) => {
-        html += `<p><strong>${horario}:</strong> ${count} grupos</p>`;
-    });
-    container.innerHTML = html || '<p>Nenhum dado disponível</p>';
-}
 
 
 // navegaçao e autenticaçao
@@ -2050,10 +1870,7 @@ function switchToTab(tabName) {
         content.style.display = 'block';
     }
     
-    if (tabName === 'dashboards-relatorios') {
-        updateDashboard();
-        updateReports();
-    } else if (tabName === 'profissionais') {
+    if (tabName === 'profissionais') {
         renderMasterProfessionalsList();
         const detailsView = document.getElementById('professional-details-view');
         if (detailsView) {
@@ -2066,7 +1883,7 @@ function switchToTab(tabName) {
         if (categoryFilter) categoryFilter.value = '';
         if (weekdayFilter) weekdayFilter.value = '';
         updateGradeView();
-    }else if (tabName === 'orientacao-parental') {
+    } else if (tabName === 'orientacao-parental') {
         renderOrientacaoGrid();
     }
 }
@@ -2133,7 +1950,7 @@ function updateUserStatus() {
 
 function updateTabsVisibility() {
     const tabs = document.querySelectorAll('.tab');
-    const restrictedTabs = ['dashboards-relatorios', 'profissionais'];
+    const restrictedTabs = ['profissionais'];
     
     tabs.forEach(tab => {
         const day = tab.dataset.day;
@@ -2523,7 +2340,6 @@ function updateGroupNameFromInput(day, groupId, input) {
     
     saveScheduleData().then(() => {
         console.log('✅ Dados do grupo atualizados');
-        updateDashboard();
     }).catch(error => {
         console.error('❌ Erro ao salvar:', error);
     });
@@ -2544,7 +2360,6 @@ function updateUsersFromInput(day, groupId, input) {
     
     saveScheduleData().then(() => {
         console.log('✅ Lista de usuários atualizada');
-        updateDashboard();
     }).catch(error => {
         console.error('❌ Erro ao salvar:', error);
     });
@@ -2586,7 +2401,6 @@ function createNewActivityFromInput(inputElement, day, timeSlot) {
     
     saveScheduleData().then(() => {
         console.log('✅ Novo grupo criado na grade');
-        updateDashboard();
         updateGradeView();
         
         // Limpa o input
@@ -2606,7 +2420,6 @@ function removeActivityBlock(day, groupId) {
     
     saveScheduleData().then(() => {
         console.log('✅ Grupo removido');
-        updateDashboard();
         updateGradeView();
     }).catch(error => {
         console.error('❌ Erro ao remover grupo:', error);
@@ -2671,7 +2484,6 @@ function addActivityForProfessional(day, timeSlot, professionalId) {
     
     saveScheduleData().then(() => {
         console.log('✅ Nova atividade criada para o profissional');
-        updateDashboard();
         updateGradeView();
     }).catch(error => {
         console.error('❌ Erro ao criar atividade:', error);
@@ -2745,7 +2557,6 @@ function processCellContent(profId, day, timeSlot, content) {
         // Célula vazia - apenas salva as mudanças
         saveScheduleData().then(() => {
             console.log('✅ Atividades removidas');
-            updateDashboard();
             updateGradeView();
         });
         return;
@@ -2798,7 +2609,6 @@ function processCellContent(profId, day, timeSlot, content) {
     
     saveScheduleData().then(() => {
         console.log('✅ Conteúdo da célula processado e salvo');
-        updateDashboard();
         updateGradeView();
     }).catch(error => {
         console.error('❌ Erro ao salvar:', error);
@@ -3982,7 +3792,7 @@ function deleteGroup(day, groupId) {
     saveScheduleData().then(() => {
         console.log(`✅ Grupo ${groupName} excluído do ${dayName} às ${timeSlot}`);
         updateGradeView();
-        updateDashboard(); // Atualiza estatísticas
+         // Atualiza estatísticas
         
         alert(`✅ Grupo excluído com sucesso!\n\n` +
               `📋 ${groupName} foi removido de ${dayName} às ${timeSlot}\n` +
