@@ -3736,6 +3736,8 @@ function makeSpreadsheetCellEditable(cell) {
 
 // Sistema de controle de edição de grupos
 window.editingGroups = window.editingGroups || {};
+// Controla grupos que foram recém-criados (ainda não salvos)
+window.newlyCreatedGroups = window.newlyCreatedGroups || {};
 
 // Alterna entre modo de edição e visualização
 function toggleGroupEdit(day, groupId) {
@@ -3765,6 +3767,11 @@ function saveGroupEdit(day, groupId) {
     // Sai do modo de edição
     delete window.editingGroups[key];
     
+    // Remove da lista de grupos recém-criados (agora foi salvo)
+    if (window.newlyCreatedGroups[key]) {
+        delete window.newlyCreatedGroups[key];
+    }
+    
     // Salva no Firebase
     saveScheduleData().then(() => {
         console.log('✅ Grupo editado e salvo');
@@ -3778,6 +3785,14 @@ function saveGroupEdit(day, groupId) {
 // Cancela a edição do grupo
 function cancelGroupEdit(day, groupId) {
     const key = `${day}-${groupId}`;
+    
+    // Se é um grupo recém-criado, remove completamente
+    if (window.newlyCreatedGroups[key]) {
+        delete scheduleData[day][groupId];
+        delete window.newlyCreatedGroups[key];
+        console.log(`🚮 Grupo recém-criado cancelado e removido: ${key}`);
+    }
+    
     delete window.editingGroups[key];
     updateGradeView(); // Recarrega sem salvar
 }
@@ -3958,6 +3973,11 @@ function deleteGroup(day, groupId) {
         delete window.editingGroups[editKey];
     }
     
+    // Remove da lista de grupos recém-criados se estiver lá
+    if (window.newlyCreatedGroups && window.newlyCreatedGroups[editKey]) {
+        delete window.newlyCreatedGroups[editKey];
+    }
+    
     // Salva no Firebase
     saveScheduleData().then(() => {
         console.log(`✅ Grupo ${groupName} excluído do ${dayName} às ${timeSlot}`);
@@ -4005,6 +4025,9 @@ function createNewGroupInCell(day, timeSlot, professionalId) {
     // Coloca imediatamente em modo de edição
     const editKey = `${day}-${newGroupId}`;
     window.editingGroups[editKey] = true;
+    
+    // Marca como grupo recém-criado (ainda não salvo)
+    window.newlyCreatedGroups[editKey] = true;
     
     // Atualiza a visualização para mostrar o modo de edição
     updateGradeView();
