@@ -18,6 +18,7 @@ function createNewGroup() {
     const numeroGrupo = document.getElementById('newGroupNumber').value.trim();
     const categoria = document.getElementById('newGroupCategory').value;
     const horario = document.getElementById('newGroupTime').value;
+    const ocultarProfissionais = document.getElementById('ocultarProfissionaisCheckbox').checked;
     
     if (!categoria) {
         alert('Por favor, selecione uma categoria');
@@ -46,6 +47,7 @@ function createNewGroup() {
         scheduleData[day][groupId].numeroGrupo = numeroGrupo || "";
         scheduleData[day][groupId].horario = horario;
         scheduleData[day][groupId].categoria = categoria;
+        scheduleData[day][groupId].ocultarProfissionais = ocultarProfissionais;
         
         saveScheduleData().then(() => {
             console.log('✅ Grupo editado e salvo no Firebase');
@@ -74,6 +76,7 @@ function createNewGroup() {
             categoria: categoria,
             usuarios: [],
             profissionais: [],
+            ocultarProfissionais: ocultarProfissionais,
             createdAt: Date.now()
         };
         
@@ -157,6 +160,27 @@ if (!scheduleData[day][groupId].profissionais) {
         }
     });
     
+    // Preenche o checkbox de ocultar profissionais
+    const group = scheduleData[day][groupId];
+    const checkbox = document.getElementById('ocultarProfissionaisProfModal');
+    if (checkbox) {
+        checkbox.checked = group.ocultarProfissionais || false;
+        
+        // Remove listener anterior se existir
+        checkbox.onchange = null;
+        
+        // Adiciona listener para salvar quando alterado
+        checkbox.onchange = function() {
+            group.ocultarProfissionais = checkbox.checked;
+            saveScheduleData().then(() => {
+                console.log('✅ Estado de ocultar profissionais salvo:', checkbox.checked);
+                updateGradeView();
+            }).catch(error => {
+                console.error('❌ Erro ao salvar estado:', error);
+            });
+        };
+    }
+    
     document.getElementById("professionalModal").style.display = "block";
 }
 
@@ -192,17 +216,78 @@ function openManageDaysOffModal(professionalId) {
 }
 
 function closeModal(id) {
+    // Salva o estado do checkbox antes de fechar o modal de gerenciamento
+    if (id === 'manageCellProfessionalsModal') {
+        saveOcultarProfissionaisState();
+    }
+    
+    // Salva o estado do checkbox do modal de profissionais
+    if (id === 'professionalModal') {
+        const { day, groupId } = currentModalContext;
+        if (day && groupId) {
+            const checkbox = document.getElementById('ocultarProfissionaisProfModal');
+            const group = scheduleData[day]?.[groupId];
+            if (checkbox && group) {
+                group.ocultarProfissionais = checkbox.checked;
+                saveScheduleData().then(() => {
+                    updateGradeView();
+                }).catch(error => {
+                    console.error('❌ Erro ao salvar:', error);
+                });
+            }
+        }
+    }
+    
     document.getElementById(id).style.display = "none";
     
     // Restaura o título original do modal de criar grupo
     if (id === 'createGroupModal') {
         document.querySelector('#createGroupModal .modal-title').textContent = '➕ Criar Novo Grupo';
         document.querySelector('#createGroupModal .btn-confirm').textContent = 'Criar Grupo';
+        // Limpa o checkbox
+        document.getElementById('ocultarProfissionaisCheckbox').checked = false;
     }
     
     currentModalContext = {};
 }
 
+// Salva o estado do checkbox de ocultar profissionais
+function saveOcultarProfissionaisState() {
+    const { day, groupId } = currentCellManagementContext;
+    if (!day || !groupId) return;
+    
+    const checkbox = document.getElementById('ocultarProfissionaisCheckboxReal');
+    if (!checkbox) return;
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    group.ocultarProfissionais = checkbox.checked;
+    
+    // Salva no Firebase
+    saveScheduleData().then(() => {
+        console.log('✅ Estado de ocultar profissionais salvo:', checkbox.checked);
+        updateGradeView(); // Atualiza a grade para refletir a mudança
+    }).catch(error => {
+        console.error('❌ Erro ao salvar estado:', error);
+    });
+}
+
+// Atualiza o estado de ocultar profissionais na edição inline
+function updateOcultarProfissionais(day, groupId, isChecked) {
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    group.ocultarProfissionais = isChecked;
+    
+    // Salva automaticamente no Firebase
+    saveScheduleData().then(() => {
+        console.log('✅ Estado de ocultar profissionais atualizado:', isChecked);
+        // Não precisa recarregar a grade aqui porque está em modo de edição
+    }).catch(error => {
+        console.error('❌ Erro ao salvar estado:', error);
+    });
+}
 
 // remoçao de dados
 
@@ -448,6 +533,7 @@ function openEditGroupModal(day, groupId) {
     document.getElementById('newGroupNumber').value = group.numeroGrupo || '';
     document.getElementById('newGroupCategory').value = group.categoria || '';
     document.getElementById('newGroupTime').value = group.horario || '09:00';
+    document.getElementById('ocultarProfissionaisCheckbox').checked = group.ocultarProfissionais || false;
     
     // Altera o contexto para edição
     currentModalContext = { day, groupId: parseInt(groupId), type: "edit-group" };
@@ -458,6 +544,7 @@ function openEditGroupModal(day, groupId) {
     
     document.getElementById('createGroupModal').style.display = 'block';
     document.getElementById('newGroupNumber').focus();
+    
 }
 
 function toggleGroupManagementMode() {
@@ -811,7 +898,7 @@ function getDayActivitiesAtTime(day, timeSlot) {
             ((group.usuarios && group.usuarios.length > 0) || 
              (group.profissionais && group.profissionais.length > 0))) {
             
-            const profissionais = (group.profissionais || [])
+            const profissionais = group.ocultarProfissionais ? [] : (group.profissionais || [])
                 .map(profId => masterProfessionals.find(prof => prof.id === profId))
                 .filter(prof => prof)
                 .map(prof => prof.nome);
@@ -823,7 +910,8 @@ function getDayActivitiesAtTime(day, timeSlot) {
     numeroGrupo: group.numeroGrupo, 
     categoria: group.categoria,
     profissionais: profissionais,
-    usuarios: usuarios
+    usuarios: usuarios,
+    ocultarProfissionais: group.ocultarProfissionais || false
 });
         }
     });
@@ -1048,7 +1136,7 @@ function generateProfessionalGrid(professional) {
                         
                         // Gera lista de profissionais do grupo (separada do conteúdo editável)
                         const group = scheduleData[day]?.[activities[0].groupId];
-                        if (group && group.profissionais && group.profissionais.length > 0) {
+                        if (group && group.profissionais && group.profissionais.length > 0 && !group.ocultarProfissionais) {
                             professionalContent = group.profissionais.map(profId => {
                                 const prof = masterProfessionals.find(p => p.id === profId);
                                 return prof ? prof.nome : 'Profissional não encontrado';
@@ -1172,7 +1260,7 @@ function getProfessionalActivitiesAtTime(professionalId, day, timeSlot) {
     ? group.usuarios.map(user => user.nome).join(' - ')
     : 'Nenhum usuário';
 
-const allProfessionals = (group.profissionais || [])
+const allProfessionals = group.ocultarProfissionais ? [] : (group.profissionais || [])
     .map(profId => masterProfessionals.find(prof => prof.id === profId))
     .filter(prof => prof)
     .map(prof => prof.nome);
@@ -1182,7 +1270,8 @@ activities.push({
     numeroGrupo: group.numeroGrupo,
     groupCategory: group.categoria || 'Sem categoria',
     userNames: userNames,
-    allProfessionals: allProfessionals
+    allProfessionals: allProfessionals,
+    ocultarProfissionais: group.ocultarProfissionais || false
 });
         }
     });
@@ -2714,6 +2803,20 @@ function openProfessionalManagementForCell(day, groupId, event) {
     // Popula dropdown de profissionais disponíveis
     updateAvailableProfessionalsList(day, group.horario);
     
+    // Preenche o checkbox de ocultar profissionais
+    const checkbox = document.getElementById('ocultarProfissionaisCheckboxReal');
+    if (checkbox) {
+        checkbox.checked = group.ocultarProfissionais || false;
+        
+        // Remove listener anterior se existir
+        checkbox.onchange = null;
+        
+        // Adiciona listener para salvar quando alterado
+        checkbox.onchange = function() {
+            saveOcultarProfissionaisState();
+        };
+    }
+    
     // Mostra o modal
     document.getElementById('manageCellProfessionalsModal').style.display = 'block';
 }
@@ -3309,7 +3412,7 @@ function generateGroupBlock(day, groupId, group) {
     }
     
     let professionalsHTML = '';
-    if (group.profissionais && group.profissionais.length > 0) {
+    if (group.profissionais && group.profissionais.length > 0 && !group.ocultarProfissionais) {
         professionalsHTML = '<div class="professionals-list">';
         group.profissionais.forEach(profId => {
             const prof = masterProfessionals.find(p => p.id === profId);
@@ -3363,7 +3466,7 @@ function generateOriginalGroupBlock(day, groupId, group) {
     }
     
     let professionalsHTML = '';
-    if (group.profissionais && group.profissionais.length > 0) {
+    if (group.profissionais && group.profissionais.length > 0 && !group.ocultarProfissionais) {
         const profNames = group.profissionais.map(profId => {
             const prof = masterProfessionals.find(p => p.id === profId);
             return prof ? prof.nome : 'Profissional não encontrado';
@@ -3503,7 +3606,7 @@ function generateStaticGroupCell(day, groupId, activity) {
     
     // Lista de profissionais
     let professionalsText = '';
-    if (group && group.profissionais && group.profissionais.length > 0) {
+    if (group && group.profissionais && group.profissionais.length > 0 && !group.ocultarProfissionais) {
         const profNames = group.profissionais.map(profId => {
             const prof = masterProfessionals.find(p => p.id === profId);
             return prof ? prof.nome : 'N/A';
@@ -3585,6 +3688,15 @@ function generateEditableGroupCell(day, groupId, activity) {
                     </select>
                 </div>
                 
+                <div class="checkbox-options">
+                    <label class="edit-checkbox-label" style="background: lime; padding: 8px; border: 2px solid green; border-radius: 4px; display: inline-block; margin: 10px 0;">
+                        <input type="checkbox" id="ocultarProf_${groupId}" ${group.ocultarProfissionais ? 'checked' : ''} 
+                               onchange="updateOcultarProfissionais('${day}', '${groupId}', this.checked)"
+                               style="width: 18px; height: 18px; margin-right: 8px;">
+                        <span style="font-weight: bold; color: black;">👁️ OCULTAR PROFISSIONAIS NA GRADE</span>
+                    </label>
+                </div>
+                
                 <div class="edit-buttons">
                     <button class="btn-save-group" onclick="saveGroupEdit('${day}', '${groupId}')">💾 Salvar</button>
                     <button class="btn-cancel-group" onclick="cancelGroupEdit('${day}', '${groupId}')">❌ Cancelar</button>
@@ -3614,6 +3726,7 @@ function toggleGroupEdit(day, groupId) {
         alert("⛔ Faça login como administrador para editar!");
         return;
     }
+    
     
     const key = `${day}-${groupId}`;
     window.editingGroups[key] = !window.editingGroups[key];
@@ -3673,31 +3786,9 @@ function editGroup(day, groupId) {
         return;
     }
     
-    const group = scheduleData[day]?.[groupId];
-    if (!group) {
-        alert('Grupo não encontrado!');
-        return;
-    }
     
-    // Cria um modal de edição simplificado
-    const groupName = group.numeroGrupo ? `Grupo ${group.numeroGrupo}` : '';
-    const usersText = group.usuarios?.map(u => `👤 ${u.nome} (${u.idade} anos)`).join('\n') || '';
-    const currentContent = group.freeTextContent || `${groupName}${group.categoria && groupName ? ' - ' + group.categoria : (group.categoria || '')}${usersText ? '\n' + usersText : ''}`;
-    
-    const newContent = prompt('Edite o conteúdo do grupo:', currentContent);
-    if (newContent === null) return; // Cancelou
-    
-    // Processa o novo conteúdo
-    processFreeTextGroupContent(day, groupId, newContent);
-    
-    // Salva no Firebase
-    saveScheduleData().then(() => {
-        console.log('✅ Grupo editado e salvo');
-        updateGradeView();
-    }).catch(error => {
-        console.error('❌ Erro ao salvar grupo:', error);
-        alert('Erro ao salvar. Tente novamente.');
-    });
+    // Chama o modal de edição completo ao invés do prompt
+    openEditGroupModal(day, groupId);
 }
 
 // Processa conteúdo livre digitado pelo usuário

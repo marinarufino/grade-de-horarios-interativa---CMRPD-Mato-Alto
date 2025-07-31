@@ -16,6 +16,8 @@
         </div>
     </div>
 
+
+
     <div class="tabs">
         <button class="tab" data-day="profissionais">👨‍⚕️ Profissionais</button>
         <button class="tab active" data-day="grade">📊 Grade</button>
@@ -137,8 +139,16 @@
                 <select id="professionalSelect" required></select>
             </div>
             <div class="modal-buttons">
-                <button type="button" class="btn-cancel" onclick="closeModal('professionalModal')">Cancelar</button>
-                <button type="submit" class="btn-confirm">Confirmar</button>
+                <div class="checkbox-inline" style="background: lime; padding: 10px; border: 3px solid green; border-radius: 5px;">
+                    <label class="checkbox-label" style="color: black; font-weight: bold; font-size: 14px;">
+                        <input type="checkbox" id="ocultarProfissionaisProfModal" style="width: 20px; height: 20px;">
+                        👁️ OCULTAR PROFISSIONAIS NA GRADE
+                    </label>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('professionalModal')">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Confirmar</button>
+                </div>
             </div>
         </form>
     </div>
@@ -260,7 +270,15 @@
         </div>
         
         <div class="modal-buttons">
-            <button type="button" class="btn-cancel" onclick="closeModal('manageCellProfessionalsModal')">Fechar</button>
+            <div class="checkbox-inline" style="background: lime; padding: 10px; border: 3px solid green; border-radius: 5px;">
+                <label class="checkbox-label" style="color: black; font-weight: bold; font-size: 14px;">
+                    <input type="checkbox" id="ocultarProfissionaisCheckboxReal" style="width: 20px; height: 20px;">
+                    👁️ OCULTAR PROFISSIONAIS NA GRADE
+                </label>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('manageCellProfessionalsModal')">Fechar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -272,6 +290,7 @@
             <h2 class="modal-title">➕ Criar Novo Grupo</h2>
         </div>
         <form id="createGroupForm">
+            
             <div class="form-group">
     <label>Número do Grupo (Opcional):</label>
     <input type="text" 
@@ -307,8 +326,16 @@
                 </select>
             </div>
             <div class="modal-buttons">
-                <button type="button" class="btn-cancel" onclick="closeModal('createGroupModal')">Cancelar</button>
-                <button type="submit" class="btn-confirm">Criar Grupo</button>
+                <div class="checkbox-inline" style="background: lime; padding: 10px; border: 3px solid green; border-radius: 5px;">
+                    <label class="checkbox-label" style="color: black; font-weight: bold; font-size: 14px;">
+                        <input type="checkbox" id="ocultarProfissionaisCheckbox" style="width: 20px; height: 20px;">
+                        👁️ OCULTAR PROFISSIONAIS
+                    </label>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal('createGroupModal')">Cancelar</button>
+                    <button type="submit" class="btn-confirm">Criar Grupo</button>
+                </div>
             </div>
         </form>
     </div>
