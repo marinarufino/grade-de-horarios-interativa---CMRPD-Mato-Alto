@@ -3094,14 +3094,12 @@ function renderOrientacaoGrid() {
             
             html += `
                 <td>
-                    <input type="text" 
-                           class="${cellClass}" 
-                           value="${currentValue}"
+                    <textarea class="${cellClass}" 
                            placeholder="${isAuthenticated ? 'Clique para editar' : 'Login necessário'}"
                            onchange="updateOrientacao('${day}', '${timeSlot}', this.value, this)"
-                           oninput="updateFontSizeForLength(this, this.value.trim())"
+                           oninput="updateFontSizeForLength(this, this.value.trim()); autoResize(this);"
                            onblur="saveOrientacaoData()"
-                           ${isDisabled}>
+                           ${isDisabled}>${currentValue}</textarea>
                 </td>`;
         });
         
@@ -3117,9 +3115,16 @@ function renderOrientacaoGrid() {
         cells.forEach(cell => {
             if (cell.value && cell.value.trim()) {
                 updateFontSizeForLength(cell, cell.value.trim());
+                autoResize(cell);
             }
         });
     }, 10);
+}
+
+// Função para redimensionar automaticamente o textarea
+function autoResize(element) {
+    element.style.height = 'auto';
+    element.style.height = Math.max(44, element.scrollHeight) + 'px';
 }
 
 // Atualiza dados da orientação parental

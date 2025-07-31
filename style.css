@@ -2498,7 +2498,8 @@ html {
     padding: 12px;
     border: 1px solid #d1d5db;
     background: white;
-    vertical-align: middle;
+    vertical-align: top;
+    height: auto;
 }
 
 .orientacao-table .time-column {
@@ -2528,6 +2529,11 @@ html {
     resize: none;
     height: auto;
     min-height: 44px;
+    max-height: none;
+    overflow: hidden;
+    vertical-align: top;
+    box-sizing: border-box;
+    font-family: inherit;
 }
 
 /* Sistema de fonte responsiva mais agressivo */
@@ -2551,7 +2557,8 @@ html {
 .orientacao-cell[data-length-range="extra-long"] {
     font-size: 0.65rem;
     line-height: 1.1;
-    min-height: 50px;
+    min-height: 60px;
+    max-height: none;
 }
 
 .orientacao-cell:focus {
@@ -2587,6 +2594,8 @@ html {
         font-size: 1rem;
         padding: 10px;
         min-height: 40px;
+        max-height: none;
+        overflow: visible;
     }
     
     /* Ajustes responsivos para mobile - fontes ainda menores */
@@ -2610,7 +2619,8 @@ html {
     .orientacao-cell[data-length-range="extra-long"] {
         font-size: 0.55rem;
         line-height: 1;
-        min-height: 45px;
+        min-height: 50px;
+        max-height: none;
     }
     
     .orientacao-table .time-column {
