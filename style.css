@@ -2519,7 +2519,7 @@ html {
     font-weight: 500;
     padding: 12px;
     text-align: center;
-    color: #1f2937;
+    color: #1e293b;
     transition: all 0.2s ease;
     word-wrap: break-word;
     word-break: break-word;
@@ -2570,12 +2570,12 @@ html {
     background: #e0f2fe;
     border: 1px solid #0ea5e9;
     font-weight: 600;
-    color: #0c4a6e;
+    color: #1e293b;
 }
 
 .orientacao-cell:disabled {
     background: #f3f4f6;
-    color: #9ca3af;
+    color: #1e293b;
     cursor: not-allowed;
 }
 

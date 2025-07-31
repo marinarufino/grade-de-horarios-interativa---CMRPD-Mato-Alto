@@ -3095,7 +3095,7 @@ function renderOrientacaoGrid() {
             html += `
                 <td>
                     <textarea class="${cellClass}" 
-                           placeholder="${isAuthenticated ? 'Clique para editar' : 'Login necessário'}"
+                           placeholder="${isAuthenticated ? 'Clique para editar' : ''}"
                            onchange="updateOrientacao('${day}', '${timeSlot}', this.value, this)"
                            oninput="updateFontSizeForLength(this, this.value.trim()); autoResize(this);"
                            onblur="saveOrientacaoData()"
