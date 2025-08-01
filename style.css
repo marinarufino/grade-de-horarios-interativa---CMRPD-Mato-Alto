@@ -2247,7 +2247,7 @@ body {
     }
     
     .time-column::before {
-        content: "🕐 " attr(data-label) ": ";
+        content: attr(data-label) ": ";
     }
     
     .activities-column::before {
@@ -3435,14 +3435,12 @@ html.editing-mode .grade-container {
 }
 
 .time-column {
-    background: linear-gradient(135deg, #4f46e5, #3b82f6);
-    color: white;
-    font-weight: 700;
+    background: transparent;
+    color: #374151;
+    font-weight: 600;
     width: 120px;
     text-align: center;
     font-size: 1.1rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-    border-radius: 6px;
     padding: 0;
     vertical-align: middle;
     position: relative;
@@ -3528,17 +3526,14 @@ html.editing-mode .grade-container {
     color: #4b5563;
 }
 
-/* Badge de horário na visualização por dia */
+/* Badge de horário na visualização por dia - sem fundo */
 .group-time-badge {
-    background: linear-gradient(135deg, #f59e0b, #f97316);
+    background: transparent;
     color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
     font-size: 0.8rem;
     font-weight: 600;
     display: inline-block;
     margin-right: 8px;
-    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
     white-space: nowrap;
 }
 

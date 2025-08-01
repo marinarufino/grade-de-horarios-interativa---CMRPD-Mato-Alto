@@ -3766,7 +3766,7 @@ function generateGroupBlock(day, groupId, group) {
         <div class="group-block" data-group-id="${groupId}">
             <div class="group-header">
                 <div class="group-title-display">${displayContent}</div>
-                <span class="group-time">⏰ ${group.horario}</span>
+                <span class="group-time">${group.horario}</span>
             </div>
             <div class="group-content">
                 ${professionalsHTML}
@@ -3816,7 +3816,7 @@ function generateOriginalGroupBlock(day, groupId, group) {
     return `
         <div class="original-group-block" data-group-id="${groupId}">
             <div class="group-header">
-                <div class="group-time-badge">⏰ ${group.horario}</div>
+                <div class="group-time-badge">${group.horario}</div>
                 <div class="group-text-content">${displayContent}</div>
                 ${isAuthenticated ? `
                     <div class="group-buttons">
@@ -4314,7 +4314,7 @@ function deleteGroup(day, groupId) {
     const confirmMessage = `🗑️ EXCLUIR GRUPO COMPLETO\n\n` +
         `📋 Grupo: ${groupName}\n` +
         `📅 Dia: ${dayName}\n` +
-        `⏰ Horário: ${timeSlot}` +
+        `Horário: ${timeSlot}` +
         usersInfo +
         professionalsInfo +
         `\n\n⚠️ Esta ação não pode ser desfeita!\n` +
