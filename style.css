@@ -2407,14 +2407,22 @@ body {
     }
 }
 
-/* Garantir que o scroll suave funcione */
-html {
-    scroll-behavior: smooth;
+/* Prevenir scroll automático durante edição */
+html.editing-mode {
+    scroll-behavior: auto !important;
 }
 
-/* Ajustar a visibilidade do container para o scroll */
-.content {
-    scroll-behavior: smooth;
+.content.editing-mode {
+    scroll-behavior: auto !important;
+}
+
+/* Bloqueia scroll suavemente sem quebrar layout */
+html.editing-mode .professional-schedule-grid {
+    scroll-behavior: auto !important;
+}
+
+html.editing-mode .grade-container {
+    scroll-behavior: auto !important;
 }
 
 /* Destaque adicional para os controles do grupo recém-criado */

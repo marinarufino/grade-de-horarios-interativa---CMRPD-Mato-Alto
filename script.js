@@ -2599,6 +2599,159 @@ function addActivityForProfessional(day, timeSlot, professionalId) {
     });
 }
 
+// Sistema de bloqueio absoluto de scroll
+let scrollBlocked = false;
+let lockedScrollPosition = { top: 0, left: 0 };
+let scrollEventListeners = [];
+
+function blockScrollCompletely() {
+    // Captura posição atual da página
+    lockedScrollPosition.top = window.pageYOffset || document.documentElement.scrollTop;
+    lockedScrollPosition.left = window.pageXOffset || document.documentElement.scrollLeft;
+    scrollBlocked = true;
+    
+    console.log('🔒 BLOQUEANDO scroll na posição:', lockedScrollPosition);
+    
+    // Captura e bloqueia scroll de TODOS os containers de profissionais
+    const professionalContainers = document.querySelectorAll('.professional-schedule-grid');
+    window.lockedContainerScrolls = {};
+    
+    professionalContainers.forEach((container, index) => {
+        const scrollTop = container.scrollTop;
+        const scrollLeft = container.scrollLeft;
+        window.lockedContainerScrolls[index] = { top: scrollTop, left: scrollLeft };
+        console.log(`🔒 BLOQUEANDO container ${index} na posição:`, { top: scrollTop, left: scrollLeft });
+    });
+    
+    // Adiciona classe CSS
+    document.documentElement.classList.add('editing-mode');
+    document.querySelector('.content')?.classList.add('editing-mode');
+    
+    // Bloqueia TODOS os eventos que podem causar scroll
+    const preventScroll = (e) => {
+        if (scrollBlocked) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.scrollTo(lockedScrollPosition.left, lockedScrollPosition.top);
+            return false;
+        }
+    };
+    
+    const scrollEvents = ['scroll', 'wheel', 'touchmove', 'keydown'];
+    scrollEvents.forEach(eventType => {
+        const listener = (e) => {
+            if (scrollBlocked) {
+                if (eventType === 'keydown') {
+                    // Bloqueia teclas que causam scroll (setas, page up/down, home, end)
+                    const scrollKeys = [32, 33, 34, 35, 36, 37, 38, 39, 40];
+                    if (scrollKeys.includes(e.keyCode)) {
+                        e.preventDefault();
+                    }
+                } else {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                // Força posição imediatamente
+                setTimeout(() => {
+                    window.scrollTo(lockedScrollPosition.left, lockedScrollPosition.top);
+                    
+                    // Força posição de todos os containers também
+                    const containers = document.querySelectorAll('.professional-schedule-grid');
+                    containers.forEach((container, index) => {
+                        if (window.lockedContainerScrolls[index]) {
+                            container.scrollTop = window.lockedContainerScrolls[index].top;
+                            container.scrollLeft = window.lockedContainerScrolls[index].left;
+                        }
+                    });
+                }, 0);
+                return false;
+            }
+        };
+        
+        // Adiciona listeners tanto na window/document quanto em cada container
+        window.addEventListener(eventType, listener, { passive: false, capture: true });
+        document.addEventListener(eventType, listener, { passive: false, capture: true });
+        
+        // Adiciona listener em cada container de profissional também
+        const containers = document.querySelectorAll('.professional-schedule-grid');
+        containers.forEach(container => {
+            container.addEventListener(eventType, listener, { passive: false, capture: true });
+        });
+        
+        scrollEventListeners.push({ type: eventType, listener });
+    });
+    
+    // Monitor simples e eficaz
+    const simpleForcePosition = () => {
+        if (scrollBlocked) {
+            // Força posição suavemente
+            window.scrollTo(lockedScrollPosition.left, lockedScrollPosition.top);
+            
+            // Força containers
+            const containers = document.querySelectorAll('.professional-schedule-grid');
+            containers.forEach((container, index) => {
+                if (window.lockedContainerScrolls[index]) {
+                    container.scrollTop = window.lockedContainerScrolls[index].top;
+                    container.scrollLeft = window.lockedContainerScrolls[index].left;
+                }
+            });
+            
+            requestAnimationFrame(simpleForcePosition);
+        }
+    };
+    requestAnimationFrame(simpleForcePosition);
+}
+
+function unblockScroll() {
+    console.log('🔓 DESBLOQUEANDO scroll');
+    scrollBlocked = false;
+    
+    // Remove event listeners da window/document e containers
+    scrollEventListeners.forEach(({ type, listener }) => {
+        window.removeEventListener(type, listener, { capture: true });
+        document.removeEventListener(type, listener, { capture: true });
+        
+        // Remove também dos containers
+        const containers = document.querySelectorAll('.professional-schedule-grid');
+        containers.forEach(container => {
+            container.removeEventListener(type, listener, { capture: true });
+        });
+    });
+    scrollEventListeners = [];
+    
+    // Remove classe CSS
+    document.documentElement.classList.remove('editing-mode');
+    document.querySelector('.content')?.classList.remove('editing-mode');
+    
+    // Monitor temporário para capturar qualquer scroll que aconteça após desbloqueio
+    let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    let lastScrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    const monitorUnexpectedScroll = () => {
+        const currentTop = window.pageYOffset || document.documentElement.scrollTop;
+        const currentLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        
+        if (Math.abs(currentTop - lastScrollTop) > 5 || Math.abs(currentLeft - lastScrollLeft) > 5) {
+            console.error('🚨 SCROLL DETECTADO APÓS DESBLOQUEIO!');
+            console.error('Posição anterior:', { top: lastScrollTop, left: lastScrollLeft });
+            console.error('Nova posição:', { top: currentTop, left: currentLeft });
+            console.error('Stack trace:', new Error().stack);
+            
+            // Força volta para posição original
+            window.scrollTo(lastScrollLeft, lastScrollTop);
+            return;
+        }
+        
+        // Monitora por 2 segundos após desbloqueio
+        if (Date.now() - unblockTime < 2000) {
+            requestAnimationFrame(monitorUnexpectedScroll);
+        }
+    };
+    
+    const unblockTime = Date.now();
+    requestAnimationFrame(monitorUnexpectedScroll);
+}
+
 // Funções para edição estilo planilha na grade por profissional
 
 function makeSpreadsheetCellEditable(cell) {
@@ -2607,9 +2760,12 @@ function makeSpreadsheetCellEditable(cell) {
     const contentDiv = cell.querySelector('.spreadsheet-cell-content');
     if (!contentDiv || contentDiv.contentEditable === 'true') return;
     
+    // BLOQUEIA SCROLL COMPLETAMENTE
+    blockScrollCompletely();
+    
     // Torna editável
     contentDiv.contentEditable = 'true';
-    contentDiv.focus();
+    contentDiv.focus({ preventScroll: true });
     
     // Adiciona bordas para indicar edição
     cell.classList.add('editing');
@@ -2622,11 +2778,25 @@ function makeSpreadsheetCellEditable(cell) {
     selection.removeAllRanges();
     selection.addRange(range);
     
+    // Desbloqueia após operação completa
+    setTimeout(() => {
+        unblockScroll();
+    }, 500);
+    
     // Event listeners para salvar - com proteção para não interferir com operações de profissionais
     const blurHandler = function() {
         // Verifica se não há operações de profissionais em andamento
         if (!document.getElementById('tempProfSelect')) {
+            // Salva a posição do scroll antes de salvar
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            
             saveSpreadsheetCellContent(cell, contentDiv);
+            
+            // Restaura a posição do scroll após salvar
+            setTimeout(() => {
+                window.scrollTo(scrollLeft, scrollTop);
+            }, 0);
         }
     };
     
@@ -2635,10 +2805,24 @@ function makeSpreadsheetCellEditable(cell) {
     contentDiv.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            // Salva a posição do scroll antes do blur
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            
             contentDiv.blur();
+            
+            // Restaura a posição do scroll após o blur
+            setTimeout(() => {
+                window.scrollTo(scrollLeft, scrollTop);
+            }, 0);
         }
         if (e.key === 'Escape') {
             e.preventDefault();
+            console.log('🔥 ESCAPE pressionado - BLOQUEANDO scroll');
+            
+            // BLOQUEIA SCROLL DURANTE CANCELAMENTO
+            blockScrollCompletely();
+            
             // Cancela edição - restaura conteúdo original sem recarregar toda a grade
             contentDiv.contentEditable = 'false';
             cell.classList.remove('editing');
@@ -2664,6 +2848,11 @@ function makeSpreadsheetCellEditable(cell) {
             }
             
             contentDiv.innerHTML = editableContent.replace(/\n/g, '<br>');
+            
+            // Desbloqueia após operação
+            setTimeout(() => {
+                unblockScroll();
+            }, 300);
         }
     });
 }
@@ -3748,12 +3937,7 @@ function generateEditableGroupCell(day, groupId, activity) {
     `;
 }
 
-// Função para compatibilidade - redirecionada para o novo sistema
-function makeSpreadsheetCellEditable(cell) {
-    // Esta função foi substituída pelo novo sistema de edição por grupo
-    // Agora cada grupo tem seu próprio botão "Editar"
-    console.log('Função makeSpreadsheetCellEditable foi substituída pelo novo sistema de edição por grupo');
-}
+// Função removida - usando a versão com preservação de scroll
 
 // Função legada removida - substituída pelo novo sistema de edição
 
@@ -3769,10 +3953,17 @@ function toggleGroupEdit(day, groupId) {
         return;
     }
     
+    // BLOQUEIA SCROLL COMPLETAMENTE
+    blockScrollCompletely();
     
     const key = `${day}-${groupId}`;
     window.editingGroups[key] = !window.editingGroups[key];
     updateGradeView(); // Recarrega a visualização
+    
+    // Desbloqueia após tempo menor
+    setTimeout(() => {
+        unblockScroll();
+    }, 1000);
 }
 
 // Salva as edições do grupo
@@ -3796,10 +3987,19 @@ function saveGroupEdit(day, groupId) {
         delete window.newlyCreatedGroups[key];
     }
     
+    // Salva a posição do scroll antes de atualizar
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
     // Salva no Firebase
     saveScheduleData().then(() => {
         console.log('✅ Grupo editado e salvo');
         updateGradeView();
+        
+        // Restaura a posição do scroll
+        setTimeout(() => {
+            window.scrollTo(scrollLeft, scrollTop);
+        }, 50);
     }).catch(error => {
         console.error('❌ Erro ao salvar grupo:', error);
         alert('Erro ao salvar. Tente novamente.');
@@ -3818,7 +4018,16 @@ function cancelGroupEdit(day, groupId) {
     }
     
     delete window.editingGroups[key];
+    
+    // BLOQUEIA SCROLL DURANTE CANCELAMENTO
+    blockScrollCompletely();
+    
     updateGradeView(); // Recarrega sem salvar
+    
+    // Desbloqueia após tempo menor
+    setTimeout(() => {
+        unblockScroll();
+    }, 1000);
 }
 
 // Edita grupo na visualização por dia
@@ -4073,17 +4282,36 @@ function createNewGroupInCell(day, timeSlot, professionalId) {
     // Marca como grupo recém-criado (ainda não salvo)
     window.newlyCreatedGroups[editKey] = true;
     
+    // BLOQUEIA SCROLL COMPLETAMENTE
+    blockScrollCompletely();
+    
     // Atualiza a visualização para mostrar o modo de edição
     updateGradeView();
     
-    // Foca no campo de texto após um pequeno delay para garantir que o elemento foi criado
+    // Desbloqueia após tempo menor
+    setTimeout(() => {
+        unblockScroll();
+    }, 1000);
+    
+    // Foca no campo de texto APÓS o desbloqueio para não interferir
     setTimeout(() => {
         const textarea = document.querySelector(`[data-group-id="${newGroupId}"] .edit-group-content`);
         if (textarea) {
-            textarea.focus();
+            // Bloqueia temporariamente só para o focus
+            const currentPos = { 
+                top: window.pageYOffset || document.documentElement.scrollTop,
+                left: window.pageXOffset || document.documentElement.scrollLeft
+            };
+            
+            textarea.focus({ preventScroll: true });
             textarea.placeholder = 'Digite o nome do grupo e usuários...';
+            
+            // Força posição após focus
+            setTimeout(() => {
+                window.scrollTo(currentPos.left, currentPos.top);
+            }, 10);
         }
-    }, 100);
+    }, 1100); // Logo após o desbloqueio
     
     console.log(`📝 Novo grupo criado em ${dayNames[day]} às ${timeSlot} para profissional ${professionalId}`);
 }
@@ -4148,7 +4376,7 @@ function restoreEditableContent() {
                 // Se a célula estava editável, mantém editável
                 if (wasEditable) {
                     cell.contentEditable = 'true';
-                    cell.focus();
+                    cell.focus({ preventScroll: true });
                 }
             } else {
                 console.log(`❌ DEBUG: Célula não encontrada para ${key}`);
@@ -4164,7 +4392,7 @@ function restoreEditableContent() {
                 textarea.value = content;
                 console.log(`✅ DEBUG: Restaurado conteúdo de textarea para ${key}:`, content);
                 // Mantém o foco na textarea
-                textarea.focus();
+                textarea.focus({ preventScroll: true });
             } else {
                 console.log(`❌ DEBUG: Textarea não encontrada para ${key}`);
             }
@@ -4277,7 +4505,7 @@ function openAddProfessionalInline(day, groupId, event) {
     });
     
     // Foca no select
-    select.focus();
+    select.focus({ preventScroll: true });
     
     // Restaura o botão se o usuário sair sem selecionar
     select.addEventListener('blur', function() {
