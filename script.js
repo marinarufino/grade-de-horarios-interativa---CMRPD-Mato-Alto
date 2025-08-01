@@ -2136,6 +2136,12 @@ function updateTabsVisibility() {
         }
     });
     
+    // Controlar visibilidade do filtro de dia da semana (apenas para admin)
+    const weekdayFilterGroup = document.querySelector('.admin-only-filter');
+    if (weekdayFilterGroup) {
+        weekdayFilterGroup.style.display = isAuthenticated ? 'block' : 'none';
+    }
+    
     // Controles de grade removidos - gerenciamento é feito diretamente na grade
 }
 
@@ -4774,4 +4780,56 @@ function updateCellProfessionalsDisplaySafe(day, groupId) {
             console.log('✅ DEBUG: Lista de profissionais atualizada');
         }
     });
+}
+
+// SOLUÇÃO PARA COLUNA DE HORÁRIOS FIXA EM MOBILE
+function initMobileTimeColumnFix() {
+    // Só executar em mobile
+    if (window.innerWidth <= 768) {
+        const grids = document.querySelectorAll('.professional-schedule-grid');
+        
+        grids.forEach(grid => {
+            // Remover listener anterior se existir
+            if (grid.timeColumnFixListener) {
+                grid.removeEventListener('scroll', grid.timeColumnFixListener);
+            }
+            
+            // Criar novo listener
+            grid.timeColumnFixListener = function() {
+                const timeColumns = grid.querySelectorAll('.time-column');
+                const scrollLeft = grid.scrollLeft;
+                
+                timeColumns.forEach(col => {
+                    // Usar transform para mover a coluna junto com o scroll
+                    col.style.transform = `translateX(${scrollLeft}px)`;
+                    col.classList.add('fixed-column');
+                });
+            };
+            
+            // Adicionar listener
+            grid.addEventListener('scroll', grid.timeColumnFixListener);
+        });
+        
+        console.log('✅ Mobile time column fix inicializado');
+    }
+}
+
+// Executar quando DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    initMobileTimeColumnFix();
+});
+
+// Executar quando redimensionar tela
+window.addEventListener('resize', function() {
+    initMobileTimeColumnFix();
+});
+
+// Executar quando a grade for atualizada
+const originalUpdateGradeView = window.updateGradeView;
+if (originalUpdateGradeView) {
+    window.updateGradeView = function() {
+        originalUpdateGradeView.apply(this, arguments);
+        // Aguardar um pouco para garantir que DOM foi atualizado
+        setTimeout(initMobileTimeColumnFix, 100);
+    };
 }
