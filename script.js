@@ -215,6 +215,21 @@ function openManageDaysOffModal(professionalId) {
     document.getElementById("manageDaysOffModal").style.display = "block";
 }
 
+function openEditProfessionalNameModal(professionalId) {
+    if (!checkAuth()) return;
+    
+    const prof = masterProfessionals.find(p => p.id === professionalId);
+    if (!prof) return;
+    
+    currentModalContext = { professionalId };
+    
+    document.getElementById('currentProfName').value = prof.nome;
+    document.getElementById('newProfName').value = prof.nome;
+    
+    document.getElementById('editProfessionalNameModal').style.display = 'block';
+    document.getElementById('newProfName').focus();
+}
+
 function closeModal(id) {
     // Salva o estado do checkbox antes de fechar o modal de gerenciamento
     if (id === 'manageCellProfessionalsModal') {
@@ -1346,6 +1361,7 @@ window.addEventListener("click", e => {
     if (e.target === document.getElementById("loginModal")) closeModal("loginModal");
     if (e.target === document.getElementById("registerProfessionalModal")) closeModal("registerProfessionalModal");
     if (e.target === document.getElementById("manageDaysOffModal")) closeModal("manageDaysOffModal");
+    if (e.target === document.getElementById("editProfessionalNameModal")) closeModal("editProfessionalNameModal");
     if (e.target === document.getElementById("createGroupModal")) closeModal("createGroupModal");
     if (e.target === document.getElementById("manageCellProfessionalsModal")) closeModal("manageCellProfessionalsModal");
 });
@@ -1543,6 +1559,57 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         
+    });
+
+    // Editar nome do profissional
+    document.getElementById("editProfessionalNameForm").addEventListener("submit", e => {
+        e.preventDefault();
+        const { professionalId } = currentModalContext;
+        const prof = masterProfessionals.find(p => p.id === professionalId);
+        if (!prof) return;
+        
+        const newName = document.getElementById('newProfName').value.trim().toUpperCase();
+        
+        if (!newName) {
+            alert('Por favor, digite um nome válido.');
+            return;
+        }
+        
+        if (newName === prof.nome) {
+            alert('O nome não foi alterado.');
+            closeModal('editProfessionalNameModal');
+            return;
+        }
+        
+        // Verifica se já existe um profissional com esse nome
+        const existingProf = masterProfessionals.find(p => p.id !== professionalId && p.nome === newName);
+        if (existingProf) {
+            alert('Já existe um profissional com esse nome. Por favor, escolha outro nome.');
+            return;
+        }
+        
+        const oldName = prof.nome;
+        prof.nome = newName;
+        
+        saveProfessional(prof).then(() => {
+            console.log('✅ Nome do profissional atualizado e salvo no Firebase');
+            
+            renderMasterProfessionalsList();
+            if (window.currentSelectedProfessionalId === professionalId) {
+                showProfessionalDetails(professionalId);
+            }
+            
+            // Atualiza todas as visualizações que podem mostrar o nome do profissional
+            updateGradeView();
+            
+            closeModal('editProfessionalNameModal');
+            alert(`Nome alterado de "${oldName}" para "${newName}" com sucesso!`);
+            
+        }).catch(error => {
+            console.error('❌ Erro ao salvar novo nome:', error);
+            prof.nome = oldName; // Reverte a mudança em caso de erro
+            alert('Erro ao salvar novo nome. Tente novamente.');
+        });
     });
 
     document.getElementById("createGroupForm").addEventListener("submit", e => {
@@ -2349,13 +2416,15 @@ function renderMasterProfessionalsList() {
         item.innerHTML = `
             <button class="btn-remove-professional" onclick="removeMasterProfessional(${prof.id})" title="Remover profissional">×</button>
             <button class="btn-manage-days-off" onclick="openManageDaysOffModal(${prof.id})" title="Gerenciar folgas">🏖️</button>
+            <button class="btn-edit-professional-name" onclick="openEditProfessionalNameModal(${prof.id})" title="Editar nome">✏️</button>
             <strong>${prof.nome}</strong><br>
             <span>${prof.categoria}</span>
             ${daysOffText}
         `;
         item.onclick = (e) => {
             if (!e.target.classList.contains('btn-remove-professional') && 
-                !e.target.classList.contains('btn-manage-days-off')) {
+                !e.target.classList.contains('btn-manage-days-off') &&
+                !e.target.classList.contains('btn-edit-professional-name')) {
                 showProfessionalDetails(prof.id);
             }
         };

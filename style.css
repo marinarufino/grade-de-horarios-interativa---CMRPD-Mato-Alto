@@ -940,6 +940,33 @@ body {
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
+.btn-edit-professional-name {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    position: absolute;
+    top: 8px;
+    right: 72px;
+    transition: all 0.2s ease;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.btn-edit-professional-name:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
 .days-off-indicator {
     display: block;
     margin-top: 4px;

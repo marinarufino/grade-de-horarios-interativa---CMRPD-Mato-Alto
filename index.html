@@ -237,6 +237,29 @@
     </div>
 </div>
 
+<!-- Modal: Editar Nome do Profissional -->
+<div id="editProfessionalNameModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">✏️ Editar Nome do Profissional</h2>
+        </div>
+        <form id="editProfessionalNameForm">
+            <div class="form-group">
+                <label>Nome Atual:</label>
+                <input type="text" id="currentProfName" readonly disabled>
+            </div>
+            <div class="form-group">
+                <label>Novo Nome:</label>
+                <input type="text" id="newProfName" required>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" onclick="closeModal('editProfessionalNameModal')">Cancelar</button>
+                <button type="submit" class="btn-confirm">Salvar Nome</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal: Gerenciar Profissionais do Grupo -->
 <div id="manageCellProfessionalsModal" class="modal">
     <div class="modal-content">
