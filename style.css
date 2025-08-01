@@ -3041,6 +3041,19 @@ html.editing-mode .grade-container {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Formatação para título e corpo do conteúdo editável */
+.content-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.content-body {
+    font-style: italic;
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
 .cell-edit-indicator {
     position: absolute;
     top: 2px;
@@ -3061,7 +3074,7 @@ html.editing-mode .grade-container {
 
 /* Indicação visual para células editáveis vazias */
 .empty-cell.editable-professional-cell::after {
-    content: "Clique para editar";
+    content: "Digite: Título + Enter + Texto";
     position: absolute;
     top: 50%;
     left: 50%;

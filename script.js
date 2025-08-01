@@ -1158,8 +1158,9 @@ function generateProfessionalGrid(professional) {
                         }
                     }
                     
-                    // Conteúdo editável (grupo e usuários)
-                    gridHTML += `<div class="spreadsheet-cell-content" contenteditable="false">${editableContent.replace(/\n/g, '<br>')}</div>`;
+                    // Conteúdo editável (grupo e usuários) com formatação de título e corpo
+                    const formattedContent = formatContentWithTitleAndBody(editableContent);
+                    gridHTML += `<div class="spreadsheet-cell-content" contenteditable="false">${formattedContent}</div>`;
                     
                     // Lista de profissionais (protegida, não editável)
                     if (professionalContent) {
@@ -2916,7 +2917,8 @@ function makeSpreadsheetCellEditable(cell) {
                 });
             }
             
-            contentDiv.innerHTML = editableContent.replace(/\n/g, '<br>');
+            const formattedContent = formatContentWithTitleAndBody(editableContent);
+            contentDiv.innerHTML = formattedContent;
             
             // Desbloqueia após operação
             setTimeout(() => {
@@ -2940,6 +2942,43 @@ function saveSpreadsheetCellContent(cell, contentDiv) {
     // Processa o conteúdo
     const content = contentDiv.innerText || contentDiv.textContent;
     processCellContent(profId, day, timeSlot, content);
+}
+
+// Função para formatar conteúdo com título e corpo
+function formatContentWithTitleAndBody(content) {
+    if (!content || content.trim() === '') return '';
+    
+    const lines = content.split('\n');
+    if (lines.length === 0) return '';
+    
+    let formattedHTML = '';
+    let isFirstLine = true;
+    
+    lines.forEach((line, index) => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return; // Pula linhas vazias
+        
+        if (isFirstLine && !trimmedLine.startsWith('👤') && !trimmedLine.startsWith('📋')) {
+            // Primeira linha como título (se não for emoji especial)
+            formattedHTML += `<div class="content-title">${trimmedLine}</div>`;
+            isFirstLine = false;
+        } else {
+            // Resto como corpo em itálico
+            if (formattedHTML && !formattedHTML.endsWith('</div>')) {
+                formattedHTML += '<br>';
+            }
+            if (trimmedLine.startsWith('👤') || trimmedLine.startsWith('📋')) {
+                // Mantém formatação especial para emojis
+                formattedHTML += `<div class="content-body">${trimmedLine}</div>`;
+            } else {
+                // Texto normal do corpo em itálico
+                formattedHTML += `<div class="content-body">${trimmedLine}</div>`;
+            }
+            isFirstLine = false;
+        }
+    });
+    
+    return formattedHTML;
 }
 
 function processCellContent(profId, day, timeSlot, content) {
@@ -3687,8 +3726,8 @@ function generateGroupBlock(day, groupId, group) {
     // Se existe texto livre, usa ele diretamente
     let displayContent = '';
     if (group.freeTextContent) {
-        // Converte quebras de linha em <br> para exibição HTML
-        displayContent = group.freeTextContent.replace(/\n/g, '<br>');
+        // Usa formatação com título e corpo
+        displayContent = formatContentWithTitleAndBody(group.freeTextContent);
     } else {
         // Usa a lógica anterior para compatibilidade
         let groupName = '';
@@ -3741,8 +3780,8 @@ function generateOriginalGroupBlock(day, groupId, group) {
     // Se existe texto livre, usa ele diretamente
     let displayContent = '';
     if (group.freeTextContent) {
-        // Converte quebras de linha em <br> para exibição HTML
-        displayContent = group.freeTextContent.replace(/\n/g, '<br>');
+        // Usa formatação com título e corpo
+        displayContent = formatContentWithTitleAndBody(group.freeTextContent);
     } else {
         // Usa a lógica anterior para compatibilidade
         let groupName = '';
@@ -3881,8 +3920,8 @@ function generateStaticGroupCell(day, groupId, activity) {
     // Se existe texto livre, usa ele diretamente
     let displayContent = '';
     if (group.freeTextContent) {
-        // Converte quebras de linha em <br> para exibição HTML
-        displayContent = group.freeTextContent.replace(/\n/g, '<br>');
+        // Usa formatação com título e corpo
+        displayContent = formatContentWithTitleAndBody(group.freeTextContent);
     } else {
         // Usa a lógica anterior para compatibilidade
         let groupName = '';
@@ -3965,7 +4004,7 @@ function generateEditableGroupCell(day, groupId, activity) {
     return `
         <div class="editable-group-cell" data-group-id="${groupId}">
             <div class="edit-content">
-                <textarea class="edit-group-content" placeholder="Digite qualquer texto aqui...">${currentContent}</textarea>
+                <textarea class="edit-group-content" placeholder="Linha 1: Título (negrito)&#10;Linha 2+: Texto (itálico)&#10;&#10;Exemplo:&#10;Terapia em Grupo&#10;Trabalho de coordenação motora">${currentContent}</textarea>
                 
                 <div class="professionals-management">
                     <label><strong>Profissionais:</strong></label>
@@ -4373,7 +4412,7 @@ function createNewGroupInCell(day, timeSlot, professionalId) {
             };
             
             textarea.focus({ preventScroll: true });
-            textarea.placeholder = 'Digite o nome do grupo e usuários...';
+            textarea.placeholder = 'Linha 1: Título (negrito)\nLinhas 2+: Texto (itálico)';
             
             // Força posição após focus
             setTimeout(() => {
