@@ -678,7 +678,6 @@ function updateGradeView() {
     const selectedCategory = document.getElementById('categoryFilter').value;
     const selectedWeekday = document.getElementById('gradeWeekdayFilter').value;
     const gradeContent = document.getElementById('grade-content');
-    console.log('Filtros selecionados:', { selectedCategory, selectedWeekday });
     
     // Armazena o dia selecionado para uso em outras funções
     currentGradeSelectedDay = selectedWeekday;
@@ -1159,16 +1158,16 @@ function generateProfessionalGrid(professional) {
                                     gridHTML += `<div class="professional-item-inline">
                                         <span class="prof-name">👨‍⚕️ ${prof.nome}</span>
                                         <button class="btn-remove-prof-inline" 
-                                                onclick="removeProfessionalFromGroupInline('${day}', '${activities[0].groupId}', ${profId}, event)" 
+                                                data-day="${day}" data-groupid="${activities[0].groupId}" data-profid="${profId}"
                                                 title="Remover profissional">❌</button>
                                     </div>`;
                                 }
                             });
                         }
                         
-                        // Botão para adicionar profissional
+                        // Botão para adicionar profissional (será convertido para event listener seguro)
                         gridHTML += `<button class="btn-add-prof-inline" 
-                                   onclick="openAddProfessionalInline('${day}', '${activities[0].groupId}', event)" 
+                                   data-day="${day}" data-groupid="${activities[0].groupId}"
                                    title="Adicionar profissional">➕</button>`;
                         
                         gridHTML += `</div>`;
@@ -2623,10 +2622,15 @@ function makeSpreadsheetCellEditable(cell) {
     selection.removeAllRanges();
     selection.addRange(range);
     
-    // Event listeners para salvar
-    contentDiv.addEventListener('blur', function() {
-        saveSpreadsheetCellContent(cell, contentDiv);
-    });
+    // Event listeners para salvar - com proteção para não interferir com operações de profissionais
+    const blurHandler = function() {
+        // Verifica se não há operações de profissionais em andamento
+        if (!document.getElementById('tempProfSelect')) {
+            saveSpreadsheetCellContent(cell, contentDiv);
+        }
+    };
+    
+    contentDiv.addEventListener('blur', blurHandler);
     
     contentDiv.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -2635,8 +2639,31 @@ function makeSpreadsheetCellEditable(cell) {
         }
         if (e.key === 'Escape') {
             e.preventDefault();
-            // Cancela edição - recarrega conteúdo original
-            updateGradeView();
+            // Cancela edição - restaura conteúdo original sem recarregar toda a grade
+            contentDiv.contentEditable = 'false';
+            cell.classList.remove('editing');
+            // Apenas atualiza esta célula específica
+            const day = cell.dataset.day;
+            const profId = parseInt(cell.dataset.profId);
+            const timeSlot = cell.dataset.time;
+            
+            // Recarrega apenas o conteúdo desta célula
+            const activities = getProfessionalActivitiesAtTime(profId, day, timeSlot);
+            let editableContent = '';
+            
+            if (activities.length > 0) {
+                activities.forEach(activity => {
+                    if (activity.groupName) {
+                        editableContent += `📋 ${activity.groupName}`;
+                    }
+                    if (activity.userNames) {
+                        const users = activity.userNames.replace('👤 Usuários: ', '');
+                        editableContent += `\n👤 ${users}`;
+                    }
+                });
+            }
+            
+            contentDiv.innerHTML = editableContent.replace(/\n/g, '<br>');
         }
     });
 }
@@ -3321,6 +3348,16 @@ function renderGradeByCategory(category) {
     
     html += '</div>';
     container.innerHTML = html;
+    
+    // Anexa event listeners seguros aos botões que foram criados sem onclick inline
+    attachSafeEventListeners();
+}
+
+// Função para anexar event listeners seguros aos botões criados dinamicamente
+function attachSafeEventListeners() {
+    // Esta função foi criada para o sistema inline, mas você está usando o sistema de edição por grupo
+    // que já funciona corretamente com as funções addProfToGroup() e removeProfFromGroup()
+    // Por isso não há botões inline para processar - isso é normal!
 }
 
 // Renderiza grade filtrada por dia da semana (vista original)
@@ -3843,9 +3880,14 @@ function addProfToGroup(day, groupId, profId) {
     const prof = masterProfessionals.find(p => p.id == profId);
     if (!prof) return;
     
+    // Salva o conteúdo editável antes da operação
+    saveCurrentEditableContent();
+    
     // Verifica conflito
     if (checkProfessionalTimeConflict(profId, day, group.horario)) {
         if (!confirm(`${prof.nome} já está ocupado(a) na ${dayNames[day]} às ${group.horario}. Deseja adicionar mesmo assim?`)) {
+            // Restaura o conteúdo se cancelou
+            setTimeout(() => restoreEditableContent(), 50);
             return;
         }
     }
@@ -3853,7 +3895,22 @@ function addProfToGroup(day, groupId, profId) {
     if (!group.profissionais) group.profissionais = [];
     if (!group.profissionais.includes(parseInt(profId))) {
         group.profissionais.push(parseInt(profId));
-        updateGradeView(); // Recarrega para mostrar a mudança
+        
+        // Salva no Firebase antes de atualizar
+        saveScheduleData().then(() => {
+            updateGradeView(); // Recarrega para mostrar a mudança
+            // Restaura o conteúdo editável após recarregar
+            setTimeout(() => restoreEditableContent(), 100);
+        }).catch(error => {
+            console.error('❌ Erro ao salvar profissional:', error);
+            // Remove o profissional que foi adicionado em caso de erro
+            const index = group.profissionais.indexOf(parseInt(profId));
+            if (index !== -1) {
+                group.profissionais.splice(index, 1);
+            }
+            // Restaura o conteúdo mesmo em caso de erro
+            setTimeout(() => restoreEditableContent(), 50);
+        });
     }
 }
 
@@ -3864,10 +3921,32 @@ function removeProfFromGroup(day, groupId, profId) {
     const group = scheduleData[day]?.[groupId];
     if (!group || !group.profissionais) return;
     
+    const prof = masterProfessionals.find(p => p.id === parseInt(profId));
+    if (!prof) return;
+    
+    if (!confirm(`Tem certeza que deseja remover ${prof.nome} deste grupo?`)) {
+        return;
+    }
+    
+    // Salva o conteúdo editável antes da operação
+    saveCurrentEditableContent();
+    
     const index = group.profissionais.indexOf(parseInt(profId));
     if (index !== -1) {
         group.profissionais.splice(index, 1);
-        updateGradeView(); // Recarrega para mostrar a mudança
+        
+        // Salva no Firebase antes de atualizar
+        saveScheduleData().then(() => {
+            updateGradeView(); // Recarrega para mostrar a mudança
+            // Restaura o conteúdo editável após recarregar
+            setTimeout(() => restoreEditableContent(), 100);
+        }).catch(error => {
+            console.error('❌ Erro ao salvar profissional:', error);
+            // Restaura o profissional em caso de erro
+            group.profissionais.splice(index, 0, parseInt(profId));
+            // Restaura o conteúdo mesmo em caso de erro
+            setTimeout(() => restoreEditableContent(), 50);
+        });
     }
 }
 
@@ -4007,4 +4086,356 @@ function createNewGroupInCell(day, timeSlot, professionalId) {
     }, 100);
     
     console.log(`📝 Novo grupo criado em ${dayNames[day]} às ${timeSlot} para profissional ${professionalId}`);
+}
+
+// Funções para gerenciamento inline de profissionais na grade de visualização por categoria
+
+// Variável global para armazenar temporariamente o conteúdo das caixas de texto durante operações
+window.temporaryTextContent = {};
+
+function saveCurrentEditableContent() {
+    // Salva o conteúdo de todas as caixas de texto editáveis atualmente abertas
+    const editableCells = document.querySelectorAll('.spreadsheet-cell-content[contenteditable="true"]');
+    const editableTextareas = document.querySelectorAll('.edit-group-content');
+    
+    console.log('🔍 DEBUG: Salvando conteúdo editável. Células contentEditable:', editableCells.length, 'Textareas:', editableTextareas.length);
+    
+    // Salva células contentEditable (sistema antigo)
+    editableCells.forEach(cell => {
+        const parentCell = cell.closest('[data-prof-id][data-day][data-time]');
+        if (parentCell) {
+            const key = `cell-${parentCell.dataset.day}-${parentCell.dataset.profId}-${parentCell.dataset.time}`;
+            const content = cell.innerHTML;
+            window.temporaryTextContent[key] = content;
+            console.log(`💾 DEBUG: Salvando conteúdo de célula para ${key}:`, content);
+        }
+    });
+    
+    // Salva textareas (sistema novo)
+    editableTextareas.forEach(textarea => {
+        const parentCell = textarea.closest('[data-group-id]');
+        if (parentCell) {
+            const groupId = parentCell.dataset.groupId;
+            const key = `textarea-${groupId}`;
+            const content = textarea.value;
+            window.temporaryTextContent[key] = content;
+            console.log(`💾 DEBUG: Salvando conteúdo de textarea para ${key}:`, content);
+        }
+    });
+    
+    console.log('📦 DEBUG: Conteúdo temporário total:', window.temporaryTextContent);
+}
+
+function restoreEditableContent() {
+    // Restaura o conteúdo das caixas de texto editáveis
+    console.log('🔄 DEBUG: Restaurando conteúdo editável. Itens para restaurar:', Object.keys(window.temporaryTextContent));
+    
+    Object.keys(window.temporaryTextContent).forEach(key => {
+        const content = window.temporaryTextContent[key];
+        
+        if (key.startsWith('cell-')) {
+            // Restaura células contentEditable (sistema antigo)
+            const [, day, profId, time] = key.split('-');
+            const cell = document.querySelector(`[data-day="${day}"][data-prof-id="${profId}"][data-time="${time}"] .spreadsheet-cell-content`);
+            
+            console.log(`🔍 DEBUG: Buscando célula para ${key}:`, cell);
+            
+            if (cell) {
+                const wasEditable = cell.contentEditable === 'true';
+                cell.innerHTML = content;
+                console.log(`✅ DEBUG: Restaurado conteúdo de célula para ${key} (editável: ${wasEditable}):`, content);
+                
+                // Se a célula estava editável, mantém editável
+                if (wasEditable) {
+                    cell.contentEditable = 'true';
+                    cell.focus();
+                }
+            } else {
+                console.log(`❌ DEBUG: Célula não encontrada para ${key}`);
+            }
+        } else if (key.startsWith('textarea-')) {
+            // Restaura textareas (sistema novo)
+            const groupId = key.replace('textarea-', '');
+            const textarea = document.querySelector(`[data-group-id="${groupId}"] .edit-group-content`);
+            
+            console.log(`🔍 DEBUG: Buscando textarea para ${key}:`, textarea);
+            
+            if (textarea) {
+                textarea.value = content;
+                console.log(`✅ DEBUG: Restaurado conteúdo de textarea para ${key}:`, content);
+                // Mantém o foco na textarea
+                textarea.focus();
+            } else {
+                console.log(`❌ DEBUG: Textarea não encontrada para ${key}`);
+            }
+        }
+    });
+    
+    // Limpa o armazenamento temporário
+    window.temporaryTextContent = {};
+    console.log('🧹 DEBUG: Armazenamento temporário limpo');
+}
+
+function removeProfessionalFromGroupInline(day, groupId, profId, event) {
+    if (!isAuthenticated) return;
+    
+    // Previne propagação para não triggar outros eventos
+    event.stopPropagation();
+    event.preventDefault();
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group || !group.profissionais) return;
+    
+    const prof = masterProfessionals.find(p => p.id === profId);
+    if (!prof) return;
+    
+    if (!confirm(`Tem certeza que deseja remover ${prof.nome} deste grupo?`)) {
+        return;
+    }
+    
+    // Salva o conteúdo editável antes da operação
+    saveCurrentEditableContent();
+    
+    const index = group.profissionais.indexOf(profId);
+    if (index !== -1) {
+        group.profissionais.splice(index, 1);
+        
+        // Salva no Firebase
+        saveScheduleData().then(() => {
+            console.log('✅ Profissional removido do grupo (inline)');
+            // Atualiza apenas a seção específica ao invés de recarregar toda a grade
+            updateCellProfessionalsDisplay(day, groupId);
+            // Restaura o conteúdo editável
+            setTimeout(() => restoreEditableContent(), 50);
+        }).catch(error => {
+            console.error('❌ Erro ao remover profissional:', error);
+            alert('Erro ao remover profissional. Tente novamente.');
+            // Restaura o profissional
+            group.profissionais.splice(index, 0, profId);
+            // Restaura o conteúdo editável mesmo em caso de erro
+            setTimeout(() => restoreEditableContent(), 50);
+        });
+    }
+}
+
+function openAddProfessionalInline(day, groupId, event) {
+    if (!isAuthenticated) return;
+    
+    // Previne propagação para não triggar outros eventos
+    event.stopPropagation();
+    event.preventDefault();
+    
+    console.log('➕ DEBUG: openAddProfessionalInline chamada');
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    // Cria uma lista de profissionais disponíveis
+    const availableProfessionals = masterProfessionals.filter(prof => 
+        !group.profissionais?.includes(prof.id) && 
+        !isProfessionalOnDayOff(prof.id, day)
+    );
+    
+    if (availableProfessionals.length === 0) {
+        alert('Não há profissionais disponíveis para adicionar neste horário.');
+        return;
+    }
+    
+    // Salva o conteúdo editável antes da operação
+    saveCurrentEditableContent();
+    
+    // Cria um select temporário SEM onchange inline
+    const select = document.createElement('select');
+    select.id = 'tempProfSelect';
+    
+    // Adiciona opção padrão
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Selecione um profissional...';
+    select.appendChild(defaultOption);
+    
+    // Adiciona profissionais disponíveis
+    availableProfessionals.forEach(prof => {
+        const option = document.createElement('option');
+        option.value = prof.id;
+        option.textContent = `${prof.nome} (${prof.categoria})`;
+        select.appendChild(option);
+    });
+    
+    // Encontra o botão que foi clicado e substitui
+    const button = event.target;
+    const originalHTML = button.outerHTML;
+    button.parentNode.replaceChild(select, button);
+    
+    // Event listener seguro para o select
+    select.addEventListener('change', function() {
+        const profId = this.value;
+        if (profId) {
+            console.log('🔄 DEBUG: Profissional selecionado:', profId);
+            addProfessionalInlineSafe(day, groupId, profId, originalHTML);
+        }
+    });
+    
+    // Foca no select
+    select.focus();
+    
+    // Restaura o botão se o usuário sair sem selecionar
+    select.addEventListener('blur', function() {
+        if (!this.value) {
+            console.log('❌ DEBUG: Cancelando adição de profissional');
+            this.outerHTML = originalHTML;
+            // Restaura o conteúdo editável se cancelou
+            setTimeout(() => restoreEditableContent(), 50);
+        }
+    });
+}
+
+function addProfessionalInline(day, groupId, profId) {
+    // Esta função é mantida para compatibilidade, mas agora redireciona para a versão segura
+    console.log('⚠️ DEBUG: addProfessionalInline (antiga) chamada. Redirecionando...');
+    addProfessionalInlineSafe(day, groupId, profId, null);
+}
+
+function addProfessionalInlineSafe(day, groupId, profId, originalButtonHTML) {
+    if (!profId || !isAuthenticated) return;
+    
+    console.log('✅ DEBUG: addProfessionalInlineSafe chamada com:', {day, groupId, profId});
+    
+    const group = scheduleData[day]?.[groupId];
+    if (!group) return;
+    
+    const prof = masterProfessionals.find(p => p.id == profId);
+    if (!prof) return;
+    
+    // Verifica conflito
+    if (checkProfessionalTimeConflict(profId, day, group.horario)) {
+        if (!confirm(`${prof.nome} já está ocupado(a) na ${dayNames[day]} às ${group.horario}. Deseja adicionar mesmo assim?`)) {
+            // Restaura o botão original
+            const select = document.getElementById('tempProfSelect');
+            if (select && originalButtonHTML) {
+                select.outerHTML = originalButtonHTML;
+            }
+            // Restaura o conteúdo editável se cancelou
+            setTimeout(() => restoreEditableContent(), 50);
+            return;
+        }
+    }
+    
+    if (!group.profissionais) group.profissionais = [];
+    if (!group.profissionais.includes(parseInt(profId))) {
+        group.profissionais.push(parseInt(profId));
+        
+        console.log('💾 DEBUG: Salvando no Firebase...');
+        
+        // Salva no Firebase
+        saveScheduleData().then(() => {
+            console.log('✅ DEBUG: Profissional adicionado ao grupo (inline safe)');
+            
+            // Remove o select e restaura o botão com o novo profissional
+            const select = document.getElementById('tempProfSelect');
+            if (select) {
+                // Cria um novo botão ➕ diretamente no DOM
+                const newButton = document.createElement('button');
+                newButton.className = 'btn-add-prof-inline';
+                newButton.title = 'Adicionar profissional';
+                newButton.textContent = '➕';
+                newButton.onclick = function(event) {
+                    openAddProfessionalInline(day, groupId, event);
+                };
+                
+                select.parentNode.replaceChild(newButton, select);
+            }
+            
+            // Atualiza apenas a seção específica ao invés de recarregar toda a grade
+            updateCellProfessionalsDisplaySafe(day, groupId);
+            
+            // Restaura o conteúdo editável
+            setTimeout(() => restoreEditableContent(), 50);
+            
+        }).catch(error => {
+            console.error('❌ DEBUG: Erro ao adicionar profissional:', error);
+            alert('Erro ao adicionar profissional. Tente novamente.');
+            // Remove o profissional que foi adicionado
+            const index = group.profissionais.indexOf(parseInt(profId));
+            if (index !== -1) {
+                group.profissionais.splice(index, 1);
+            }
+            // Restaura o conteúdo editável mesmo em caso de erro
+            setTimeout(() => restoreEditableContent(), 50);
+        });
+    }
+}
+
+function updateCellProfessionalsDisplay(day, groupId) {
+    console.log('⚠️ DEBUG: updateCellProfessionalsDisplay (antiga) chamada. Redirecionando...');
+    updateCellProfessionalsDisplaySafe(day, groupId);
+}
+
+function updateCellProfessionalsDisplaySafe(day, groupId) {
+    console.log('🔄 DEBUG: updateCellProfessionalsDisplaySafe chamada para:', {day, groupId});
+    
+    // Encontra especificamente as células que contêm este grupo
+    const allCells = document.querySelectorAll('[data-day]');
+    
+    allCells.forEach(cell => {
+        if (cell.dataset.day !== day) return;
+        
+        // Procura por elementos que referenciam este groupId específico
+        const profListElements = cell.querySelectorAll('.cell-professionals-list');
+        const manageButtons = cell.querySelectorAll(`[onclick*="'${groupId}'"]`);
+        
+        // Se esta célula contém referências a este grupo, atualiza apenas a lista de profissionais
+        if (profListElements.length > 0 || manageButtons.length > 0) {
+            const profListElement = cell.querySelector('.cell-professionals-list');
+            if (!profListElement) return;
+            
+            console.log('📝 DEBUG: Atualizando lista de profissionais para célula');
+            
+            // Limpa a lista atual
+            profListElement.innerHTML = '';
+            
+            // Reconstrói apenas a lista de profissionais usando DOM manipulation (não innerHTML)
+            const group = scheduleData[day]?.[groupId];
+            if (group && group.profissionais && !group.ocultarProfissionais) {
+                
+                group.profissionais.forEach(profId => {
+                    const prof = masterProfessionals.find(p => p.id === profId);
+                    if (prof) {
+                        // Cria elemento do profissional
+                        const profDiv = document.createElement('div');
+                        profDiv.className = 'professional-item-inline';
+                        
+                        const profSpan = document.createElement('span');
+                        profSpan.className = 'prof-name';
+                        profSpan.textContent = `👨‍⚕️ ${prof.nome}`;
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'btn-remove-prof-inline';
+                        removeBtn.title = 'Remover profissional';
+                        removeBtn.textContent = '❌';
+                        removeBtn.onclick = function(event) {
+                            removeProfessionalFromGroupInline(day, groupId, profId, event);
+                        };
+                        
+                        profDiv.appendChild(profSpan);
+                        profDiv.appendChild(removeBtn);
+                        profListElement.appendChild(profDiv);
+                    }
+                });
+            }
+            
+            // Adiciona botão para adicionar profissional usando DOM manipulation
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn-add-prof-inline';
+            addBtn.title = 'Adicionar profissional';
+            addBtn.textContent = '➕';
+            addBtn.onclick = function(event) {
+                openAddProfessionalInline(day, groupId, event);
+            };
+            
+            profListElement.appendChild(addBtn);
+            
+            console.log('✅ DEBUG: Lista de profissionais atualizada');
+        }
+    });
 }
