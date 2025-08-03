@@ -4827,6 +4827,7 @@ function initMobileTimeColumnFix() {
                 timeColumns.forEach(col => {
                     // Usar transform para mover a coluna junto com o scroll
                     col.style.transform = `translateX(${scrollLeft}px)`;
+                    col.style.zIndex = '50'; // Menor que header (101) para não sobrepor
                     col.classList.add('fixed-column');
                 });
             };

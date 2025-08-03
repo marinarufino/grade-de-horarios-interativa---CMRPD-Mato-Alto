@@ -3983,7 +3983,7 @@ html.editing-mode .grade-container {
     
     .time-column.fixed-column {
         position: relative;
-        z-index: 1000;
+        z-index: 50 !important; /* Menor que header (101) para não sobrepor */
         background: white;
         box-shadow: 2px 0 8px rgba(0,0,0,0.2);
     }
