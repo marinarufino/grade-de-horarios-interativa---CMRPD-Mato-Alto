@@ -3399,7 +3399,7 @@ function renderOrientacaoGrid() {
     if (!container) return;
     
     let html = `
-        <table class="orientacao-table">
+        <table class="orientacao-table" style="min-width: 800px !important;">
             <thead>
                 <tr>
                     <th>Horário</th>

@@ -2664,6 +2664,24 @@ html.editing-mode .grade-container {
     }
 }
 
+/* Scroll horizontal para orientação parental - MOBILE */
+@media (max-width: 768px) {
+    .orientacao-table th:first-child,
+    .orientacao-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: linear-gradient(135deg, #4f46e5, #3b82f6);
+        color: white;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+    }
+    
+    .orientacao-table th:first-child {
+        background: linear-gradient(135deg, #13335a, #1e4a73);
+        z-index: 11;
+    }
+}
+
 /* ESTILOS PARA A INTEGRAÇÃO DA GRADE COM MANIPULAÇÃO */
 
 .grade-actions {
@@ -4013,9 +4031,34 @@ html.editing-mode .grade-container {
         }
     }
     
+    // Função para orientação parental
+    function initOrientacaoMobileScroll() {
+        if (window.innerWidth <= 768) {
+            const orientacaoContainer = document.querySelector('.orientacao-container');
+            
+            if (orientacaoContainer) {
+                orientacaoContainer.addEventListener('scroll', function() {
+                    const timeColumns = orientacaoContainer.querySelectorAll('.orientacao-table th:first-child, .orientacao-table td:first-child');
+                    const scrollLeft = orientacaoContainer.scrollLeft;
+                    
+                    timeColumns.forEach(col => {
+                        col.style.transform = `translateX(${scrollLeft}px)`;
+                        col.style.position = 'relative';
+                        col.style.zIndex = '10';
+                        col.style.background = col.tagName === 'TH' ? 'linear-gradient(135deg, #13335a, #1e4a73)' : 'linear-gradient(135deg, #4f46e5, #3b82f6)';
+                        col.style.color = 'white';
+                        col.style.boxShadow = '2px 0 5px rgba(0,0,0,0.1)';
+                    });
+                });
+            }
+        }
+    }
+    
     // Executar quando DOM estiver pronto
     document.addEventListener('DOMContentLoaded', initMobileTimeColumnFix);
+    document.addEventListener('DOMContentLoaded', initOrientacaoMobileScroll);
     window.addEventListener('resize', initMobileTimeColumnFix);
+    window.addEventListener('resize', initOrientacaoMobileScroll);
     
     */
     
