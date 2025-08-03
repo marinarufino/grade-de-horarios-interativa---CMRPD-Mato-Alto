@@ -9,6 +9,7 @@ body {
     background: #115d7e;
     min-height: 100vh;
     padding: 10px; /* reduzido para mobile */
+    touch-action: pinch-zoom; /* Permite especificamente pinch-zoom */
 }
 
 .container {
