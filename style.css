@@ -2664,21 +2664,11 @@ html.editing-mode .grade-container {
     }
 }
 
-/* Scroll horizontal para orientação parental - MOBILE */
+/* Preparar coluna para ser fixa via JavaScript - MOBILE */
 @media (max-width: 768px) {
     .orientacao-table th:first-child,
     .orientacao-table td:first-child {
-        position: sticky;
-        left: 0;
-        z-index: 10;
-        background: linear-gradient(135deg, #4f46e5, #3b82f6);
-        color: white;
-        box-shadow: 2px 0 4px rgba(0,0,0,0.1);
-    }
-    
-    .orientacao-table th:first-child {
-        background: linear-gradient(135deg, #13335a, #1e4a73);
-        z-index: 11;
+        transition: transform 0.1s ease-out;
     }
 }
 

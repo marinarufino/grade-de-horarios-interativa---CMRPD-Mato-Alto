@@ -3439,6 +3439,17 @@ function renderOrientacaoGrid() {
     html += `</tbody></table>`;
     container.innerHTML = html;
     
+    // Adicionar scroll listener para coluna fixa (mobile)
+    if (window.innerWidth <= 768) {
+        const orientacaoContainer = document.querySelector('.orientacao-container');
+        if (orientacaoContainer) {
+            // Remove listener anterior se existir
+            orientacaoContainer.removeEventListener('scroll', handleOrientacaoScroll);
+            // Adiciona novo listener
+            orientacaoContainer.addEventListener('scroll', handleOrientacaoScroll);
+        }
+    }
+    
     // Aplica o tamanho correto da fonte para campos já preenchidos
     setTimeout(() => {
         const cells = container.querySelectorAll('.orientacao-cell');
@@ -3652,6 +3663,13 @@ function renderGradeByCategory(category) {
     html += '</div>';
     container.innerHTML = html;
     
+    // Inicializar coluna fixa para mobile após renderizar grade por categoria
+    setTimeout(() => {
+        if (window.innerWidth <= 768) {
+            initMobileTimeColumnFix();
+        }
+    }, 100);
+    
     // Anexa event listeners seguros aos botões que foram criados sem onclick inline
     attachSafeEventListeners();
 }
@@ -3725,6 +3743,13 @@ function renderGradeByDay(day) {
     `;
     
     container.innerHTML = html;
+    
+    // Inicializar coluna fixa para mobile após renderizar
+    setTimeout(() => {
+        if (window.innerWidth <= 768) {
+            initMobileTimeColumnFix();
+        }
+    }, 100);
 }
 
 // Gera bloco de grupo para visualização por dia
@@ -3860,7 +3885,7 @@ function generateProfessionalGridWithEditSystem(professional) {
     `;
     
     timeSlots.forEach(timeSlot => {
-        gridHTML += `<tr><td>${timeSlot}</td>`;
+        gridHTML += `<tr><td class="time-column">${timeSlot}</td>`;
         
         days.forEach(day => {
             const activities = getProfessionalActivitiesAtTime(professional.id, day, timeSlot);
@@ -4832,4 +4857,23 @@ if (originalUpdateGradeView) {
         // Aguardar um pouco para garantir que DOM foi atualizado
         setTimeout(initMobileTimeColumnFix, 100);
     };
+}
+
+// Função para manter coluna de horários fixa na orientação parental (mobile)
+function handleOrientacaoScroll() {
+    const orientacaoContainer = document.querySelector('.orientacao-container');
+    if (!orientacaoContainer) return;
+    
+    const scrollLeft = orientacaoContainer.scrollLeft;
+    const timeColumns = orientacaoContainer.querySelectorAll('.orientacao-table th:first-child, .orientacao-table td:first-child');
+    
+    timeColumns.forEach(col => {
+        col.style.transform = `translateX(${scrollLeft}px)`;
+        col.style.position = 'relative';
+        col.style.zIndex = '10';
+        col.style.background = col.tagName === 'TH' ? 'linear-gradient(135deg, #13335a, #1e4a73)' : 'linear-gradient(135deg, #4f46e5, #3b82f6)';
+        col.style.color = 'white';
+        col.style.boxShadow = '2px 0 5px rgba(0,0,0,0.1)';
+        col.style.borderRight = '2px solid #ffffff';
+    });
 }
